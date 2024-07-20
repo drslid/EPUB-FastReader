@@ -6,6 +6,7 @@
     <title>Convertisseur EPUB pour lecture rapide</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
@@ -28,7 +29,14 @@
                         file:bg-blue-50 file:text-blue-700
                         hover:file:bg-blue-100">
                 </div>
-                <button onclick="convertToBionic()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300">
+                <div class="mb-6">
+                    <label for="outputFormat" class="block text-sm font-medium text-gray-700 mb-2">Format de sortie</label>
+                    <select id="outputFormat" class="block w-full mt-1 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <option value="epub">EPUB</option>
+                        <option value="pdf">PDF</option>
+                    </select>
+                </div>
+                <button onclick="convertFiles()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300">
                     Convertir et télécharger
                 </button>
                 <div id="status" class="mt-6 text-center text-gray-600"></div>
@@ -44,8 +52,9 @@
     </footer>
 
     <script>
-        async function convertToBionic() {
+        async function convertFiles() {
             const fileInput = document.getElementById('epubFiles');
+            const outputFormat = document.getElementById('outputFormat').value;
             const statusDiv = document.getElementById('status');
             const downloadLinksDiv = document.getElementById('downloadLinks');
 
@@ -63,17 +72,23 @@
                     const arrayBuffer = await file.arrayBuffer();
                     const zip = await JSZip.loadAsync(arrayBuffer);
                     
+                    let convertedContent = '';
                     for (let filename in zip.files) {
                         if (filename.endsWith('.xhtml') || filename.endsWith('.html')) {
                             let content = await zip.file(filename).async("string");
-                            content = toBionic(content);
-                            zip.file(filename, content);
+                            convertedContent += toBionic(content);
                         }
                     }
 
-                    const newEpub = await zip.generateAsync({type:"blob"});
-                    const downloadLink = createDownloadLink(newEpub, `bionic_${file.name}`);
-                    downloadLinksDiv.appendChild(downloadLink);
+                    if (outputFormat === 'epub') {
+                        const newEpub = await zip.generateAsync({type:"blob"});
+                        const downloadLink = createDownloadLink(newEpub, `bionic_${file.name}`);
+                        downloadLinksDiv.appendChild(downloadLink);
+                    } else if (outputFormat === 'pdf') {
+                        const pdf = await convertToPDF(convertedContent, file.name);
+                        const downloadLink = createDownloadLink(pdf, `bionic_${file.name.replace('.epub', '.pdf')}`);
+                        downloadLinksDiv.appendChild(downloadLink);
+                    }
                 } catch (error) {
                     console.error(`Erreur lors de la conversion de ${file.name}:`, error);
                     const errorP = document.createElement('p');
@@ -127,6 +142,72 @@
             a.textContent = `Télécharger ${fileName}`;
             a.className = 'block w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300';
             return a;
+        }
+
+        async function convertToPDF(content, fileName) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(content, 'text/html');
+            
+            // Appliquer le format bionic à chaque noeud de texte
+            const textNodes = getTextNodes(htmlDoc.body);
+            textNodes.forEach(node => {
+                const words = node.textContent.split(/\s+/);
+                const bionicWords = words.map(word => {
+                    if (word.length === 1) return word;
+                    const boldPart = word.slice(0, Math.ceil(word.length / 2));
+                    const normalPart = word.slice(Math.ceil(word.length / 2));
+                    return `${boldPart}${normalPart}`;
+                });
+                node.textContent = bionicWords.join(' ');
+            });
+
+            const textContent = htmlDoc.body.textContent;
+
+            // Fonction pour dessiner du texte en gras
+            function drawBoldText(text, x, y) {
+                doc.setFont(undefined, 'bold');
+                doc.text(text, x, y);
+                doc.setFont(undefined, 'normal');
+            }
+
+            const lines = doc.splitTextToSize(textContent, 190);
+            let y = 10;
+            lines.forEach(line => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 10;
+                }
+                
+                const words = line.split(' ');
+                let x = 10;
+                words.forEach(word => {
+                    const boldPart = word.slice(0, Math.ceil(word.length / 2));
+                    const normalPart = word.slice(Math.ceil(word.length / 2));
+                    
+                    const boldWidth = doc.getTextWidth(boldPart);
+                    drawBoldText(boldPart, x, y);
+                    
+                    // Ajuster l'espace entre la partie en gras et la partie normale
+                    const spaceWidth = doc.getTextWidth(' ') * 0.5; // Ajuster ici pour augmenter ou diminuer l'espace
+                    doc.text(normalPart, x + boldWidth + spaceWidth, y);
+                    
+                    x += doc.getTextWidth(word + ' ') + spaceWidth; // Ajuster ici pour augmenter ou diminuer l'espace
+                    if (x > 200) {
+                        x = 10;
+                        y += 7;
+                        if (y > 280) {
+                            doc.addPage();
+                            y = 10;
+                        }
+                    }
+                });
+                y += 7; // Ajuster ici pour l'espacement vertical entre les lignes
+            });
+
+            return doc.output('blob');
         }
     </script>
 </body>
