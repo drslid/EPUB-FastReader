@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertisseur EPUB pour lecture rapide</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col min-h-screen bg-gray-100">
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <img src="https://via.placeholder.com/150" alt="Logo" class="mx-auto h-20">
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="px-6 py-8">
+                <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Convertisseur EPUB pour lecture rapide</h1>
+                <div class="mb-6">
+                    <label for="epubFiles" class="block text-sm font-medium text-gray-700 mb-2">Choisis un ou plusieurs fichiers EPUB</label>
+                    <input type="file" id="epubFiles" accept=".epub" multiple class="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100">
+                </div>
+                <button onclick="convertToBionic()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300">
+                    Convertir et télécharger
+                </button>
+                <div id="status" class="mt-6 text-center text-gray-600"></div>
+                <div id="downloadLinks" class="mt-6 space-y-2"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2024 Pour Emma Le Got. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <script>
+        async function convertToBionic() {
+            const fileInput = document.getElementById('epubFiles');
+            const statusDiv = document.getElementById('status');
+            const downloadLinksDiv = document.getElementById('downloadLinks');
+
+            if (!fileInput.files.length) {
+                statusDiv.textContent = 'Veuillez sélectionner au moins un fichier EPUB.';
+                return;
+            }
+
+            statusDiv.textContent = 'Conversion en cours...';
+            downloadLinksDiv.innerHTML = '';
+
+            for (let file of fileInput.files) {
+                try {
+                    statusDiv.textContent = `Conversion de ${file.name} en cours...`;
+                    const arrayBuffer = await file.arrayBuffer();
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+                    
+                    for (let filename in zip.files) {
+                        if (filename.endsWith('.xhtml') || filename.endsWith('.html')) {
+                            let content = await zip.file(filename).async("string");
+                            content = toBionic(content);
+                            zip.file(filename, content);
+                        }
+                    }
+
+                    const newEpub = await zip.generateAsync({type:"blob"});
+                    const downloadLink = createDownloadLink(newEpub, `bionic_${file.name}`);
+                    downloadLinksDiv.appendChild(downloadLink);
+                } catch (error) {
+                    console.error(`Erreur lors de la conversion de ${file.name}:`, error);
+                    const errorP = document.createElement('p');
+                    errorP.textContent = `Erreur lors de la conversion de ${file.name}: ${error.message}`;
+                    errorP.className = 'text-red-500';
+                    downloadLinksDiv.appendChild(errorP);
+                }
+            }
+
+            statusDiv.textContent = 'Conversion terminée. Vous pouvez télécharger les fichiers convertis ci-dessous.';
+        }
+
+        function toBionic(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const textNodes = getTextNodes(doc.body);
+
+            textNodes.forEach(node => {
+                const words = node.textContent.split(/\s+/);
+                const bionicWords = words.map(word => {
+                    if (word.length === 1) return `<b>${word}</b>`;
+                    const boldPart = word.slice(0, Math.ceil(word.length / 2));
+                    const normalPart = word.slice(Math.ceil(word.length / 2));
+                    return `<b>${boldPart}</b>${normalPart}`;
+                });
+                const span = doc.createElement('span');
+                span.innerHTML = bionicWords.join(' ');
+                node.parentNode.replaceChild(span, node);
+            });
+
+            return doc.documentElement.outerHTML;
+        }
+
+        function getTextNodes(node) {
+            const textNodes = [];
+            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
+                textNodes.push(node);
+            } else {
+                for (let child of node.childNodes) {
+                    textNodes.push(...getTextNodes(child));
+                }
+            }
+            return textNodes;
+        }
+
+        function createDownloadLink(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.textContent = `Télécharger ${fileName}`;
+            a.className = 'block w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300';
+            return a;
+        }
+    </script>
+</body>
+</html>
