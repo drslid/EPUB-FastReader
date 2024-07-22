@@ -6,13 +6,24 @@
     <title>Convertisseur EPUB pour lecture rapide</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Helvetica', sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body class="flex flex-col min-h-screen bg-gray-100">
     <header class="bg-white shadow-md">
         <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <img src="https://drslid.github.io/epublecturerapide/logo.png" alt="Logo" class="mx-auto h-20">
+            <img src="https://drslid.github.io/epublecturerapide/logo.png" alt="Logo" class="mx-auto h-40">
         </div>
     </header>
 
@@ -21,91 +32,136 @@
             <div class="px-6 py-8">
                 <h1 class="text-3xl font-bold text-center text-gray-800 mb-8">Convertisseur EPUB pour lecture rapide</h1>
                 <div class="mb-6">
-                    <label for="epubFiles" class="block text-sm font-medium text-gray-700 mb-2">Choisis un ou plusieurs fichiers EPUB</label>
-                    <input type="file" id="epubFiles" accept=".epub" multiple class="block w-full text-sm text-gray-500
+                    <label for="epubFile" class="block text-sm font-medium text-gray-700 mb-2">Choisis un fichier EPUB</label>
+                    <input type="file" id="epubFile" accept=".epub" class="block w-full text-sm
                         file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
+                        file:rounded-md file:border-0
                         file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100">
+                        file:bg-blue-500 file:text-white file:hover:bg-blue-600
+                        hover:file:bg-blue-600">
                 </div>
-                <div class="mb-6">
-                    <label for="outputFormat" class="block text-sm font-medium text-gray-700 mb-2">Format de sortie</label>
-                    <select id="outputFormat" class="block w-full mt-1 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                        <option value="epub">EPUB</option>
-                        <option value="pdf">PDF</option>
-                    </select>
-                </div>
-                <button onclick="convertFiles()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300">
-                    Convertir et télécharger
-                </button>
                 <div id="status" class="mt-6 text-center text-gray-600"></div>
-                <div id="downloadLinks" class="mt-6 space-y-2"></div>
+                <div id="downloadLink" class="mt-6"></div>
             </div>
         </div>
     </main>
 
     <footer class="bg-gray-800 text-white py-4">
         <div class="container mx-auto text-center">
-            <p>&copy; 2024 Pour Emma Le Got. Tous droits réservés.</p>
+            <p>&copy; 2024 SpeedReaderEPUB. Tous droits réservés.</p>
         </div>
     </footer>
 
     <script>
-        async function convertFiles() {
-            const fileInput = document.getElementById('epubFiles');
-            const outputFormat = document.getElementById('outputFormat').value;
+        document.getElementById('epubFile').addEventListener('change', convertFile);
+
+        async function convertFile() {
+            const fileInput = document.getElementById('epubFile');
             const statusDiv = document.getElementById('status');
-            const downloadLinksDiv = document.getElementById('downloadLinks');
+            const downloadLinkDiv = document.getElementById('downloadLink');
 
             if (!fileInput.files.length) {
-                statusDiv.textContent = 'Veuillez sélectionner au moins un fichier EPUB.';
+                statusDiv.textContent = 'Veuillez sélectionner un fichier EPUB.';
                 return;
             }
 
-            statusDiv.textContent = 'Conversion en cours...';
-            downloadLinksDiv.innerHTML = '';
+            const file = fileInput.files[0];
+            statusDiv.textContent = `Conversion de ${file.name} en cours...`;
+            downloadLinkDiv.innerHTML = '';
 
-            for (let file of fileInput.files) {
-                try {
-                    statusDiv.textContent = `Conversion de ${file.name} en cours...`;
-                    const arrayBuffer = await file.arrayBuffer();
-                    const zip = await JSZip.loadAsync(arrayBuffer);
-                    
-                    let convertedContent = '';
-                    for (let filename in zip.files) {
-                        if (filename.endsWith('.xhtml') || filename.endsWith('.html')) {
-                            let content = await zip.file(filename).async("string");
-                            convertedContent += toBionic(content);
-                        }
-                    }
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
 
-                    if (outputFormat === 'epub') {
-                        const newEpub = await zip.generateAsync({type:"blob"});
-                        const downloadLink = createDownloadLink(newEpub, `bionic_${file.name}`);
-                        downloadLinksDiv.appendChild(downloadLink);
-                    } else if (outputFormat === 'pdf') {
-                        const pdf = await convertToPDF(convertedContent, file.name);
-                        const downloadLink = createDownloadLink(pdf, `bionic_${file.name.replace('.epub', '.pdf')}`);
-                        downloadLinksDiv.appendChild(downloadLink);
+                const newZip = new JSZip();
+                const promises = [];
+                let htmlContent = '';
+                let styles = `
+                    <style>
+                        body { font-family: 'Helvetica', sans-serif !important; background-color: #f3f4f6; margin: 0; padding: 20px; line-height: 1.8; }
+                        .bionic { font-family: 'Helvetica', sans-serif !important; font-size: 18px; line-height: 1.8; letter-spacing: 0.5px; color: #333; }
+                        .bionic b { font-weight: bold; }
+                    </style>
+                `;
+
+                const base64Images = {};
+
+                // Convertir les images en base64
+                for (let filename in zip.files) {
+                    if (filename.match(/\.(jpe?g|png|gif|svg)$/i)) {
+                        const content = await zip.file(filename).async("base64");
+                        const mimeType = `image/${filename.split('.').pop()}`;
+                        base64Images[filename] = `data:${mimeType};base64,${content}`;
                     }
-                } catch (error) {
-                    console.error(`Erreur lors de la conversion de ${file.name}:`, error);
-                    const errorP = document.createElement('p');
-                    errorP.textContent = `Erreur lors de la conversion de ${file.name}: ${error.message}`;
-                    errorP.className = 'text-red-500';
-                    downloadLinksDiv.appendChild(errorP);
                 }
-            }
 
-            statusDiv.textContent = 'Conversion terminée. Vous pouvez télécharger les fichiers convertis ci-dessous.';
+                // Traiter le reste des fichiers
+                for (let filename in zip.files) {
+                    if (filename.endsWith('.xhtml') || filename.endsWith('.html')) {
+                        promises.push(
+                            zip.file(filename).async("string").then(content => {
+                                const bionicContent = toBionic(content, base64Images);
+                                htmlContent += bionicContent;
+                                newZip.file(filename, bionicContent);
+                            })
+                        );
+                    } else if (filename.endsWith('.css')) {
+                        promises.push(
+                            zip.file(filename).async("string").then(content => {
+                                styles += `<style>${content}</style>`;
+                                newZip.file(filename, content);
+                            })
+                        );
+                    } else if (!filename.match(/\.(jpe?g|png|gif|svg)$/i)) {
+                        newZip.file(filename, zip.file(filename).async("blob"));
+                    }
+                }
+
+                await Promise.all(promises);
+
+                const newEpub = await newZip.generateAsync({type:"blob"});
+                const newEpubUrl = URL.createObjectURL(newEpub);
+
+                // Créer un lien pour télécharger le fichier EPUB
+                const downloadLink = createDownloadLink(newEpub, `speedread_${file.name}`);
+                downloadLinkDiv.appendChild(downloadLink);
+
+                // Stocker le contenu XHTML dans IndexedDB
+                const key = `epub-${Date.now()}`;
+                await storeData(key, styles + htmlContent);
+
+                // Créer un lien pour ouvrir la visionneuse
+                const viewLink = document.createElement('a');
+                viewLink.href = `viewer.html?key=${encodeURIComponent(key)}`;
+                viewLink.target = '_blank';
+                viewLink.textContent = `Ouvrir la visionneuse pour ${file.name}`;
+                viewLink.className = 'block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300';
+                downloadLinkDiv.appendChild(viewLink);
+
+                statusDiv.textContent = 'Conversion terminée. Vous pouvez télécharger le fichier converti ou l\'ouvrir dans la visionneuse ci-dessous.';
+            } catch (error) {
+                console.error(`Erreur lors de la conversion de ${file.name}:`, error);
+                const errorP = document.createElement('p');
+                errorP.textContent = `Erreur lors de la conversion de ${file.name}: ${error.message}`;
+                errorP.className = 'text-red-500';
+                downloadLinkDiv.appendChild(errorP);
+            }
         }
 
-        function toBionic(html) {
+        function toBionic(html, base64Images) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const textNodes = getTextNodes(doc.body);
 
+            // Remplacer les liens d'image par des données en base64
+            const images = doc.querySelectorAll('img');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (base64Images[src]) {
+                    img.setAttribute('src', base64Images[src]);
+                }
+            });
+
+            const textNodes = getTextNodes(doc.body);
             textNodes.forEach(node => {
                 const words = node.textContent.split(/\s+/);
                 const bionicWords = words.map(word => {
@@ -126,7 +182,7 @@
             const textNodes = [];
             if (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== '') {
                 textNodes.push(node);
-            } else {
+            } else if (node.nodeType === Node.ELEMENT_NODE && !['SCRIPT', 'STYLE'].includes(node.tagName)) {
                 for (let child of node.childNodes) {
                     textNodes.push(...getTextNodes(child));
                 }
@@ -140,74 +196,56 @@
             a.href = url;
             a.download = fileName;
             a.textContent = `Télécharger ${fileName}`;
-            a.className = 'block w-full text-center bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300';
+            a.className = 'block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300';
             return a;
         }
 
-        async function convertToPDF(content, fileName) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(content, 'text/html');
-            
-            // Appliquer le format bionic à chaque noeud de texte
-            const textNodes = getTextNodes(htmlDoc.body);
-            textNodes.forEach(node => {
-                const words = node.textContent.split(/\s+/);
-                const bionicWords = words.map(word => {
-                    if (word.length === 1) return word;
-                    const boldPart = word.slice(0, Math.ceil(word.length / 2));
-                    const normalPart = word.slice(Math.ceil(word.length / 2));
-                    return `${boldPart}${normalPart}`;
-                });
-                node.textContent = bionicWords.join(' ');
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open("EpubDatabase", 1);
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    db.createObjectStore("epubStore", { keyPath: "id" });
+                };
+                request.onsuccess = function(event) {
+                    resolve(event.target.result);
+                };
+                request.onerror = function(event) {
+                    reject(event.target.error);
+                };
             });
+        }
 
-            const textContent = htmlDoc.body.textContent;
-
-            // Fonction pour dessiner du texte en gras
-            function drawBoldText(text, x, y) {
-                doc.setFont(undefined, 'bold');
-                doc.text(text, x, y);
-                doc.setFont(undefined, 'normal');
-            }
-
-            const lines = doc.splitTextToSize(textContent, 190);
-            let y = 10;
-            lines.forEach(line => {
-                if (y > 280) {
-                    doc.addPage();
-                    y = 10;
-                }
-                
-                const words = line.split(' ');
-                let x = 10;
-                words.forEach(word => {
-                    const boldPart = word.slice(0, Math.ceil(word.length / 2));
-                    const normalPart = word.slice(Math.ceil(word.length / 2));
-                    
-                    const boldWidth = doc.getTextWidth(boldPart);
-                    drawBoldText(boldPart, x, y);
-                    
-                    // Ajuster l'espace entre la partie en gras et la partie normale
-                    const spaceWidth = doc.getTextWidth(' ') * 0.5; // Ajuster ici pour augmenter ou diminuer l'espace
-                    doc.text(normalPart, x + boldWidth + spaceWidth, y);
-                    
-                    x += doc.getTextWidth(word + ' ') + spaceWidth; // Ajuster ici pour augmenter ou diminuer l'espace
-                    if (x > 200) {
-                        x = 10;
-                        y += 7;
-                        if (y > 280) {
-                            doc.addPage();
-                            y = 10;
-                        }
-                    }
+        function storeData(id, data) {
+            return openDatabase().then(db => {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(["epubStore"], "readwrite");
+                    const store = transaction.objectStore("epubStore");
+                    const request = store.put({ id, data });
+                    request.onsuccess = function() {
+                        resolve();
+                    };
+                    request.onerror = function(event) {
+                        reject(event.target.error);
+                    };
                 });
-                y += 7; // Ajuster ici pour l'espacement vertical entre les lignes
             });
+        }
 
-            return doc.output('blob');
+        function getData(id) {
+            return openDatabase().then(db => {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(["epubStore"]);
+                    const store = transaction.objectStore("epubStore");
+                    const request = store.get(id);
+                    request.onsuccess = function(event) {
+                        resolve(event.target.result?.data);
+                    };
+                    request.onerror = function(event) {
+                        reject(event.target.error);
+                    };
+                });
+            });
         }
     </script>
 </body>

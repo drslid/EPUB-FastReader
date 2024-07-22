@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visionneuse EPUB</title>
+    <style>
+        body {
+            font-family: 'Helvetica', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.8;
+            overflow: hidden;
+        }
+        .bionic {
+            font-family: 'Helvetica', sans-serif;
+            font-size: 18px;
+            line-height: 1.8;
+            letter-spacing: 0.5px;
+            color: #333;
+        }
+        .bionic b {
+            font-weight: bold;
+        }
+        #viewer-container {
+            width: 100%;
+            height: calc(100vh - 40px);
+            overflow: auto;
+            background-color: #f3f4f6;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewer-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const key = urlParams.get('key');
+            if (key) {
+                try {
+                    const content = await getData(key);
+                    if (content) {
+                        displayEpubContent(content);
+                    } else {
+                        console.error('Contenu EPUB non trouvé dans IndexedDB.');
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la récupération des données depuis IndexedDB:', error);
+                }
+            }
+        });
+
+        function displayEpubContent(content) {
+            const viewerContainer = document.getElementById('viewer-container');
+            viewerContainer.innerHTML = content;
+        }
+
+        function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open("EpubDatabase", 1);
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    db.createObjectStore("epubStore", { keyPath: "id" });
+                };
+                request.onsuccess = function(event) {
+                    resolve(event.target.result);
+                };
+                request.onerror = function(event) {
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        function getData(id) {
+            return openDatabase().then(db => {
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(["epubStore"]);
+                    const store = transaction.objectStore("epubStore");
+                    const request = store.get(id);
+                    request.onsuccess = function(event) {
+                        resolve(event.target.result?.data);
+                    };
+                    request.onerror = function(event) {
+                        reject(event.target.error);
+                    };
+                });
+            });
+        }
+    </script>
+</body>
+</html>
