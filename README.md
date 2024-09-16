@@ -1,6 +1,6 @@
 # Convertisseur EPUB pour Lecture Rapide
 
-![Logo](https://drslid.github.io/epublecturerapide/logo.png)
+<img src="https://drslid.github.io/epublecturerapide/logo.png" alt="Logo" width="200"/>
 
 Ce projet est un convertisseur d'EPUB en ligne qui permet de convertir des fichiers EPUB en une version "lecture rapide" (bionic reading) pour une lecture optimisée. Le projet utilise JavaScript, JSZip, Epub.js et Tailwind CSS.
 
