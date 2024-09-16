@@ -15,7 +15,7 @@ This project is an online EPUB converter that allows you to convert EPUB files i
 
 ## Viewing
 
-![Visit the converter](https://drslid.github.io/epublecturerapide/)
+[Visit the converter](https://drslid.github.io/epublecturerapide/)
 
 ## License
 
