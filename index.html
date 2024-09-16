@@ -61,12 +61,12 @@
             const downloadLinkDiv = document.getElementById('downloadLink');
 
             if (!fileInput.files.length) {
-                statusDiv.textContent = 'Veuillez sélectionner un fichier EPUB.';
+                statusDiv.textContent = 'Please select an EPUB file.';
                 return;
             }
 
             const file = fileInput.files[0];
-            statusDiv.textContent = `Conversion de ${file.name} en cours...`;
+            statusDiv.textContent = `Converting ${file.name} in progress...`;
             downloadLinkDiv.innerHTML = '';
 
             try {
@@ -138,7 +138,7 @@
                 viewLink.className = 'block w-full text-center bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-300';
                 downloadLinkDiv.appendChild(viewLink);
 
-                statusDiv.textContent = 'Conversion terminée. Vous pouvez télécharger le fichier converti ou l\'ouvrir dans la visionneuse ci-dessous.';
+                statusDiv.textContent = 'Conversion complete. You can download the converted file or open it in the viewer below.';
             } catch (error) {
                 console.error(`Erreur lors de la conversion de ${file.name}:`, error);
                 const errorP = document.createElement('p');
