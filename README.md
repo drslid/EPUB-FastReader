@@ -1,7 +1,7 @@
 # EPUB Converter for Speed Reading
 
 <p align="center">
-  <img src="https://drslid.github.io/epublecturerapide/logo.png" alt="Logo" width="200"/>
+  <img src="https://drslid.github.io/EPUB-FastReader/logo.png" alt="Logo" width="200"/>
 </p>
 
 This project is an online EPUB converter that allows you to convert EPUB files into a "speed reading" (bionic reading) version for optimized reading. The project uses JavaScript, JSZip, Epub.js, and Tailwind CSS.
