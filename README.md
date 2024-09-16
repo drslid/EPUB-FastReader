@@ -1,22 +1,22 @@
-# Convertisseur EPUB pour Lecture Rapide
+# EPUB Converter for Speed Reading
 
-<img src="https://drslid.github.io/epublecturerapide/logo.png" alt="Logo" width="200"/>
+<p align="center">
+  <img src="https://drslid.github.io/epublecturerapide/logo.png" alt="Logo" width="200"/>
+</p>
 
-Ce projet est un convertisseur d'EPUB en ligne qui permet de convertir des fichiers EPUB en une version "lecture rapide" (bionic reading) pour une lecture optimisée. Le projet utilise JavaScript, JSZip, Epub.js et Tailwind CSS.
+This project is an online EPUB converter that allows you to convert EPUB files into a "speed reading" (bionic reading) version for optimized reading. The project uses JavaScript, JSZip, Epub.js, and Tailwind CSS.
 
-## Fonctionnalités
+## Features
 
-- **Conversion de fichiers EPUB** : Téléchargez et convertissez vos fichiers EPUB en quelques clics.
-- **Lecture optimisée** : Applique le style "Bionic Reading" pour améliorer la vitesse de lecture et la compréhension.
-- **Prise en charge des images** : Convertit et intègre les images en base64 pour une lecture hors ligne.
-- **Visionneuse EPUB intégrée** : Visionnez le fichier EPUB converti directement dans votre navigateur.
+- **EPUB File Conversion**: Upload and convert your EPUB files in just a few clicks.
+- **Optimized Reading**: Applies the "Bionic Reading" style to enhance reading speed and comprehension.
+- **Image Support**: Converts and embeds images in base64 for offline reading.
+- **Built-in EPUB Viewer**: View the converted EPUB file directly in your browser.
 
-## Aperçu
+## Viewing
 
-![Aperçu de l'application](https://drslid.github.io/epublecturerapide/screenshot.png)
+![Visit the converter](https://drslid.github.io/epublecturerapide/)
 
-## Comment utiliser ?
+## License
 
-1. **Télécharger le dépôt** : Clonez ce dépôt sur votre machine locale.
-   ```bash
-   git clone https://github.com/drslid/epublecturerapide.git
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
