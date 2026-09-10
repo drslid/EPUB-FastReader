@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-10",
+  "source": "https://www.gutenberg.org/ebooks/offline_catalogs.html",
+  "archive": "rsync.ibiblio.org::gutenberg-epub/feeds/rdf-files.tar.bz2",
+  "sha256": "80a21161d03ffa387207c7a177c0b9b56a2dd2b12d64d2e8c33186fce407eebb",
+  "rights": "Metadata: CC0. Books: public domain in the USA according to the source; check local rights.",
+  "count": 77506,
+  "languages": {
+    "af": {
+      "count": 17,
+      "files": ["af-1-0e0e07365a6e.json"]
+    },
+    "ar": {
+      "count": 1,
+      "files": ["ar-1-512512d4f80e.json"]
+    },
+    "bg": {
+      "count": 5,
+      "files": ["bg-1-6b2e168baa03.json"]
+    },
+    "bo": {
+      "count": 1,
+      "files": ["bo-1-3f56cdea4123.json"]
+    },
+    "br": {
+      "count": 1,
+      "files": ["br-1-a74cd0de201f.json"]
+    },
+    "ca": {
+      "count": 95,
+      "files": ["ca-1-6532f94174d3.json"]
+    },
+    "cs": {
+      "count": 7,
+      "files": ["cs-1-870e686b1c37.json"]
+    },
+    "cy": {
+      "count": 15,
+      "files": ["cy-1-61f8a4954868.json"]
+    },
+    "da": {
+      "count": 84,
+      "files": ["da-1-72c08a11bc6f.json"]
+    },
+    "de": {
+      "count": 2390,
+      "files": ["de-1-2b4d290c3911.json"]
+    },
+    "el": {
+      "count": 220,
+      "files": ["el-1-60f0cc760975.json"]
+    },
+    "en": {
+      "count": 61380,
+      "files": [
+        "en-1-490970fe198b.json",
+        "en-2-f12cb656ecde.json",
+        "en-3-8d53b185b93f.json",
+        "en-4-5ddbba79dc4f.json",
+        "en-5-fd76f269d67f.json",
+        "en-6-5ac52afdff7a.json",
+        "en-7-9a4388b003d8.json",
+        "en-8-9671c1041e7e.json",
+        "en-9-50ceb31d0681.json",
+        "en-10-fad1fb898bdf.json",
+        "en-11-982a9e2026ee.json",
+        "en-12-6d77e088b9e0.json",
+        "en-13-b84e21f575b1.json",
+        "en-14-8781c1b2e35d.json",
+        "en-15-acaa9085f267.json",
+        "en-16-84482040c340.json",
+        "en-17-128d732858dc.json",
+        "en-18-1e993c9430f2.json",
+        "en-19-733abef9b92c.json",
+        "en-20-b81375b36ca2.json",
+        "en-21-0b95eb187c4b.json",
+        "en-22-e6f546ee216b.json",
+        "en-23-3d63ea01b54a.json",
+        "en-24-9cc8402293a2.json",
+        "en-25-c7a355789d54.json"
+      ]
+    },
+    "eo": {
+      "count": 138,
+      "files": ["eo-1-ef27842b5426.json"]
+    },
+    "es": {
+      "count": 899,
+      "files": ["es-1-d5bf2523fc18.json"]
+    },
+    "et": {
+      "count": 1,
+      "files": ["et-1-017cb239050c.json"]
+    },
+    "fa": {
+      "count": 1,
+      "files": ["fa-1-239a191ff4ae.json"]
+    },
+    "fi": {
+      "count": 3680,
+      "files": ["fi-1-1d86df67e422.json", "fi-2-88980830217d.json"]
+    },
+    "fr": {
+      "count": 4163,
+      "files": ["fr-1-477f37420b9b.json", "fr-2-7d830779b591.json"]
+    },
+    "fy": {
+      "count": 22,
+      "files": ["fy-1-46ad62514a84.json"]
+    },
+    "ga": {
+      "count": 5,
+      "files": ["ga-1-0aa415daeb58.json"]
+    },
+    "gl": {
+      "count": 3,
+      "files": ["gl-1-c162681fcae3.json"]
+    },
+    "he": {
+      "count": 4,
+      "files": ["he-1-18bd3fbbf0d2.json"]
+    },
+    "hu": {
+      "count": 654,
+      "files": ["hu-1-c09611364b61.json"]
+    },
+    "is": {
+      "count": 7,
+      "files": ["is-1-32a310be39cb.json"]
+    },
+    "it": {
+      "count": 1108,
+      "files": ["it-1-9cda5803fbc5.json"]
+    },
+    "iu": {
+      "count": 1,
+      "files": ["iu-1-77a547cd6aa5.json"]
+    },
+    "ja": {
+      "count": 21,
+      "files": ["ja-1-bcc9a41aad09.json"]
+    },
+    "la": {
+      "count": 144,
+      "files": ["la-1-9fb3b5310a4c.json"]
+    },
+    "mi": {
+      "count": 2,
+      "files": ["mi-1-0bd39d3e3ecd.json"]
+    },
+    "nl": {
+      "count": 1112,
+      "files": ["nl-1-5e5cff09d566.json"]
+    },
+    "no": {
+      "count": 23,
+      "files": ["no-1-07b38c938376.json"]
+    },
+    "oc": {
+      "count": 2,
+      "files": ["oc-1-7b1b51787523.json"]
+    },
+    "pl": {
+      "count": 30,
+      "files": ["pl-1-c9b443d6ef15.json"]
+    },
+    "pt": {
+      "count": 649,
+      "files": ["pt-1-894c910f7a31.json"]
+    },
+    "ro": {
+      "count": 4,
+      "files": ["ro-1-0a2f70150879.json"]
+    },
+    "ru": {
+      "count": 5,
+      "files": ["ru-1-f86cb28f8ddf.json"]
+    },
+    "sa": {
+      "count": 1,
+      "files": ["sa-1-f43162fdd6e3.json"]
+    },
+    "sl": {
+      "count": 5,
+      "files": ["sl-1-4fe5a173da52.json"]
+    },
+    "sr": {
+      "count": 4,
+      "files": ["sr-1-cee539f56fcd.json"]
+    },
+    "sv": {
+      "count": 255,
+      "files": ["sv-1-2cc901da9339.json"]
+    },
+    "te": {
+      "count": 6,
+      "files": ["te-1-214b9fd4a8aa.json"]
+    },
+    "tl": {
+      "count": 60,
+      "files": ["tl-1-b6d0be915ef3.json"]
+    },
+    "zh": {
+      "count": 440,
+      "files": ["zh-1-f16ffb89744b.json"]
+    }
+  }
+}

@@ -1,0 +1,396 @@
+/* One search field follows the reader across the library and discovery pages. */
+.shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+  box-shadow: 0 8px 20px #0000000a;
+}
+
+.shell-header .topbar {
+  min-height: 66px;
+  border-bottom: 0;
+}
+
+.unified-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 1200px;
+  margin: 0 40px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--surface);
+  transition: border-color 0.18s;
+}
+
+.unified-search:focus-within {
+  border-color: var(--accent);
+}
+
+.unified-search-field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding-left: 13px;
+}
+
+.unified-search-field > .icon {
+  color: var(--accent);
+}
+
+.unified-search-field input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.unified-search-field input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.unified-search-clear {
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.unified-search-clear:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.unified-search-language {
+  position: relative;
+  flex-shrink: 0;
+  min-height: 44px;
+  border-left: 1px solid var(--border);
+}
+
+.unified-search-language select {
+  display: block;
+  height: 44px;
+  max-width: 163px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.unified-language-code {
+  display: none;
+}
+
+.unified-search-submit {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 15px;
+  border-radius: 10px;
+}
+
+.unified-search-submit .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.local-results {
+  margin-bottom: 35px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid var(--border);
+}
+
+.local-results .section-heading h2 > .icon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+}
+
+.local-results .book-grid {
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+}
+
+.local-results .book-card {
+  position: relative;
+  min-height: 154px;
+  padding: 14px 14px 14px 114px;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.local-results .book-open .cover {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 86px;
+  border-radius: 3px 8px 8px 3px;
+}
+
+.local-results .cover-design {
+  padding: 9px 8px;
+}
+
+.local-results .cover-kicker {
+  margin: 2px 0 7px;
+  font-size: 4px;
+  letter-spacing: 0.8px;
+}
+
+.local-results .cover-title {
+  flex-shrink: 0;
+  font-size: 13px;
+  -webkit-line-clamp: 2;
+}
+
+.local-results .cover-rule {
+  display: none;
+}
+
+.local-results .cover-author {
+  flex-shrink: 0;
+  max-height: 20px;
+  margin-top: 6px;
+  font-size: 6px;
+}
+
+.local-results .cover-emblem {
+  padding-top: 4px;
+  font-size: 13px;
+}
+
+.local-results .cover-open {
+  inset: auto 5px 5px;
+  gap: 3px;
+  padding: 6px 4px;
+  font-size: 10px;
+}
+
+.local-results .cover-open .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.local-results .book-card h3 {
+  margin: 0 0 5px;
+  font-size: 20px;
+}
+
+.local-results .book-card-meta {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 2px 10px;
+  padding-block: 9px;
+}
+
+.local-results .book-card-meta .availability {
+  width: 100%;
+}
+
+.local-results-empty {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-intro {
+  margin-bottom: 26px;
+}
+
+.search-intro h1 {
+  margin-bottom: 10px;
+  font: 38px/1.2 Georgia, serif;
+  overflow-wrap: anywhere;
+}
+
+.search-intro p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (min-width: 1500px) {
+  .unified-search {
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 1100px) {
+  .unified-search {
+    margin-inline: 26px;
+  }
+}
+
+@media (max-width: 900px) {
+  .unified-search {
+    gap: 5px;
+  }
+
+  .unified-search-submit {
+    width: 44px;
+    padding: 0;
+  }
+
+  .unified-search-submit > span {
+    display: none;
+  }
+
+  .unified-search-language {
+    width: 49px;
+  }
+
+  .unified-language-code {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 44px;
+    font-size: 11px;
+    font-weight: 650;
+    color: var(--muted);
+  }
+
+  .unified-language-code > span {
+    font-size: 15px;
+  }
+
+  .unified-search-language select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+  }
+
+  .unified-search-language:focus-within {
+    outline: 3px solid var(--warm);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell-header {
+    padding-bottom: 10px;
+  }
+
+  .shell-header .topbar {
+    min-height: 65px;
+  }
+
+  .app-shell .sidebar > .brand {
+    position: fixed;
+    top: 14px;
+    left: 18px;
+  }
+
+  .unified-search {
+    margin-inline: 15px;
+    padding: 3px;
+    border-radius: 13px;
+  }
+
+  .unified-search-field {
+    gap: 5px;
+    padding-left: 9px;
+  }
+
+  .unified-search-field > .icon {
+    display: none;
+  }
+
+  .unified-search-field input {
+    font-size: 16px;
+  }
+
+  .local-results {
+    margin-bottom: 26px;
+    padding-bottom: 24px;
+  }
+
+  .local-results .section-heading h2 {
+    gap: 8px;
+    font-size: 24px;
+  }
+
+  .local-results .section-heading .subtle {
+    font-size: 10px;
+  }
+
+  .local-results .book-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .local-results .book-card {
+    min-height: 144px;
+    padding: 13px 13px 13px 103px;
+  }
+
+  .local-results .book-open .cover {
+    top: 13px;
+    left: 13px;
+    width: 76px;
+  }
+
+  .local-results .book-card h3 {
+    font-size: 19px;
+  }
+
+  .local-results .book-card p {
+    font-size: 11px;
+  }
+
+  .local-results-empty {
+    padding: 13px 15px;
+    font-size: 12px;
+  }
+
+  .search-intro {
+    margin-bottom: 22px;
+  }
+
+  .search-intro h1 {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-shell .sidebar > .brand {
+    left: 15px;
+  }
+
+  .unified-search {
+    margin-inline: 12px;
+    gap: 3px;
+  }
+
+  .unified-search-field {
+    padding-left: 7px;
+  }
+
+  .unified-search-language {
+    width: 45px;
+  }
+}

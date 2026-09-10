@@ -1,0 +1,45 @@
+/* Every catalog result uses the same readable cover and opening action. */
+.catalog-grid:empty {
+  display: none;
+}
+
+.catalog-download-hint {
+  margin: -6px 0 26px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 650px;
+}
+
+.catalog-grid .book-card-meta {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding-block: 7px;
+}
+
+.catalog-grid .availability {
+  white-space: normal;
+  line-height: 1.5;
+}
+
+.catalog-grid .availability .icon {
+  flex-shrink: 0;
+}
+
+.catalog-grid .is-in-library .start-book-button {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+@media (max-width: 600px) {
+  .catalog-download-hint {
+    font-size: 11px;
+    margin-bottom: 22px;
+  }
+
+  .catalog-grid .book-card-meta {
+    gap: 0 8px;
+  }
+}

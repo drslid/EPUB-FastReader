@@ -1,0 +1,108 @@
+# Sources, recherche locale et droits
+
+## Pourquoi la recherche ne fonctionnait pas
+
+Diagnostic du 10 septembre 2026, avec de vraies requêtes réseau :
+
+- La requête Gutendex `books/?copyright=false&mime_type=application%2Fepub%2Bzip&sort=popular&page=1&search=hugo&languages=fr` a expiré après 20 secondes sans recevoir un octet. Les anciens tests simulaient un service disponible et ne démontraient pas sa disponibilité réelle. [Gutendex](https://gutendex.com/) recommande d’ailleurs un serveur propre pour un usage durable.
+- L’EPUB Gutenberg `cache/epub/135/pg135-images-3.epub` répondait HTTP 200 mais sans `Access-Control-Allow-Origin`, y compris avec un en-tête `Origin` représentant notre site. Le miroir officiel ODU présentait la même absence d’autorisation CORS pour l’EPUB testé. Un lien de téléchargement dans une fiche fonctionne ; un `fetch` JavaScript depuis un autre site est bloqué par le navigateur.
+- La sélection précédente ne contenait que trois œuvres. Elle ne suffisait pas à rendre utile une recherche d’autres auteurs pendant une panne de Gutendex.
+
+La recherche de production ne dépend plus de Gutendex. Aucune requête de recherche ni donnée de lecture n’est envoyée à un fournisseur. L’application charge des fichiers de catalogue de son propre hébergement, puis cherche dans le navigateur.
+
+## Fonctionnement livré
+
+Le snapshot du 10 septembre 2026 contient **77 506 notices d’EPUB**, en **43 langues**, dont **4 163 en français**. Seules les notices RDF déclarant explicitement `Public domain in the USA.` et offrant un format EPUB sur l’hôte officiel sont retenues. Ce chiffre compte des éditions, pas nécessairement des œuvres uniques ; plusieurs tomes, traductions ou éditions d’un titre peuvent coexister.
+
+Les métadonnées proviennent de l’archive RDF officielle, récupérée avec le service rsync recommandé : `rsync.ibiblio.org::gutenberg-epub/feeds/rdf-files.tar.bz2`. Project Gutenberg autorise expressément la création de catalogues à partir de ses [métadonnées numériques](https://www.gutenberg.org/ebooks/offline_catalogs.html), placées dans le domaine public selon sa [politique d’accès automatisé](https://www.gutenberg.org/policy/robot_access.html). Son site de navigation n’est pas aspiré.
+
+Le moteur cherche les mots du titre et de l’auteur, indépendamment de leur ordre, de la casse, des accents, des apostrophes et des tirets. Les ligatures `œ/oe` et `æ/ae` sont équivalentes. Les titres identiques à la requête sont favorisés, puis viennent les titres qui commencent par celle-ci, puis la popularité fournie par le snapshot. Le total et la pagination de 24 cartes au maximum sont exacts pour les notices filtrées. Les identifiants Gutenberg dédupliquent les notices multilingues et les éditions intégrées.
+
+| Plugin                  | Version | Comportement                                                                   |
+| ----------------------- | ------- | ------------------------------------------------------------------------------ |
+| `selection`             | 1.1.0   | Neuf EPUB complets servis ici, lecture directe                                 |
+| `gutenberg`             | 3.0.0   | Catalogue officiel local, puis récupération de l’EPUB et ouverture via le relais |
+| `all`                   | 2.0.0   | Recherche commune ; l’édition intégrée est prioritaire sur sa notice Gutenberg |
+| `public-domain-library` | 1.0.0   | Lien vers le site externe                                                      |
+
+Tous les résultats de recherche ont une couverture : `downloadMode: "bundled"` pour les neuf éditions intégrées, `"direct"` pour le catalogue Gutenberg. Un clic sur la couverture ou **Commencer** récupère le fichier, importe le livre dans IndexedDB et ouvre le lecteur. Si une correspondance existe déjà dans la bibliothèque, la carte affiche **Dans votre bibliothèque** et **Reprendre** : l’application ouvre cette copie locale et conserve ses repères sans refaire le téléchargement. La correspondance se fait par identifiant de source ou, pour un EPUB personnel sans provenance, par titre et auteur normalisés, avec une langue compatible. Deux identifiants canoniques explicitement différents ne sont pas assimilés par ce rapprochement. Dans ce dernier cas, l’édition personnelle reste utilisée avec son contenu et ses propres chapitres.
+
+La liste **Catalogue externe** a été retirée. Le lien **Source** reste disponible pour consulter l’origine et les droits, mais l’action principale ouvre le livre dans FastReader. Un téléchargement indisponible n’ajoute pas de livre : le message propose **Réessayer** et, en solution de repli, la fiche source et l’import manuel. Quitter la page pendant le téléchargement annule la requête côté navigateur et empêche l’ouverture tardive du lecteur.
+
+L’accueil utilise les mêmes éditions intégrées pour ses trois suggestions. Leur choix est local : renouvellement du groupe précédent, puis priorité aux œuvres absentes de la bibliothèque et diversité des auteurs et des genres. Les suggestions changent au démarrage ou par le bouton **D’autres idées**. La dernière sélection est conservée dans IndexedDB pour réduire les répétitions ; les propositions restent stables pendant la navigation. Leur simple affichage n’ajoute aucun livre à la bibliothèque.
+
+Si le catalogue local n’est pas encore chargé et que son hébergement est inaccessible, la recherche commune garde les œuvres intégrées correspondant à la requête et affiche un avertissement explicite. L’absence de connexion n’est donc pas présentée comme une recherche complète ne trouvant rien. Une annulation reste une annulation.
+
+## Récupération des EPUB publics
+
+Le navigateur appelle une seule route de son propre site : `GET /api/books/gutenberg/<identifiant>.epub`. Le serveur construit l’adresse auprès des miroirs PGLAF ou ODU figurant dans la [liste officielle Gutenberg](https://www.gutenberg.org/MIRRORS.ALL). Il ne télécharge aucun livre au simple affichage d’une recherche. Le recours à ces miroirs suit le [guide de distribution](https://www.gutenberg.org/help/mirroring.html) ; le site principal de navigation n’est pas aspiré. L’absence de CORS sur les fichiers sources est ainsi gérée par notre service HTTP, sans proxy tiers arbitraire ni demande de réglage au lecteur.
+
+Pour limiter le téléchargement sur mobile, le relais demande d’abord `pg<identifiant>.epub`, l’édition texte légère fournie par Gutenberg. Si elle est absente avec un statut 404, il peut utiliser la variante `pg<identifiant>-images.epub`. Ce sont les fichiers originaux proposés par la source : l’application ne réécrit pas leurs octets, leur contenu ou leurs licences. L’EPUB téléchargé est conservé localement et exportable. Une édition ancienne du snapshot peut néanmoins manquer ou être momentanément inaccessible sur les miroirs.
+
+Le relais accepte seulement un identifiant numérique, pas une URL arbitraire. Il refuse les redirections et les méthodes autres que GET/HEAD ; les statuts d’accès restreint ou de surcharge ne déclenchent pas de contournement par un autre miroir. Les réponses ont une limite de 30 Mio vérifiée pendant la lecture, un délai maximal de 20 secondes et un contrôle du type et de l’en-tête EPUB. L’import dans le navigateur applique ensuite les validations complètes de l’archive. Quatre téléchargements distincts peuvent être en cours ; les requêtes simultanées du même livre sont regroupées. Un cache mémoire de fichiers publics est limité à 64 Mio, avec une validité de six heures.
+
+Ce service ne reçoit aucun EPUB personnel, aucune note, position ou requête de recherche. Il n’utilise ni compte ni base de données personnelle. Les identifiants de livres publics passent nécessairement par le serveur lors de leur premier téléchargement. La sélection intégrée, les imports et les livres déjà enregistrés restent lisibles sans ce relais. `npm run dev`, `npm run preview` et le serveur de production incluent la route ; un hébergement statique seul ne la fournit pas. Voir [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## Taille et maintien du catalogue
+
+`src/sources/catalog-manifest.json` déclare la date, la provenance, l’empreinte de l’archive et tous les fichiers autorisés. Les fichiers `public/catalog/<langue>-<partie>-<empreinte>.json` regroupent au maximum 2 500 notices et mutualisent les noms d’auteurs. Leur nom inclut les 12 premiers caractères du SHA-256 de leur contenu : un catalogue actualisé ne réutilise pas un fichier d’une ancienne version.
+
+Le français complet occupe **340 587 octets** dans deux fichiers ; toutes les langues réunies occupent **7 032 460 octets**. Le moteur ne charge que la langue choisie, avec quatre requêtes concurrentes au maximum, et garde les fichiers déjà lus en mémoire. « Toutes les langues » demande explicitement l’ensemble de l’index. Le service worker précharge le français et conserve les autres langues après leur première consultation ; l’anglais complet représente environ 5,76 Mo avant compression HTTP.
+
+L’index décrit les notices disponibles à sa date de génération. Il ne se met pas à jour secrètement pendant la lecture et ne garantit pas la présence de publications ajoutées depuis. Pour préparer une mise à jour :
+
+```sh
+python3 scripts/update-catalog.py
+# Ou réutiliser une archive déjà récupérée :
+python3 scripts/update-catalog.py --archive /chemin/rdf-files.tar.bz2
+```
+
+L’outil nécessite Python 3 et rsync. Il récupère l’archive officielle dans un dossier temporaire, parcourt les membres sans extraire leurs chemins, rejette les déclarations d’entités XML et refuse de remplacer le snapshot par un catalogue incomplet. L’archive RDF d’environ 127 Mo est un fichier de développement, **jamais un asset téléchargé par les utilisateurs**. Les EPUB complets ne sont pas récupérés par cette commande.
+
+Relire les changements de notices, exécuter les tests, puis déployer les fichiers JSON, le manifeste et le code ensemble. Le build normal utilise le snapshot contrôlé dans le dépôt et ne dépend pas du réseau Gutenberg.
+
+## Les neuf éditions intégrées
+
+Les fichiers originaux sont conservés sans modification, avec leur couverture, leur texte, leurs crédits et leur licence. Ils sont distribués gratuitement et représentent **2 586 765 octets** au total.
+
+Chaque édition possède également un repère `readingStart` contrôlé sur son texte réellement importé. Il permet de commencer au récit, à la préface ou à la dédicace à la première ouverture, sans faire défiler mot à mot la notice technique anglaise ou la table des matières. Les préfaces de _Candide_, de _Notre-Dame_ et du _Dernier Jour_, ainsi que la dédicace de _Madame Bovary_, sont conservées dans ce parcours. Une position de lecture déjà sauvegardée reste prioritaire. Aucune partie de l’EPUB n’est supprimée.
+
+| Œuvre                                   | Auteur            | Édition Gutenberg                               | Fichier local                |
+| --------------------------------------- | ----------------- | ----------------------------------------------- | ---------------------------- |
+| Le Horla                                | Guy de Maupassant | [10775](https://www.gutenberg.org/ebooks/10775) | `le-horla.epub`              |
+| Trois contes                            | Gustave Flaubert  | [12065](https://www.gutenberg.org/ebooks/12065) | `trois-contes.epub`          |
+| Candide, ou l’optimisme                 | Voltaire          | [4650](https://www.gutenberg.org/ebooks/4650)   | `candide.epub`               |
+| Le tour du monde en quatre-vingts jours | Jules Verne       | [800](https://www.gutenberg.org/ebooks/800)     | `tour-du-monde.epub`         |
+| Voyage au centre de la Terre            | Jules Verne       | [4791](https://www.gutenberg.org/ebooks/4791)   | `voyage-centre-terre.epub`   |
+| Vingt mille lieues sous les mers        | Jules Verne       | [5097](https://www.gutenberg.org/ebooks/5097)   | `vingt-mille-lieues.epub`    |
+| Notre-Dame de Paris                     | Victor Hugo       | [19657](https://www.gutenberg.org/ebooks/19657) | `notre-dame-paris.epub`      |
+| Madame Bovary                           | Gustave Flaubert  | [14155](https://www.gutenberg.org/ebooks/14155) | `madame-bovary.epub`         |
+| Le Dernier Jour d’un Condamné           | Victor Hugo       | [6838](https://www.gutenberg.org/ebooks/6838)   | `dernier-jour-condamne.epub` |
+
+Chaque original a été récupéré individuellement dans le module `gutenberg-epub` via rsync, suivant le [guide officiel](https://www.gutenberg.org/help/mirroring.html). Les dates, tailles, empreintes et éléments de revue d’édition sont conservés dans `public/books/provenance.json`. Les tests ouvrent les neuf archives avec le parseur de production et vérifient leurs licences ainsi que leurs empreintes.
+
+Les auteurs retenus sont morts entre 1778 et 1905 et leurs textes français anciens relèvent du domaine public patrimonial en France au regard de l’[article L123-1](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006278937). La revue porte aussi sur les contributions de l’édition : les notes de _Candide_ proviennent d’annotateurs anciens ; la préface du _Dernier Jour_ et la note de _Notre-Dame_ sont de Victor Hugo. _Vingt mille lieues_ reprend l’ancienne édition Hetzel, attribuant ses dessins à [Alphonse de Neuville, mort en 1885](https://catalogue.bnf.fr/ark%3A/12148/cb119175840.public). L’édition des _Fleurs du Mal_ examinée comportait une préface dont les droits locaux n’ont pas été suffisamment établis : elle n’a pas été ajoutée à la sélection intégrée.
+
+Chaque EPUB déclare être libre aux États-Unis. Cela ne constitue pas une autorisation universelle pour toutes les éditions, les pays ou les résultats futurs. La [licence Project Gutenberg](https://www.gutenberg.org/policy/license) accompagne les fichiers et encadre leur redistribution et l’usage de la marque. La licence MIT du code ne la remplace pas. La page `books/NOTICE.html` donne les originaux, les sources, les empreintes et la licence complète. Aucun paiement pour l’accès aux livres n’a été ajouté.
+
+Les couvertures Gutenberg ne sont pas chargées par hotlink : sa [politique d’images](https://www.gutenberg.org/policy/linking.html#image-inlining) impose de les copier sur le site qui les affiche. Les cartes utilisent des couvertures typographiques locales, identiques dans les suggestions, Découvrir et Mes livres. `source.presentation` conserve la clé visuelle, le titre et l’auteur du catalogue pour éviter qu’une différence de métadonnées ou l’image interne de l’EPUB remplace la couverture choisie. `src/covers.js` retrouve aussi les anciennes éditions enregistrées grâce à leurs identifiants de source. La couverture incorporée à l’EPUB reste dans les données originales ; elle est affichée pour un import personnel sans provenance de catalogue.
+
+## Autres sources et futur développement
+
+[Public Domain Library](https://publicdomainlibrary.org/en/ebooks) reste accessible par lien. Les pages consultées ne fournissent pas de contrat d’API publique permettant ici une intégration de recherche et téléchargement maintenable. Ses conditions et ses restrictions techniques doivent être clarifiées avant de livrer un adaptateur automatique ; changer simplement le nom de la source ne résout pas CORS.
+
+Un prochain plugin pourra intégrer un catalogue OPDS ou une sélection redistribuable après vérification des droits et du contrat machine. Gutenberg utilise déjà le relais contrôlé décrit ci-dessus ; cette intégration ne donne pas automatiquement accès aux fichiers de toute autre source. Un proxy public arbitraire n’a pas été ajouté.
+
+Une nouvelle vérification HTTP ciblée a confirmé la limite : les EPUB du Horla servis par les miroirs officiels ODU et PGLAF répondaient 200 sans `Access-Control-Allow-Origin`. L’export EPUB Wikisource, un EPUB Wolne Lektury et un EPUB ouvert d’Internet Archive présentaient également cette absence sur les réponses testées. Ces observations concernent ces endpoints à la date du test, pas une garantie sur tous les fichiers ou leur disponibilité future. Les miroirs Gutenberg examinés figurent dans la [liste officielle](https://www.gutenberg.org/MIRRORS.ALL), et la copie d’éditions supplémentaires peut suivre le [guide de miroir autorisé](https://www.gutenberg.org/help/mirroring.html).
+
+**Wikisource reste une piste pour un futur plugin**, via son API MediaWiki plutôt que par téléchargement direct de WS Export. Une recherche réelle sur l’API française avec `origin=*` répondait avec CORS autorisé, conformément au [contrat MediaWiki](https://www.mediawiki.org/wiki/API:Cross-site_requests/en). Il reste à implémenter l’assemblage du livre depuis ses pages : ordre et complétude des chapitres, nettoyage, images éventuelles, attribution des contributions et licences. Aucun plugin de ce type n’est activé dans la version livrée. [WS Export](https://wikisource.org/wiki/Wikisource:WS_Export/en) est une référence de conversion, sans constituer ici une API EPUB accessible par `fetch` depuis le site.
+
+Chaque plugin reste un module explicitement importé par `src/sources/registry.js`, avec identifiant stable, version sémantique et `apiVersion: 1`. Une réponse de catalogue ne peut installer ni exécuter du code. Ajouter une source demande de déclarer ses capacités, de définir la déduplication et les erreurs partielles, de vérifier un EPUB réel, puis de tester les parcours navigateur correspondant à ses capacités réelles.
+
+## Vérification
+
+`tests/catalog.test.js` exerce le véritable index publié, les requêtes Hugo/Misérables, l’équivalence des accents et des ligatures, les langues, la pagination, les limites, les empreintes et une véritable requête HTTP locale. `tests/sources.test.js` couvre le contrat de plugins, la sélection, les pannes partielles et la déduplication. `tests/sources-books.test.js` importe les neuf fichiers complets. `tests/sources-generator.test.js` vérifie l’exclusion des droits inconnus, fichiers non EPUB et hôtes détournés, ainsi que la lecture des membres RDF sans extraction de chemins.
+
+Les parcours navigateur utilisent les vrais fichiers de catalogue et les neuf EPUB intégrés servis par l’application ; ils ne simulent plus un Gutendex fonctionnel pour démontrer la recherche principale. `discovery.spec.js` contrôle les couvertures de tous les résultats, le téléchargement automatique, l’ajout à la bibliothèque, la reprise sans nouvelle requête, les échecs avec nouvelle tentative et l’annulation par navigation. Les réponses de téléchargement Gutenberg des tests navigateur sont des fixtures déterministes ; elles ne démontrent pas à elles seules la disponibilité réelle d’un miroir.
+
+`tests/relay.test.js` vérifie le relais avec des réponses contrôlées, notamment les miroirs et variantes, les délais, limites, redirections, erreurs et cache. `tests/server-app.test.js` exerce un vrai serveur HTTP local : fichiers publics, MIME, HEAD, santé, erreurs, traversées de chemins, liens symboliques sortants et branchement du relais. `cover-consistency.spec.js` utilise les EPUB réels de Candide et du Horla pour vérifier la même couverture avant/après import et rechargement, la compatibilité des anciens livres et les images des EPUB personnels. `home-suggestions.spec.js` contrôle la rotation locale et la reprise. Les résultats exécutés et les essais réseau réels sont consignés dans [VALIDATION.md](VALIDATION.md).
