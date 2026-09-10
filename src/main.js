@@ -175,7 +175,7 @@ function cover(book) {
   const palette =
     Array.from(visual.key).reduce((sum, char) => sum + char.charCodeAt(0), 0) %
     5;
-  return `<div class="cover cover-${palette}"><div class="cover-design" aria-hidden="true"><span class="cover-kicker">${book.demo ? "LES PETITES PAUSES" : "LA BIBLIOTHÈQUE"}</span><span class="cover-title">${escape(visual.title)}</span><span class="cover-rule"></span><span class="cover-author">${escape(visual.author)}</span><span class="cover-emblem">f.</span></div>${visual.image ? `<img src="${escape(visual.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}<span class="cover-open">${icon("book")} Lire</span></div>`;
+  return `<div class="cover cover-${palette}"><div class="cover-design" aria-hidden="true"><span class="cover-kicker">${book.demo ? "LES PETITES PAUSES" : "LA BIBLIOTHÈQUE"}</span><span class="cover-title">${escape(visual.title)}</span><span class="cover-rule"></span><span class="cover-author">${escape(visual.author)}</span><span class="cover-emblem">f.</span></div>${visual.image ? `<img src="${escape(visual.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}<span class="cover-open">${icon(book.downloadMode === "manual" ? "download" : "book")} ${book.downloadMode === "manual" ? "Obtenir" : "Lire"}</span></div>`;
 }
 
 function themeButton() {
@@ -713,15 +713,17 @@ async function runSearch(page = 1) {
 }
 
 function showDownloadFallback(book, error) {
+  const manualImport = book.downloadMode === "manual";
   const dialog = document.createElement("dialog");
   dialog.className = "fallback-dialog";
-  dialog.innerHTML = `<div class="dialog-heading"><span class="eyebrow">VOTRE PROCHAINE LECTURE</span><button class="round-button" aria-label="Fermer">${icon("close")}</button></div><h2>${escape(book.title)}</h2><button class="button ink dialog-retry">${icon("download")} Réessayer</button><p>${escape(error.message || "La source ne permet pas l’ouverture directe dans ce navigateur.")}</p><ol><li>Ouvrez la fiche du livre et vérifiez ses droits dans votre pays.</li><li>Téléchargez le format EPUB.</li><li>Revenez ici et importez le fichier.</li></ol><a class="button ink" href="${escape(book.sourceUrl)}" target="_blank" rel="noopener noreferrer">Ouvrir la fiche source ${icon("external")}</a><button class="button secondary dialog-import">Importer mon EPUB ${icon("plus")}</button>`;
+  dialog.setAttribute("aria-label", manualImport ? `Obtenir ${book.title}` : `Ouvrir ${book.title}`);
+  dialog.innerHTML = `<div class="dialog-heading"><span class="eyebrow">VOTRE PROCHAINE LECTURE</span><button class="round-button" aria-label="Fermer">${icon("close")}</button></div><h2>${escape(book.title)}</h2>${manualImport ? "" : `<button class="button ink dialog-retry">${icon("download")} Réessayer</button>`}<p>${escape(error.message || "La source ne permet pas l’ouverture directe dans ce navigateur.")}</p><ol><li>Ouvrez la fiche du livre et vérifiez ses droits dans votre pays.</li><li>Téléchargez le format EPUB.</li><li>Revenez ici et importez le fichier.</li></ol><a class="button ink" href="${escape(book.sourceUrl)}" target="_blank" rel="noopener noreferrer">${manualImport ? "Télécharger sur Gutenberg" : "Ouvrir la fiche source"} ${icon("external")}</a><button class="button secondary dialog-import">Importer mon EPUB ${icon("plus")}</button>`;
   document.body.append(dialog);
   dialog.querySelector(".round-button").onclick = () => dialog.close();
-  dialog.querySelector(".dialog-retry").onclick = () => {
+  dialog.querySelector(".dialog-retry")?.addEventListener("click", () => {
     dialog.close();
     readCatalogBook(book.id);
-  };
+  });
   dialog.querySelector(".dialog-import").onclick = () => {
     dialog.close();
     document.querySelector("#epub-file").click();
@@ -747,6 +749,12 @@ async function readCatalogBook(id) {
       state.busy = false;
       await openBook(local.id);
       toast("Votre lecture reprend à l’endroit enregistré.");
+      return;
+    }
+    if (book.downloadMode === "manual") {
+      showDownloadFallback(book, {
+        message: "Ce titre est disponible sur Project Gutenberg. Téléchargez son EPUB, puis importez-le ici : il rejoindra vos livres et gardera votre progression.",
+      });
       return;
     }
     renderShell();

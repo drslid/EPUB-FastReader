@@ -139,7 +139,7 @@ function publicBook(row, language) {
     id: `gutenberg-${row.number}`,
     canonicalSourceId: `gutenberg:${row.number}`,
     providerId: "gutenberg",
-    downloadMode: "direct",
+    downloadMode: import.meta.env.MODE === "pages" ? "manual" : "direct",
     title: row.title,
     author: row.author,
     cover: null,
@@ -201,6 +201,12 @@ async function download(book, { signal } = {}) {
   if (!number) {
     throw catalogError("INVALID_BOOK", "Ce livre n’a pas d’identifiant Gutenberg valide.");
   }
+  if (import.meta.env.MODE === "pages") {
+    throw catalogError(
+      "MANUAL_IMPORT_REQUIRED",
+      "Téléchargez l’EPUB depuis Project Gutenberg, puis importez-le ici pour commencer votre lecture.",
+    );
+  }
   if (globalThis.navigator?.onLine === false) {
     throw catalogError(
       "OFFLINE",
@@ -236,8 +242,9 @@ export default defineSource({
     name: "Project Gutenberg",
     version: "3.0.0",
     apiVersion: 1,
-    description:
-      "Recherche locale dans le catalogue officiel ; téléchargement de l’EPUB et lecture en un clic.",
+    description: import.meta.env.MODE === "pages"
+      ? "Recherche locale dans le catalogue officiel ; EPUB à télécharger depuis la source puis à importer."
+      : "Recherche locale dans le catalogue officiel ; téléchargement de l’EPUB et lecture en un clic.",
     website: "https://www.gutenberg.org/",
     policy: "https://www.gutenberg.org/policy/",
     capabilities: { search: true, download: true, bundled: false },

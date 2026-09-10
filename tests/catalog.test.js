@@ -41,6 +41,22 @@ afterEach(() => {
 });
 
 describe("catalogue officiel local", () => {
+  it("conserve la recherche sur Pages et distingue les livres intégrés des EPUB à importer", async () => {
+    vi.stubEnv("MODE", "pages");
+    const result = await catalog.searchBooks({ query: "germinal", provider: "all" });
+    expect(result.books.length).toBeGreaterThan(0);
+    expect(result.books.every((book) => book.downloadMode === "manual")).toBe(true);
+    expect((await catalog.searchBooks({ provider: "selection" })).books).toHaveLength(9);
+    expect((await catalog.searchBooks({ provider: "selection" })).books.every((book) => book.downloadMode === "bundled")).toBe(true);
+  });
+
+  it("explique l’import sur Pages sans appeler un relais inexistant", async () => {
+    vi.stubEnv("MODE", "pages");
+    await expect(catalog.downloadBook({ id: "gutenberg-5711", title: "Germinal" }))
+      .rejects.toMatchObject({ code: "MANUAL_IMPORT_REQUIRED", message: expect.stringContaining("importez-le ici") });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("cherche réellement Hugo et Les Misérables sans aucune API externe", async () => {
     const result = await catalog.searchBooks({
       provider: "gutenberg",

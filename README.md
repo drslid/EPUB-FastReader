@@ -4,11 +4,17 @@ Un lecteur EPUB conçu d’abord pour le téléphone, également utilisable sur 
 
 **Tout l’espace personnel reste dans la base IndexedDB du navigateur** : livres, fichiers EPUB originaux, positions, marque-pages, notes et réglages. Aucun compte ni base de données personnelle sur serveur n’est nécessaire. Un petit serveur HTTP récupère uniquement les livres publics demandés dans les catalogues. « Ma bibliothèque » rassemble tous les livres ouverts ; l’ancien lien `#account` y redirige.
 
+## GitHub Pages et version serveur
+
+Le site peut être publié à [son adresse GitHub Pages](https://drslid.github.io/EPUB-FastReader/). Cette version contient la bibliothèque locale, la recherche commune, les trois modes de lecture, les repères et le fonctionnement hors connexion. Les neuf EPUB intégrés s’ouvrent en un clic. Les autres résultats Gutenberg affichent **Obtenir l’EPUB** : télécharger sur la source, puis importer le fichier ici. Le site n’appelle pas de relais inexistant sur Pages.
+
+La version Node/Docker conserve le téléchargement automatique des autres EPUB Gutenberg. Les deux versions utilisent le même lecteur et le même stockage local. `npm run build:pages` produit `dist-pages` pour Pages ; `npm run build` produit `dist` pour le serveur.
+
 ## Utilisation
 
 - **Ma bibliothèque** : trois suggestions de livres à ouvrir immédiatement, reprise de la dernière lecture, import et suppression d’EPUB.
 - **Recherche commune** : une seule barre reste en haut de la bibliothèque et de Découvrir. Elle cherche par titre/auteur dans vos livres et les sources en parallèle. Vos livres apparaissent d’abord, avec ouverture directe et progression ; les éditions déjà enregistrées ne sont pas répétées dans les résultats des catalogues. La langue et les sources filtrent uniquement les catalogues.
-- **Découvrir** : rechercher un titre ou un auteur, puis toucher une couverture pour récupérer l’EPUB, l’ajouter à la bibliothèque et ouvrir le lecteur. Ce parcours concerne toute la sélection et les résultats Gutenberg. Une édition déjà présente reprend sa position sans nouveau téléchargement. La recherche s’effectue localement dans l’index officiel, sans appel à Gutendex.
+- **Découvrir** : rechercher un titre ou un auteur, puis toucher une couverture. Les livres intégrés ouvrent immédiatement le lecteur ; une édition déjà présente reprend sa position sans nouveau téléchargement. Les autres EPUB Gutenberg se téléchargent puis s’importent sur Pages, ou s’ouvrent automatiquement dans la version serveur. La recherche s’effectue localement dans l’index officiel, sans appel à Gutendex.
 - **Lire** : trois modes visibles, démarrage et pause explicites, retour/avance de dix mots, cadence de 100 à 800 mots/minute, navigation par chapitre, taille et police réglables.
 - **Mes repères** : marque-page automatique, signets, recherche de passages dans le livre, surlignages, notes modifiables et export Markdown.
 - **Exporter** : récupérer son EPUB original ou une version Focus.
@@ -22,7 +28,7 @@ La scène Mot à mot garde une hauteur fixe ; la longueur du contexte ne déplac
 
 Les couvertures typographiques du catalogue restent identiques dans les suggestions, Découvrir et Mes livres : couleurs, titre et auteur ne sont plus remplacés par les métadonnées ou l’image interne de l’EPUB après import. Les EPUB personnels gardent leur propre image de couverture. Les octets originaux de chaque fichier sont conservés.
 
-Les neuf éditions intégrées restent disponibles après installation du cache. Les autres EPUB Gutenberg nécessitent une première connexion : le serveur les récupère auprès de miroirs figurant dans la liste officielle, en privilégiant l’édition texte légère fournie par Gutenberg. Il conserve les fichiers et leurs licences sans les modifier. En cas de panne, l’interface propose **Réessayer**, la fiche source et l’import manuel. Les droits annoncés par le catalogue concernent les États-Unis ; vérifier ceux de son pays. [Sources et limites vérifiées](docs/SOURCES.md).
+Les neuf éditions intégrées restent disponibles après installation du cache. Les autres EPUB Gutenberg nécessitent une première connexion. Dans la version Node/Docker, le serveur les récupère auprès de miroirs figurant dans la liste officielle, en privilégiant l’édition texte légère fournie par Gutenberg. Il conserve les fichiers et leurs licences sans les modifier. En cas de panne, l’interface propose **Réessayer**, la fiche source et l’import manuel. Les droits annoncés par le catalogue concernent les États-Unis ; vérifier ceux de son pays. [Sources et limites vérifiées](docs/SOURCES.md).
 
 ## Démarrer et vérifier
 
@@ -43,7 +49,7 @@ npm run test:e2e
 npm run preview
 ```
 
-`npm run dev` et `npm run preview` comprennent le relais de téléchargement. Pour servir la version compilée avec le serveur de production : `npm run build`, puis `npm start`. Un hébergement purement statique ne suffit pas pour les téléchargements Gutenberg ; le lecteur et les données personnelles restent dans le navigateur.
+`npm run dev` et `npm run preview` comprennent le relais de téléchargement. Pour servir la version compilée avec le serveur de production : `npm run build`, puis `npm start`. Un hébergement statique utilise le build Pages et son parcours de téléchargement/import manuel pour Gutenberg ; le lecteur et les données personnelles restent dans le navigateur.
 
 Playwright teste Chromium et WebKit avec des profils PC, téléphone et tablette, plus des écrans mobiles étroits et le paysage. Les essais automatisés ne remplacent pas des tests sur le matériel réel.
 
@@ -63,7 +69,7 @@ Le stockage `EpubDatabase` du prototype historique n’est pas migré. Les lecte
 
 Les plugins sont des modules de sources versionnés dans `src/sources/`. L’index Gutenberg est un instantané du catalogue officiel, construit avec le statut de droits et les formats réellement proposés, puis découpé par langue en fichiers portant l’empreinte de leur contenu. [Provenance et mise à jour](docs/SOURCES.md).
 
-Le pipeline GitHub Actions installe les versions verrouillées, audite les dépendances de production, exécute les tests, compile et teste les navigateurs avant de publier l’image Docker complète sur GHCR depuis la branche par défaut. Un hook de déploiement peut ensuite être configuré pour l’hébergeur choisi. [Activation du déploiement](docs/DEPLOYMENT.md).
+Le pipeline GitHub Actions installe les versions verrouillées, audite les dépendances de production, exécute les tests, compile et teste les navigateurs. Depuis la branche par défaut, il valide aussi le build statique sous le chemin du dépôt puis le publie automatiquement sur GitHub Pages. Il publie en parallèle l’image Docker complète sur GHCR. Un hook de déploiement peut ensuite être configuré pour l’hébergeur choisi. [Activation du déploiement](docs/DEPLOYMENT.md).
 
 | Fichiers                                           | Responsabilité                                            |
 | -------------------------------------------------- | --------------------------------------------------------- |

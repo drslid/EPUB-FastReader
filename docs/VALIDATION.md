@@ -2,7 +2,24 @@
 
 La validation couvre l’interface locale révisée après l’essai utilisateur. Le [rapport des pages](AUDIT-PAGES.md) associe chaque fonction visible à ses scénarios de vérification.
 
-## Résultats exécutés
+## Ajout du déploiement GitHub Pages
+
+La compilation Pages a été vérifiée séparément après les essais de la version serveur ci-dessous. `npm test` passe désormais **289 tests** ; le lot de régression découverte/recherche passe **78 parcours** sur PC, téléphone et tablette émulés. Les deux compilations réussissent : `dist` pour Node et `dist-pages` pour Pages. Le pipeline exécute ensuite la suite navigateur complète avant toute publication.
+
+`npm run test:pages` passe **8 groupes de contrôles** sur un serveur HTTP purement statique, sous `/EPUB-FastReader/`, avec Chromium à 390 px puis 320 px. Les fichiers servis incluent `main-BbYzNqex.js` et `main-CqI-EmZw.css` :
+
+- MIME, taille, SHA-256 et intégrité ZIP des neuf EPUB originaux, icônes et manifeste ; périmètre du service worker limité au projet.
+- Lecture réelle du Horla, fichier conservé dans IndexedDB, couverture identique, signet et reprise au même mot.
+- Recherche commune, livre local prioritaire et absence de téléchargement répété ou de doublon.
+- Résultat Germinal clairement proposé au téléchargement/import manuel, lien officiel, aucune requête vers une API absente et aucun bouton de nouvelle tentative inutile.
+- Import réel de Candide depuis ce dialogue sans lui attribuer à tort l’identité de Germinal ; les trois modes de lecture restent fonctionnels.
+- Recherche fixe à 320 px, absence de débordement, navigation et retour en haut.
+- Rechargement hors connexion par le service worker, livres et passage conservés, recherche française et première ouverture de Trois contes depuis le cache.
+- Aucune réponse HTTP en erreur ni exception JavaScript.
+
+Le même script accepte `FASTREADER_PAGES_URL=https://drslid.github.io/EPUB-FastReader/` pour vérifier l’URL publiée dans un profil de navigateur isolé. Les autres EPUB Gutenberg suivent volontairement un parcours de téléchargement/import sur Pages ; l’ouverture automatique par relais reste propre à la compilation serveur. Le compte rendu serveur qui suit décrit la validation précédente.
+
+## Résultats exécutés — version serveur précédente
 
 | Contrôle                          | Résultat                                                                                                                       |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |

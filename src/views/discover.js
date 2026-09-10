@@ -7,24 +7,28 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
   const heading = `<div class="section-heading"><h2>${unified ? "Dans les catalogues" : selection ? "À lire maintenant" : "Explorer les classiques"}</h2><span class="subtle" role="status">${state.searching ? "Recherche en cours…" : state.searched ? `${state.catalogCountIsApproximate ? "≈ " : ""}${state.catalogCount.toLocaleString("fr-FR")} ${unified ? (state.catalogCount === 1 ? "référence" : "références") : (state.catalogCount === 1 ? "livre" : "livres")}${selection ? "" : ` · page ${state.page}`}` : ""}</span></div>`;
   const renderBook = (book, index) => {
     const inLibrary = Boolean(findLibraryBook(book, state.books));
-    const needsConnection = book.downloadMode === "direct" && !inLibrary;
+    const manualImport = book.downloadMode === "manual" && !inLibrary;
+    const needsConnection = ["direct", "manual"].includes(book.downloadMode) && !inLibrary;
     const availability = inLibrary
       ? "Dans votre bibliothèque"
       : needsConnection && state.offline
         ? "Connexion requise"
-        : "Lecture en un clic";
-    return `<article class="book-card ${inLibrary ? "is-in-library" : ""}" data-provider="${escape(book.providerId)}" data-language="${escape(book.language || "")}"><button class="book-open" data-action="catalog-read" data-id="${escape(book.id)}" aria-label="Lire ${escape(book.title)}" ${state.busy ? "disabled" : ""}>${cover(book, index)}<h3>${escape(book.title)}</h3><p>${escape(book.author)}</p></button>
+        : manualImport
+          ? "EPUB à télécharger puis importer"
+          : "Lecture en un clic";
+    return `<article class="book-card ${inLibrary ? "is-in-library" : ""}" data-provider="${escape(book.providerId)}" data-language="${escape(book.language || "")}"><button class="book-open" data-action="catalog-read" data-id="${escape(book.id)}" aria-label="${manualImport ? "Obtenir" : "Lire"} ${escape(book.title)}" ${state.busy ? "disabled" : ""}>${cover(inLibrary ? { ...book, downloadMode: "local" } : book, index)}<h3>${escape(book.title)}</h3><p>${escape(book.author)}</p></button>
       ${book.genre ? `<span class="genre-label">${escape(book.genre)}</span>` : ""}
       ${book.description ? `<p class="book-description">${escape(book.description)}</p>` : ""}
       <div class="book-card-meta"><span class="availability is-ready">${icon(needsConnection && state.offline ? "download" : "check")} ${availability}</span><a href="${escape(book.sourceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Source et droits : ${escape(book.title)}">Source ${icon("external")}</a></div>
-      <button class="button ink start-book-button" data-action="catalog-read" data-id="${escape(book.id)}" ${state.busy ? "disabled" : ""}>${inLibrary ? "Reprendre" : "Commencer"} ${icon("play")}</button></article>`;
+      <button class="button ink start-book-button" data-action="catalog-read" data-id="${escape(book.id)}" ${state.busy ? "disabled" : ""}>${inLibrary ? "Reprendre" : manualImport ? "Obtenir l’EPUB" : "Commencer"} ${icon(manualImport ? "download" : "play")}</button></article>`;
   };
   return `${unified ? "" : '<section class="discovery-intro"><div class="eyebrow">DES LIVRES LIBRES À EXPLORER</div><h1>Une envie de <em>lecture ?</em></h1><p>Touchez une couverture pour commencer votre prochaine histoire.</p></section>'}
+    ${import.meta.env.MODE === "pages" && !selection ? '<p class="catalog-download-hint">Les livres intégrés s’ouvrent ici en un clic. Les autres titres Gutenberg se téléchargent sur leur source, puis s’importent dans votre bibliothèque.</p>' : ""}
     <section aria-label="Résultats de recherche" aria-busy="${state.searching}" data-query="${escape(state.query)}">
     ${unified ? heading : ""}
     <div class="source-tabs" role="group" aria-label="Sources de livres">${searchable.map((source) => `<button data-action="provider" data-provider="${escape(source.id)}" aria-pressed="${state.provider === source.id}">${source.id === "selection" ? icon("book") : icon("compass")}${escape(source.name)}</button>`).join("")}</div>
-    ${!unified ? `<div class="source-row"><span class="source-chip">${icon("check")}Touchez une couverture : le livre s’ouvre et rejoint votre bibliothèque.</span></div>` : ""}
-    ${!unified && !selection ? `<p class="catalog-download-hint">Un premier téléchargement nécessite une connexion. Retrouvez ensuite vos livres et votre progression hors ligne.</p>` : ""}
+    ${!unified && (selection || import.meta.env.MODE !== "pages") ? `<div class="source-row"><span class="source-chip">${icon("check")}Touchez une couverture : le livre s’ouvre et rejoint votre bibliothèque.</span></div>` : ""}
+    ${!unified && !selection && import.meta.env.MODE !== "pages" ? `<p class="catalog-download-hint">Un premier téléchargement nécessite une connexion. Retrouvez ensuite vos livres et votre progression hors ligne.</p>` : ""}
     ${!unified ? heading : ""}
 
     ${state.catalogError ? `<div class="notice" role="alert"><strong>La recherche n’a pas pu aboutir.</strong><p>${escape(state.catalogError)}</p><div class="notice-actions"><button class="button secondary" data-action="search">Réessayer</button><button class="button ink" data-action="provider" data-provider="selection">Livres prêts à lire</button></div></div>` : ""}

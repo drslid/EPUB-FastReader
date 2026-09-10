@@ -2,6 +2,12 @@
 
 État de l’interface révisée le 10 septembre 2026. Les résultats effectivement exécutés et leurs limites sont consignés dans [VALIDATION.md](VALIDATION.md) ; les tableaux ci-dessous décrivent les comportements et leurs scénarios de contrôle.
 
+## Publication sur GitHub Pages
+
+La compilation `pages` conserve la recherche commune, la bibliothèque, les neuf EPUB intégrés, le lecteur et les données IndexedDB. Les titres Gutenberg non intégrés portent le libellé **EPUB à télécharger puis importer** et ouvrent un dialogue **Obtenir l’EPUB**, avec le lien officiel et le bouton d’import. Aucun appel au relais `/api/books/…` n’est envoyé sur cet hébergement. Les éditions déjà présentes reprennent directement leur lecture. La compilation serveur conserve le parcours automatique décrit plus bas.
+
+`scripts/verify-pages.mjs` contrôle la version compilée sur un serveur statique sans relais, sous `/EPUB-FastReader/`, et peut rejouer ces contrôles sur l’URL publique. Les détails de publication sont dans [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Corrections apportées après l’essai
 
 | Problème constaté                                                   | Correction                                                                                                                                                   |
@@ -67,7 +73,7 @@ Les couvertures utilisent une identité visuelle commune. Un livre téléchargé
 
 ## Découvrir — `#discover`
 
-**But :** trouver un livre et commencer à le lire en touchant sa couverture. Ce parcours concerne les neuf éditions intégrées et tous les résultats Gutenberg. Le clic récupère l’EPUB public, l’enregistre dans la bibliothèque et ouvre le lecteur. Une œuvre déjà présente affiche **Dans votre bibliothèque** et **Reprendre** ; l’ouverture conserve sa position et ses repères sans récupérer à nouveau le fichier.
+**But :** trouver un livre et commencer à le lire en touchant sa couverture. Ce parcours concerne les neuf éditions intégrées et, dans la version serveur, tous les résultats Gutenberg. Sur Pages, les résultats complémentaires suivent le parcours de téléchargement/import décrit plus haut. Le clic récupère l’EPUB public, l’enregistre dans la bibliothèque et ouvre le lecteur. Une œuvre déjà présente affiche **Dans votre bibliothèque** et **Reprendre** ; l’ouverture conserve sa position et ses repères sans récupérer à nouveau le fichier.
 
 Les résultats apparaissent dans une grille de 24 cartes au maximum. La section **Catalogue externe** a été supprimée. La provenance et les droits restent accessibles par le lien **Source**. Le premier téléchargement d’un titre Gutenberg nécessite une connexion et passe par un relais HTTP qui contacte des miroirs officiels. Il privilégie l’édition texte légère originale ; la lecture et les sauvegardes restent ensuite locales. En cas d’échec, **Réessayer** relance le même livre ; la fiche source et l’import manuel restent des solutions de repli. Quitter la page pendant le téléchargement empêche une ouverture tardive du lecteur.
 
@@ -87,7 +93,7 @@ La recherche publique ne dépend plus de l’API publique Gutendex. La provenanc
 | Droits et provenance           | Liens visibles près des livres et dans les réglages du lecteur                                                                           | `discovery.spec.js`        |
 | Hors connexion                 | Livres enregistrés et sélection installée restent accessibles                                                                            | `offline.spec.js`          |
 
-**Limites explicites :** un index livré est un instantané, pas un service en temps réel. Les titres ajoutés plus récemment sur la source apparaîtront après la prochaine mise à jour de l’index. Un EPUB peut manquer sur les miroirs ou être momentanément indisponible ; le parcours explique l’échec. La version complète doit être hébergée avec son relais HTTP, car un site statique seul ne fournit pas cette route. Le statut du domaine public annoncé par une source ne vaut pas automatiquement pour tous les pays. Les réponses Gutenberg des tests navigateur sont contrôlées ; les essais sur les sources réelles sont distingués dans [VALIDATION.md](VALIDATION.md).
+**Limites explicites :** un index livré est un instantané, pas un service en temps réel. Les titres ajoutés plus récemment sur la source apparaîtront après la prochaine mise à jour de l’index. Un EPUB peut manquer sur les miroirs ou être momentanément indisponible ; le parcours explique l’échec. L’ouverture automatique de tous les résultats nécessite le relais HTTP ; Pages fournit la recherche et le parcours manuel pour les résultats complémentaires. Le statut du domaine public annoncé par une source ne vaut pas automatiquement pour tous les pays. Les réponses Gutenberg des tests navigateur sont contrôlées ; les essais sur les sources réelles sont distingués dans [VALIDATION.md](VALIDATION.md).
 
 ## Recherche commune — `#search?q=…&language=fr&provider=all&page=1`
 

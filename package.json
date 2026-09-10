@@ -11,13 +11,15 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:pages": "vite build --mode pages --outDir dist-pages",
     "start": "node server/app.js",
     "preview": "vite preview --host 0.0.0.0",
     "icons:generate": "node scripts/generate-icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:live": "node scripts/verify-live-reading.mjs"
+    "test:live": "node scripts/verify-live-reading.mjs",
+    "test:pages": "node scripts/verify-pages.mjs"
   },
   "dependencies": {
     "dompurify": "3.4.15",
