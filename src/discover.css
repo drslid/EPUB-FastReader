@@ -11,6 +11,10 @@
   max-width: 650px;
 }
 
+.catalog-search-hint {
+  margin-top: 24px;
+}
+
 .catalog-grid .book-card-meta {
   align-items: center;
   flex-wrap: wrap;
