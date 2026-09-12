@@ -1,0 +1,108 @@
+{
+  "date": "2026-09-12T13:48:18.788Z",
+  "browser": "153.0.8010.12",
+  "fixture": {
+    "chapters": 24,
+    "paragraphsPerChapter": 96,
+    "archiveBytes": 16158,
+    "expandedBytes": 445861
+  },
+  "rows": [
+    {
+      "profile": "Desktop Chrome",
+      "worker": true,
+      "run": 1,
+      "durationMs": 93,
+      "frames": 5,
+      "maxFrameGapMs": 22
+    },
+    {
+      "profile": "Desktop Chrome",
+      "worker": false,
+      "run": 1,
+      "durationMs": 84,
+      "frames": 4,
+      "maxFrameGapMs": 26
+    },
+    {
+      "profile": "Desktop Chrome",
+      "worker": true,
+      "run": 2,
+      "durationMs": 97,
+      "frames": 6,
+      "maxFrameGapMs": 17
+    },
+    {
+      "profile": "Desktop Chrome",
+      "worker": false,
+      "run": 2,
+      "durationMs": 97,
+      "frames": 5,
+      "maxFrameGapMs": 29
+    },
+    {
+      "profile": "Desktop Chrome",
+      "worker": true,
+      "run": 3,
+      "durationMs": 109,
+      "frames": 6,
+      "maxFrameGapMs": 24
+    },
+    {
+      "profile": "Desktop Chrome",
+      "worker": false,
+      "run": 3,
+      "durationMs": 84,
+      "frames": 5,
+      "maxFrameGapMs": 17
+    },
+    {
+      "profile": "Pixel 7",
+      "worker": true,
+      "run": 1,
+      "durationMs": 96,
+      "frames": 6,
+      "maxFrameGapMs": 17
+    },
+    {
+      "profile": "Pixel 7",
+      "worker": false,
+      "run": 1,
+      "durationMs": 89,
+      "frames": 5,
+      "maxFrameGapMs": 19
+    },
+    {
+      "profile": "Pixel 7",
+      "worker": true,
+      "run": 2,
+      "durationMs": 105,
+      "frames": 6,
+      "maxFrameGapMs": 21
+    },
+    {
+      "profile": "Pixel 7",
+      "worker": false,
+      "run": 2,
+      "durationMs": 77,
+      "frames": 4,
+      "maxFrameGapMs": 17
+    },
+    {
+      "profile": "Pixel 7",
+      "worker": true,
+      "run": 3,
+      "durationMs": 89,
+      "frames": 5,
+      "maxFrameGapMs": 17
+    },
+    {
+      "profile": "Pixel 7",
+      "worker": false,
+      "run": 3,
+      "durationMs": 78,
+      "frames": 4,
+      "maxFrameGapMs": 21
+    }
+  ]
+}

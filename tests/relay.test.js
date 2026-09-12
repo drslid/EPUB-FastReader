@@ -251,3 +251,87 @@ describe("relais EPUB à la demande", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(4);
   });
 });
+
+describe("CORS du relais externe facultatif", () => {
+  const origin = "https://drslid.github.io";
+
+  it("autorise seulement l’origine configurée et ne transmet aucun en-tête privé à Gutenberg", async () => {
+    const fetchImpl = vi.fn(async () => upstream());
+    const middleware = createGutenbergMiddleware({ fetchImpl, allowOrigin: origin });
+    const result = await request(middleware, undefined, "GET", { origin, cookie: "private=session", authorization: "Bearer private" });
+    expect(result.statusCode).toBe(200);
+    expect(result.body).toEqual(epub);
+    expect(result.headers).toMatchObject({ "access-control-allow-origin": origin, vary: "Origin", "access-control-expose-headers": "Content-Disposition, Retry-After" });
+    expect(result.headers).not.toHaveProperty("access-control-allow-credentials");
+    expect(JSON.stringify(fetchImpl.mock.calls[0][1])).not.toContain("private");
+    expect(JSON.stringify(fetchImpl.mock.calls[0][1])).not.toContain(origin);
+    const ownSite = await request(middleware);
+    expect(ownSite.statusCode).toBe(200);
+    expect(ownSite.headers).not.toHaveProperty("access-control-allow-origin");
+    expect(ownSite.headers.vary).toBe("Origin");
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it.each(["https://evil.example", "https://drslid.github.io.evil.example", "https://drslid.github.io/EPUB-FastReader", "http://drslid.github.io", "null"])("refuse l’origine %s avant tout téléchargement", async (untrustedOrigin) => {
+    const fetchImpl = vi.fn();
+    const middleware = createGutenbergMiddleware({ fetchImpl, allowOrigin: origin });
+    const result = await request(middleware, undefined, "GET", { origin: untrustedOrigin });
+    expect(result.statusCode).toBe(403);
+    expect(result.json().error.code).toBe("ORIGIN_NOT_ALLOWED");
+    expect(result.headers).not.toHaveProperty("access-control-allow-origin");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("ne propose aucun accès externe lorsque CORS n’est pas configuré", async () => {
+    const fetchImpl = vi.fn();
+    const result = await request(createGutenbergMiddleware({ fetchImpl }), undefined, "GET", { origin });
+    expect(result.statusCode).toBe(403);
+    expect(result.headers).not.toHaveProperty("access-control-allow-origin");
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each(["*", "null", "http://drslid.github.io", "https://drslid.github.io/", "https://drslid.github.io/EPUB-FastReader", "https://drslid.github.io?query=1", "https://user:password@drslid.github.io", [origin]])("rejette une configuration CORS ambiguë : %j", (allowOrigin) => {
+    expect(() => createGutenbergMiddleware({ allowOrigin })).toThrow("origine HTTPS exacte");
+  });
+
+  it("répond au précontrôle GET/HEAD sans charger le livre ni créer de session", async () => {
+    const fetchImpl = vi.fn();
+    const middleware = createGutenbergMiddleware({ fetchImpl, allowOrigin: origin });
+    for (const method of ["GET", "HEAD"]) {
+      const result = await request(middleware, undefined, "OPTIONS", { origin, "access-control-request-method": method, "access-control-request-headers": "Accept" });
+      expect(result.statusCode).toBe(204);
+      expect(result.body).toBeUndefined();
+      expect(result.headers).toMatchObject({ "access-control-allow-origin": origin, "access-control-allow-methods": "GET, HEAD", "access-control-allow-headers": "Accept", "access-control-max-age": "600" });
+      expect(result.headers).not.toHaveProperty("set-cookie");
+    }
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { origin, "access-control-request-method": "POST" },
+    { origin, "access-control-request-method": "GET", "access-control-request-headers": "Authorization" },
+    { origin, "access-control-request-method": "GET", "access-control-request-headers": "Accept, X-Private" },
+    { "access-control-request-method": "GET" },
+  ])("rejette le précontrôle non prévu %j", async (headers) => {
+    const fetchImpl = vi.fn();
+    const result = await request(createGutenbergMiddleware({ fetchImpl, allowOrigin: origin }), undefined, "OPTIONS", headers);
+    expect(result.statusCode).toBe(403);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("garde les erreurs Gutenberg lisibles pour l’origine autorisée, sans ouvrir les autres routes", async () => {
+    const fetchImpl = vi.fn(async () => upstream("", {}, 403));
+    const middleware = createGutenbergMiddleware({ fetchImpl, allowOrigin: origin });
+    const failure = await request(middleware, undefined, "GET", { origin });
+    expect(failure.statusCode).toBe(503);
+    expect(failure.headers["access-control-allow-origin"]).toBe(origin);
+    expect(failure.headers["cache-control"]).toBe("no-store");
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    const other = await request(middleware, "/api/health", "GET", { origin });
+    expect(other.next).toHaveBeenCalledOnce();
+    expect(other.headers).not.toHaveProperty("access-control-allow-origin");
+    const invalid = await request(middleware, "/api/books/gutenberg/1.epub?url=https://evil.example", "OPTIONS", { origin, "access-control-request-method": "GET" });
+    expect(invalid.statusCode).toBe(400);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+});

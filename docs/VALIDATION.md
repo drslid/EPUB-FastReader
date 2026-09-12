@@ -1,3 +1,5 @@
+> Le bilan de la nouvelle version (361 tests unitaires, 237 scénarios navigateur, sauvegarde et relais Pages) se trouve dans [Évolution du lecteur](EVOLUTION-LECTURE.md#validation-exécutée). Le rapport ci-dessous conserve la validation de la version précédente.
+
 # Vérification de la version du 10 septembre 2026
 
 La validation couvre l’interface locale révisée après l’essai utilisateur. Le [rapport des pages](AUDIT-PAGES.md) associe chaque fonction visible à ses scénarios de vérification.

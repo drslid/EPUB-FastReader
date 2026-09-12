@@ -1,0 +1,123 @@
+/* Titles and author names remain complete, including narrow search cards.
+   Cover proportions are preferred; exceptionally long titles can grow taller. */
+.book-open .cover,
+.suggestion-open .cover {
+  display: block;
+  aspect-ratio: auto;
+  container-type: inline-size;
+}
+.cover .cover-design {
+  position: relative;
+  inset: auto;
+  min-width: 0;
+  min-height: 140cqi;
+  aspect-ratio: auto;
+  gap: 0;
+}
+.cover .cover-kicker {
+  flex-shrink: 0;
+  font-size: clamp(6px, 3.6cqi, 8px);
+  letter-spacing: 0.12em;
+  margin: 3px 0 18px;
+}
+.cover .cover-title {
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  max-height: none;
+  font-size: clamp(12px, calc(13cqi * var(--cover-title-scale, 1)), 30px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.cover .cover-rule {
+  margin: 16px 0;
+}
+.cover .cover-author {
+  display: block;
+  flex-shrink: 0;
+  margin-top: auto;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  font-size: clamp(8px, 5.3cqi, 12px);
+  line-height: 1.45;
+}
+.cover .cover-emblem {
+  display: none;
+}
+.book-open h3,
+.book-open p {
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow-wrap: anywhere;
+}
+.suggestion-card:not(.suggestion-featured) .cover .cover-author {
+  display: block;
+  padding-top: 8px;
+}
+.suggestion-cover .cover .cover-kicker {
+  margin-bottom: 10px;
+}
+.suggestion-cover .cover .cover-title {
+  font-size: clamp(9px, calc(14cqi * var(--cover-title-scale, 1)), 25px);
+}
+.suggestion-cover .cover .cover-author {
+  font-size: clamp(7px, 6cqi, 10px);
+}
+.suggestion-cover .cover .cover-rule {
+  margin: 12px 0;
+}
+.local-results .book-card {
+  min-height: 0;
+  padding: 14px;
+}
+.local-results .book-open {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 5px 14px;
+  align-items: start;
+}
+.local-results .book-open .cover {
+  position: relative;
+  top: auto;
+  left: auto;
+  grid-row: 1 / 3;
+  width: 100%;
+}
+.local-results .book-open h3 {
+  margin: 0;
+}
+.local-results .cover .cover-title {
+  font-size: clamp(10px, calc(15cqi * var(--cover-title-scale, 1)), 14px);
+}
+.local-results .cover .cover-author {
+  padding-top: 8px;
+  font-size: 8px;
+}
+.local-results .cover .cover-kicker {
+  display: none;
+}
+@media (max-width: 760px) {
+  .local-results .book-card {
+    padding: 13px;
+  }
+  .local-results .book-open {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 5px 13px;
+  }
+  .cover .cover-rule {
+    margin: 12px 0;
+  }
+  .cover .cover-kicker {
+    margin-bottom: 12px;
+  }
+}

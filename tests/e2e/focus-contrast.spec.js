@@ -21,7 +21,7 @@ function contrast(foreground, background) {
 }
 
 async function openFocus(page) {
-  await page.goto("/#library");
+  await page.goto("/#home");
   await page
     .getByRole("button", { name: "Essayer le lecteur", exact: true })
     .click();

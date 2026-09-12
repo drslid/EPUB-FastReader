@@ -129,7 +129,7 @@ test("le thème sombre est global par défaut et le choix clair ou sépia persis
   await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
-  await page.goto("/#library");
+  await page.goto("/#home");
   await page
     .getByRole("button", { name: "Essayer le lecteur", exact: true })
     .click();
@@ -157,4 +157,34 @@ test("le thème sombre est global par défaut et le choix clair ou sépia persis
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
   expect(await storedRows(page, "preferences")).not.toHaveLength(0);
+});
+
+test("les exports Classique et Focus sont accessibles directement depuis un livre enregistré", async ({ page }, testInfo) => {
+  const JSZip = (await import("jszip")).default;
+  const original = await makeEpub({ title: "Livre à emporter" });
+  await page.goto("/");
+  await importEpub(page, original);
+  await expect(page.locator("#rsvp")).toBeVisible();
+  await page.getByRole("link", { name: "Retour à ma bibliothèque", exact: true }).click();
+  const menu = page.locator(".library-section .book-export");
+  await menu.locator("summary").click();
+  for (const format of ["Classique", "Focus"]) {
+    const pending = page.waitForEvent("download");
+    await menu.getByRole("button", { name: `Télécharger en ${format} : Livre à emporter`, exact: true }).click();
+    const download = await pending;
+    const filePath = testInfo.outputPath(`library-${format}.epub`);
+    await download.saveAs(filePath);
+    const buffer = await readFile(filePath);
+    const zip = await JSZip.loadAsync(buffer);
+    expect(await zip.file("mimetype").async("string")).toBe("application/epub+zip");
+    const chapterFiles = zip.file(/\.(?:xhtml|html)$/);
+    expect(chapterFiles.length).toBeGreaterThan(0);
+    const chapterTexts = await Promise.all(chapterFiles.map((chapter) => chapter.async("string")));
+    if (format === "Focus") expect(chapterTexts.join("\n")).toContain("focus-prefix");
+    else expect(chapterTexts.join("\n")).not.toContain("focus-prefix");
+    await expect(page).toHaveURL(/#library$/);
+    // Rendering after a completed export may close the native disclosure.
+    if ((await menu.getAttribute("open")) === null) await menu.locator("summary").click();
+  }
+  expect(await storedRows(page, "books")).toHaveLength(1);
 });

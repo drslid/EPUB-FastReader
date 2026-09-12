@@ -377,6 +377,7 @@ test("quitter une ouverture Gutenberg annule le téléchargement sans ajouter de
   await aborted;
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await storedRows(page, "books")).toHaveLength(0);
+  await page.locator('nav[aria-label="Navigation principale"] a[href="#home"]').click();
   await page.getByRole("button", { name: "Essayer le lecteur", exact: true }).click();
   await expect(page.locator(".reader-title strong")).toHaveText("L’art de prendre le temps");
   expect(await storedRows(page, "books")).toHaveLength(1);
@@ -409,4 +410,21 @@ test("la notice des livres permet de lire la licence, télécharger un original 
   await expect(
     page.getByRole("button", { name: "Lire Le Horla", exact: true }),
   ).toBeVisible();
+});
+
+test("Découvrir sépare le téléchargement du fichier et l’ouverture dans la bibliothèque", async ({ page }, testInfo) => {
+  await page.goto("/#discover");
+  const card = page.locator('.catalog-grid .book-card').filter({ has: page.locator('[data-id="selection-le-horla"]') });
+  await expect(card).not.toContainText("Lecture en un clic");
+  await expect(card).not.toContainText("EPUB à télécharger puis importer");
+  const downloading = page.waitForEvent("download");
+  await card.getByRole("button", { name: "Obtenir l’EPUB : Le Horla", exact: true }).click();
+  const file = await downloading;
+  const filePath = testInfo.outputPath("catalogue-horla.epub");
+  await file.saveAs(filePath);
+  expect(await readFile(filePath)).toEqual(await readFile(new URL("../../public/books/le-horla.epub", import.meta.url)));
+  expect(await storedRows(page, "books")).toHaveLength(0);
+  await card.getByRole("button", { name: "Lire", exact: true }).click();
+  await expect(page.locator("#rsvp")).toBeVisible();
+  expect(await storedRows(page, "books")).toHaveLength(1);
 });

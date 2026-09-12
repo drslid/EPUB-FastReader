@@ -14,6 +14,24 @@ const cache = new Map();
 const RIGHTS =
   "Domaine public aux États-Unis selon la source ; vérifiez les droits dans votre pays.";
 
+/** Deployment configuration only: a catalogue entry can never choose a relay. */
+export function configuredGutenbergRelay() {
+  const value = import.meta.env.VITE_GUTENBERG_RELAY_URL;
+  if (typeof value !== "string" || !value) return "";
+  try {
+    const url = new URL(value);
+    const rawPath = value.replace(/^https:\/\/[^/]+/u, "");
+    if (
+      url.protocol !== "https:" || url.username || url.password || url.search || url.hash ||
+      !/^https:\/\/[^\s/?#\\]+(?:\/[A-Za-z0-9_.~-]+)*\/?$/u.test(value) ||
+      rawPath.split("/").some((segment) => segment === "." || segment === "..")
+    ) return "";
+    return `${url.origin}${url.pathname.replace(/\/$/u, "")}`;
+  } catch { return ""; }
+}
+
+const manualImportRequired = () => import.meta.env.MODE === "pages" && !configuredGutenbergRelay();
+
 export const catalogSnapshot = Object.freeze({
   date: manifest.generatedAt,
   count: manifest.count,
@@ -139,7 +157,7 @@ function publicBook(row, language) {
     id: `gutenberg-${row.number}`,
     canonicalSourceId: `gutenberg:${row.number}`,
     providerId: "gutenberg",
-    downloadMode: import.meta.env.MODE === "pages" ? "manual" : "direct",
+    downloadMode: manualImportRequired() ? "manual" : "direct",
     title: row.title,
     author: row.author,
     cover: null,
@@ -201,7 +219,7 @@ async function download(book, { signal } = {}) {
   if (!number) {
     throw catalogError("INVALID_BOOK", "Ce livre n’a pas d’identifiant Gutenberg valide.");
   }
-  if (import.meta.env.MODE === "pages") {
+  if (manualImportRequired()) {
     throw catalogError(
       "MANUAL_IMPORT_REQUIRED",
       "Téléchargez l’EPUB depuis Project Gutenberg, puis importez-le ici pour commencer votre lecture.",
@@ -213,7 +231,8 @@ async function download(book, { signal } = {}) {
       "Connectez-vous pour télécharger ce livre une première fois. Il restera ensuite disponible dans votre bibliothèque hors ligne.",
     );
   }
-  const url = `${import.meta.env.BASE_URL}api/books/gutenberg/${number}.epub`;
+  const relay = configuredGutenbergRelay();
+  const url = `${relay ? `${relay}/` : import.meta.env.BASE_URL}api/books/gutenberg/${number}.epub`;
   try {
     return await request(url, {
       signal,
@@ -240,9 +259,9 @@ export default defineSource({
   manifest: {
     id: "gutenberg",
     name: "Project Gutenberg",
-    version: "3.0.0",
+    version: "3.1.0",
     apiVersion: 1,
-    description: import.meta.env.MODE === "pages"
+    description: manualImportRequired()
       ? "Recherche locale dans le catalogue officiel ; EPUB à télécharger depuis la source puis à importer."
       : "Recherche locale dans le catalogue officiel ; téléchargement de l’EPUB et lecture en un clic.",
     website: "https://www.gutenberg.org/",

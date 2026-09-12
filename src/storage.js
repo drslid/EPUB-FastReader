@@ -1,3 +1,5 @@
+import { normalizePosition } from "./reading-state.js";
+
 const DATABASE = "fastreader";
 let connection;
 
@@ -169,9 +171,16 @@ export const defaultSettings = Object.freeze({
   font: "serif",
   mode: "rsvp",
   speed: 300,
+  lineHeight: 1.85,
+  columnWidth: 70,
+  focusIntensity: 50,
+  skipShortWords: false,
+  cadence: "gentle",
+  wakeLock: true,
+  profile: "balanced",
 });
 
-function normalizeSettings(value) {
+export function normalizeSettings(value) {
   const source =
     value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
@@ -181,11 +190,18 @@ function normalizeSettings(value) {
     fontSize: Math.round(
       Math.min(32, Math.max(16, Number(source.fontSize) || 20)),
     ),
-    font: source.font === "sans" ? "sans" : "serif",
+    font: ["serif", "sans", "humanist"].includes(source.font) ? source.font : "serif",
     mode: ["classic", "focus", "rsvp"].includes(source.mode)
       ? source.mode
       : defaultSettings.mode,
     speed: Math.min(800, Math.max(100, Number(source.speed) || 300)),
+    lineHeight: Math.min(2.4, Math.max(1.4, Number(source.lineHeight) || 1.85)),
+    columnWidth: Math.round(Math.min(85, Math.max(45, Number(source.columnWidth) || 70))),
+    focusIntensity: Math.round(Math.min(70, Math.max(20, Number(source.focusIntensity) || 50))),
+    skipShortWords: source.skipShortWords === true,
+    cadence: source.cadence === "steady" ? "steady" : "gentle",
+    wakeLock: source.wakeLock !== false,
+    profile: ["balanced", "comfort", "light", "custom"].includes(source.profile) ? source.profile : "balanced",
   };
 }
 
@@ -204,7 +220,7 @@ export async function readSettings() {
   const settings = normalizeSettings({
     ...legacy,
     theme: defaultSettings.theme,
-    mode: defaultSettings.mode,
+    mode: globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "classic" : defaultSettings.mode,
   });
   await writeSettings(settings);
   try {
@@ -250,4 +266,128 @@ export async function writeSuggestionHistory(ids) {
     tx.objectStore("preferences").put({ id: "suggestions", ids: normalized }),
   );
   return normalized;
+}
+
+export const getPreference = (id) =>
+  transaction(["preferences"], "readonly", (tx) =>
+    tx.objectStore("preferences").get(id),
+  );
+
+export const savePreference = (id, value) =>
+  transaction(["preferences"], "readwrite", (tx) =>
+    tx.objectStore("preferences").put({ ...value, id }),
+  );
+
+/** One transaction gives the archive a coherent snapshot of books and reading state. */
+export async function readLibrarySnapshot() {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["books", "positions", "preferences"], "readonly");
+    const requests = Object.fromEntries(
+      ["books", "positions", "preferences"].map((name) => [
+        name,
+        tx.objectStore(name).getAll(),
+      ]),
+    );
+    tx.oncomplete = () => resolve(Object.fromEntries(
+      Object.entries(requests).map(([name, request]) => [name, request.result]),
+    ));
+    tx.onabort = () => reject(tx.error || new Error("Lecture de la sauvegarde interrompue."));
+    tx.onerror = () => {};
+  });
+}
+
+function mergeReadingPosition(current, incoming, book) {
+  const restored = normalizePosition(incoming, book);
+  if (!current) return { ...restored, id: book.id };
+  const merged = { ...normalizePosition(current, book), id: book.id };
+  for (const kind of ["bookmarks", "annotations"]) {
+    const ids = new Set(merged[kind].map((item) => item.id));
+    for (const item of restored[kind]) {
+      if (!ids.has(item.id) && merged[kind].length < 1000) {
+        merged[kind].push(item);
+        ids.add(item.id);
+      }
+    }
+  }
+  return merged;
+}
+
+/** All parsing must finish before this call. A failed write rolls the entire merge back. */
+export async function mergeLibrarySnapshot(snapshot, { restorePreferences = false } = {}) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["books", "positions", "preferences"], "readwrite");
+    const books = tx.objectStore("books");
+    const positions = tx.objectStore("positions");
+    const preferences = tx.objectStore("preferences");
+    const byId = new Map(snapshot.positions.map((position) => [position.id, position]));
+    const result = { added: 0, existing: 0, annotationsAdded: 0, bookmarksAdded: 0, preferencesRestored: false };
+    let failure;
+    const guarded = (callback) => () => {
+      try { callback(); } catch (error) { failure = error; tx.abort(); }
+    };
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = (event) => { failure ||= event.target?.error; };
+    tx.onabort = () => reject(failure || tx.error || new Error("Restauration interrompue. Vos données sont inchangées."));
+    try {
+      for (const book of snapshot.books) {
+        const request = books.get(book.id);
+        request.onsuccess = guarded(() => {
+          const currentBook = request.result;
+          if (currentBook) result.existing += 1;
+          else { books.add(book); result.added += 1; }
+          const incoming = byId.get(book.id);
+          if (!incoming) return;
+          const positionRequest = positions.get(book.id);
+          positionRequest.onsuccess = guarded(() => {
+            const current = positionRequest.result;
+            const merged = mergeReadingPosition(current, incoming, currentBook || book);
+            result.annotationsAdded += merged.annotations.length - (current ? normalizePosition(current, currentBook || book).annotations.length : 0);
+            result.bookmarksAdded += merged.bookmarks.length - (current ? normalizePosition(current, currentBook || book).bookmarks.length : 0);
+            positions.put(merged);
+          });
+        });
+      }
+      for (const preference of snapshot.preferences) {
+        const request = preferences.get(preference.id);
+        request.onsuccess = guarded(() => {
+          if (!request.result || (restorePreferences && preference.id === "reader")) {
+            preferences.put(preference);
+            if (preference.id === "reader") result.preferencesRestored = true;
+          }
+        });
+      }
+    } catch (error) { failure = error; tx.abort(); }
+  });
+}
+
+/** Browser estimates are approximate and optional; they never guarantee a later write. */
+export async function getStorageStatus() {
+  const manager = globalThis.navigator?.storage;
+  let estimate = {};
+  let persistent = null;
+  try { estimate = await manager?.estimate?.() || {}; } catch { /* Optional browser capability. */ }
+  try { persistent = typeof manager?.persisted === "function" ? await manager.persisted() : null; } catch { /* Unavailable in some private contexts. */ }
+  const usage = Number.isFinite(estimate.usage) && estimate.usage >= 0 ? estimate.usage : null;
+  const quota = Number.isFinite(estimate.quota) && estimate.quota > 0 ? estimate.quota : null;
+  return { usage, quota, available: usage !== null && quota !== null ? Math.max(0, quota - usage) : null, persistent, canPersist: typeof manager?.persist === "function" };
+}
+
+export async function requestPersistentStorage() {
+  try { return await globalThis.navigator?.storage?.persist?.() === true; }
+  catch { return false; }
+}
+
+export async function assessImportStorage(byteLength) {
+  const status = await getStorageStatus();
+  // EPUBs are compressed; the reader also keeps prepared text and images.
+  const estimatedRequired = Math.max(0, Number(byteLength) || 0) * 4;
+  const tight = status.available !== null && status.available < estimatedRequired;
+  const warning = tight
+    ? "L’espace disponible semble faible pour ce livre. Exportez une sauvegarde et libérez de la place si l’import échoue."
+    : status.quota !== null && status.usage / status.quota > 0.85
+      ? "Le stockage de ce site est presque plein. Pensez à exporter une sauvegarde."
+      : "";
+  return { ...status, estimatedRequired, warning };
 }

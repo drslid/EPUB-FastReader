@@ -235,6 +235,7 @@ describe("Storage connection recovery", () => {
 describe("Reader preferences in IndexedDB", () => {
   it("starts in dark RSVP mode and restores explicit choices after reload", async () => {
     expect(await storage.readSettings()).toEqual({
+      ...storage.defaultSettings,
       theme: "night",
       fontSize: 20,
       font: "serif",
@@ -242,6 +243,7 @@ describe("Reader preferences in IndexedDB", () => {
       speed: 300,
     });
     const settings = {
+      ...storage.defaultSettings,
       theme: "paper",
       font: "sans",
       fontSize: 28,
@@ -264,6 +266,7 @@ describe("Reader preferences in IndexedDB", () => {
       speed: -10,
     });
     expect(await storage.readSettings()).toEqual({
+      ...storage.defaultSettings,
       theme: "night",
       font: "serif",
       mode: "rsvp",
@@ -312,6 +315,7 @@ describe("Reader preferences in IndexedDB", () => {
       }),
     );
     expect(await storage.readSettings()).toEqual({
+      ...storage.defaultSettings,
       theme: "night",
       mode: "rsvp",
       font: "sans",

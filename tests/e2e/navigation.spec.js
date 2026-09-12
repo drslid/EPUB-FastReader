@@ -47,6 +47,7 @@ test("un EPUB déposé sur la page s’importe et les raccourcis ne perturbent p
   await expect(page.locator("#reader-notes")).toBeHidden();
   await page.getByRole("button", { name: "Réglages de lecture" }).click();
   await expect(page.locator("#reader-settings")).toBeVisible();
+  await page.getByRole("button", { name: "Fermer les réglages", exact: true }).click();
   await page.getByRole("button", { name: /Mes repères/ }).click();
   await expect(page.locator("#reader-settings")).toBeHidden();
   await expect(page.locator("#reader-notes")).toBeVisible();
@@ -68,11 +69,11 @@ test("un ancien lien ou un livre absent revient à la bibliothèque avec une exp
   await expect(page.locator("#toast")).toContainText("Le lecteur a évolué");
 });
 
-test("le bouton installer n’apparaît qu’avec l’événement du navigateur et traite son résultat", async ({
+test("le bouton installer propose une aide puis utilise l’invitation native disponible", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.locator('[data-action="install"]:visible')).toHaveCount(0);
+  await expect(page.locator('[data-action="install"]:visible').first()).toBeVisible();
   await page.evaluate(() => {
     window.installCalls = 0;
     const event = new Event("beforeinstallprompt", { cancelable: true });

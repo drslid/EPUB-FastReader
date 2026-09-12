@@ -90,6 +90,8 @@ test("les suggestions restent stables pendant les changements de thème, la rech
     page.locator('section[aria-label="Résultats de recherche"]'),
   ).toHaveAttribute("aria-busy", "false");
   await goTo(page, "library");
+  await expect(cards(page)).toHaveCount(0);
+  await goTo(page, "home");
   await expect(cards(page)).toHaveCount(3);
   expect(await suggestionIds(page)).toEqual(first);
   await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
@@ -249,4 +251,24 @@ test("une édition dans une autre langue ne remplace pas le livre français choi
       (position) => position.id === imported.id,
     ).bookmarks,
   ).toEqual(originalPosition.bookmarks);
+});
+
+test("l’accueil explique les trois modes et la démo reste hors de la bibliothèque", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".home-intro")).toBeVisible();
+  await expect(page.locator(".home-mode h2")).toHaveText(["Mot à mot", "Classique", "Focus"]);
+  const help = page.locator(".home-help");
+  await expect(help).not.toHaveAttribute("open", "");
+  await help.locator("summary").click();
+  await expect(help.locator("ol")).toBeVisible();
+  await expect(help).toContainText("sans compte");
+  await page.getByRole("button", { name: "Essayer le lecteur", exact: true }).click();
+  await expect(page.locator("#rsvp")).toBeVisible();
+  await page.getByRole("link", { name: "Retour à ma bibliothèque", exact: true }).click();
+  await expect(page.locator(".library-section .book-card")).toHaveCount(0);
+  await expect(page.locator(".suggestions-section")).toHaveCount(0);
+  await expect(page.locator('[data-action="demo"]')).toHaveCount(0);
+  await page.getByRole("link", { name: "Voir les suggestions", exact: true }).click();
+  await expect(page).toHaveURL(/#home$/);
+  await expect(cards(page)).toHaveCount(3);
 });

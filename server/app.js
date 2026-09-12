@@ -23,7 +23,10 @@ const types = {
 
 export function createAppServer({ root = defaultRoot, relayOptions } = {}) {
   const directory = path.resolve(root);
-  const relay = createGutenbergMiddleware(relayOptions);
+  const relay = createGutenbergMiddleware({
+    allowOrigin: process.env.GUTENBERG_ALLOWED_ORIGIN,
+    ...relayOptions,
+  });
   return createServer((req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");

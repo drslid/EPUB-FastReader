@@ -4,7 +4,7 @@
 
 L'application possède une version statique destinée à [GitHub Pages](https://drslid.github.io/EPUB-FastReader/). Elle conserve la bibliothèque personnelle, la recherche unifiée, les couvertures, les trois modes de lecture et les données enregistrées dans le navigateur. Les neuf livres intégrés s'ouvrent en un clic. Pour les autres livres Gutenberg, la recherche présente la source officielle et permet de télécharger l'EPUB puis de l'importer dans le lecteur.
 
-GitHub Pages héberge des fichiers statiques et ne peut pas exécuter le relais Node de téléchargement. La version Pages présente donc explicitement ce parcours d'import et n'appelle pas une API absente. Le téléchargement direct des autres EPUB Gutenberg reste disponible avec le serveur complet ci-dessous. [Fonctionnement de GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).
+GitHub Pages héberge des fichiers statiques et ne peut pas exécuter le relais Node de téléchargement. Sans relais externe configuré, la version Pages présente ce parcours d'import et n'appelle pas une API absente. Le téléchargement direct des autres EPUB Gutenberg est disponible avec le serveur complet ci-dessous, ou en raccordant explicitement ce serveur à Pages. [Fonctionnement de GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).
 
 Pour compiler et vérifier cette version localement :
 
@@ -16,6 +16,49 @@ npm run test:pages
 ```
 
 `build:pages` produit `dist-pages`. Le test sert ces fichiers sous `/EPUB-FastReader/`, sans relais, pour vérifier le comportement de l'hébergement statique. Les URL relatives permettent aussi d'utiliser un domaine personnalisé. La production Node utilise son propre dossier `dist` et conserve les téléchargements directs.
+
+## Relier Pages au téléchargement Gutenberg
+
+Ce raccordement est facultatif et nécessite un serveur HTTPS choisi et déployé séparément. Aucune nouvelle source n'est ajoutée : le relais existant ne récupère que les EPUB publics Gutenberg déjà autorisés. Les valeurs ci-dessous sont des exemples de configuration ; elles n'activent aucun hébergement.
+
+Sur le serveur Node/Docker, définir l'origine exacte de l'interface :
+
+```sh
+GUTENBERG_ALLOWED_ORIGIN=https://drslid.github.io npm start
+```
+
+Une origine ne comprend pas le chemin `/EPUB-FastReader/`, ni de barre finale. Le serveur refuse une configuration HTTP, un joker `*`, une URL avec identifiants ou un chemin. Les requêtes provenant d'une autre origine sont refusées avant de contacter Gutenberg. Les réponses autorisées portent `Access-Control-Allow-Origin` et `Vary: Origin`, sans autorisation des cookies. Les précontrôles OPTIONS acceptent seulement GET/HEAD et l'en-tête Accept ; ils ne téléchargent aucun EPUB. Les autres routes ne deviennent pas accessibles en CORS. Cette règle concerne les navigateurs ; elle ne constitue pas une authentification d'un service public. [Fonctionnement de CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS).
+
+À la compilation Pages, indiquer l'URL de base HTTPS de ce serveur :
+
+```sh
+VITE_GUTENBERG_RELAY_URL=https://relais.example.fr npm run build:pages
+```
+
+Le client construit lui-même `https://relais.example.fr/api/books/gutenberg/5711.epub` à partir de l'identifiant Gutenberg. La configuration peut inclure un sous-chemin, par exemple `https://relais.example.fr/lecteur` ; le reverse proxy doit alors retirer `/lecteur` avant de transmettre les requêtes à Node. Ne pas ajouter `/api/books/gutenberg` dans la variable. Les paramètres d'URL, fragments, identifiants et chemins ambigus sont refusés. Une valeur absente ou invalide conserve le parcours manuel sur Pages. L'URL du relais est publique dans le JavaScript compilé : ce n'est pas un secret et elle ne doit contenir aucun jeton.
+
+Dans GitHub Actions, la variable de dépôt `GUTENBERG_RELAY_URL` peut être transmise comme variable d'environnement `VITE_GUTENBERG_RELAY_URL` à l'étape de compilation Pages. Il faut ensuite recompiler et publier l'interface ; changer uniquement la variable du serveur ne modifie pas une version statique déjà publiée. Conserver cette variable vide tant que l'hébergement n'est pas validé.
+
+Avant activation, vérifier le précontrôle depuis l'origine exacte, puis un téléchargement depuis le navigateur Pages :
+
+```sh
+curl -i -X OPTIONS 'https://relais.example.fr/api/books/gutenberg/5711.epub' \
+  -H 'Origin: https://drslid.github.io' \
+  -H 'Access-Control-Request-Method: GET'
+```
+
+Le résultat attendu est HTTP 204 avec `Access-Control-Allow-Origin: https://drslid.github.io`. Vérifier aussi qu'une autre origine obtient HTTP 403, que le clic « Lire » importe réellement l'EPUB et qu'une panne du relais laisse accessible le téléchargement officiel. Le relais ne reçoit ni EPUB personnel, ni position, ni annotation ; seul le livre public demandé transite par lui. Les protections existantes restent actives : identifiant numérique obligatoire, miroirs fixes, aucune redirection suivie, limites de taille et durée, cache et concurrence bornés.
+
+Le raccordement compilé peut être vérifié sans hébergement supplémentaire :
+
+```sh
+npm run test:pages:relay
+FASTREADER_RELAY_BROWSER=webkit npm run test:pages:relay
+```
+
+Ce script compile Pages dans un dossier temporaire avec `https://relay.fastreader.test`, sert l'application sous `/EPUB-FastReader/` et intercepte les réponses du relais avec un EPUB de test. Il ne modifie ni `dist`, ni `dist-pages`, ni une configuration de production. Le parcours vérifie les octets importés, la position exacte et le signet, la reprise sans téléchargement, le repli après HTTP 403 sans ajout dans la bibliothèque, le rechargement hors ligne après arrêt du serveur, et l'absence d'appels à une API sur Pages ou à un vrai service distant.
+
+Validation observée le 12 septembre 2026 : six vérifications réussies sur Chromium et six sur WebKit. Pour contourner les limites d'interception de Playwright WebKit, le script diffère la première inscription du service worker jusqu'à la fin des téléchargements simulés, puis teste son installation et le rechargement réellement servi depuis son cache. La coupure WebKit est provoquée par l'arrêt du serveur, avec une requête réseau de contrôle en échec. Ces résultats valident le raccordement logiciel ; la disponibilité et les en-têtes du futur hébergeur restent à vérifier avant activation.
 
 ## Serveur complet
 
@@ -71,6 +114,6 @@ Le service worker nécessite HTTPS ou localhost. Le build précache le lecteur, 
 
 Après import, l’EPUB Gutenberg et sa progression restent dans IndexedDB, indépendamment du cache temporaire du serveur. Aucun téléchargement au relais n’est nécessaire pour reprendre ce livre. Les icônes d’installation et Apple sont fournies ; `npm run icons:generate` permet de les régénérer après modification du SVG source.
 
-Une mise à jour du service worker attend la fermeture des anciens onglets pour éviter de mélanger deux versions. IndexedDB n’est pas effacé lors de cette mise à jour. Si une ancienne interface apparaît, fermer tous les onglets FastReader puis rouvrir l’application.
+Une nouvelle version déclenche un bandeau « Mettre à jour ». L’application sauvegarde la lecture et les préférences avant d’activer la version téléchargée ; un échec de sauvegarde reporte la mise à jour. IndexedDB n’est pas effacé. Les installations plus anciennes dépourvues de ce bandeau peuvent encore nécessiter la fermeture de tous les onglets FastReader avant réouverture. Une aide d’installation reste disponible lorsque le navigateur ne propose pas d’invitation native, notamment sur iPhone/iPad.
 
 Les tests émulent PC, téléphone Chromium et tablette WebKit. Le scénario hors ligne WebKit coupe un serveur HTTP isolé pour éviter un défaut de l’émulation réseau dans cet environnement. Les tests n’établissent pas à eux seuls le comportement sur tous les appareils physiques. Voir [VALIDATION.md](VALIDATION.md) et [STORAGE.md](STORAGE.md).

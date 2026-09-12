@@ -11,6 +11,6 @@ export function suggestionsMarkup(state, { icon, escape, cover }) {
         <span class="suggestion-cover">${cover(book)}</span><span class="suggestion-copy"><span class="suggestion-genre">${escape(book.genre)}</span><span class="suggestion-title">${escape(book.title)}</span><span class="suggestion-author">${escape(book.author)}</span>${index === 0 ? `<span class="suggestion-description">${escape(book.description)}</span>` : ""}<span class="suggestion-reason">${escape(getRecommendationReason(book, state.books))}</span><span class="suggestion-cta">${local ? "Reprendre" : "Lire maintenant"} ${icon("arrow")}</span></span></button></article>`;
       })
       .join("")}</div>
-    <p class="suggestions-caption">Un clic pour lire et garder le livre dans votre bibliothèque. <a href="#discover">Voir toute la sélection ${icon("arrow")}</a></p>
+    <p class="suggestions-caption">Une sélection à renouveler selon vos envies. <a href="#discover">Voir toute la sélection ${icon("arrow")}</a></p>
   </section>`;
 }

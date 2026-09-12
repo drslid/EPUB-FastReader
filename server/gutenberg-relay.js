@@ -195,8 +195,18 @@ function positiveOption(value, fallback, { zero = false } = {}) {
   return Number.isSafeInteger(value) && (zero ? value >= 0 : value > 0) ? value : fallback;
 }
 
+function allowedOrigin(value) {
+  if (value === undefined || value === null || value === "") return null;
+  try {
+    const url = new URL(value);
+    if (typeof value === "string" && url.protocol === "https:" && url.origin === value && !url.username && !url.password) return value;
+  } catch { /* Reject a deployment typo before opening a public listener. */ }
+  throw new TypeError("GUTENBERG_ALLOWED_ORIGIN doit être une origine HTTPS exacte, sans chemin ni barre finale.");
+}
+
 export function createGutenbergMiddleware(options = {}) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
+  const allowOrigin = allowedOrigin(options.allowOrigin);
   const now = options.now ?? Date.now;
   const limits = Object.fromEntries(Object.entries(GUTENBERG_RELAY_LIMITS).map(([key, fallback]) => [
     key,
@@ -247,8 +257,29 @@ export function createGutenbergMiddleware(options = {}) {
     if (requestUrl !== PREFIX && !requestUrl.startsWith(`${PREFIX}/`) && !requestUrl.startsWith(`${PREFIX}?`)) return next();
 
     try {
+      if (allowOrigin) res.setHeader("Vary", "Origin");
+      const origin = req.headers?.origin;
+      if (origin && origin !== allowOrigin) throw new RelayError(403, "ORIGIN_NOT_ALLOWED", "Ce site n’est pas autorisé à utiliser ce relais.");
+      if (allowOrigin && origin === allowOrigin) {
+        res.setHeader("Access-Control-Allow-Origin", allowOrigin);
+        res.setHeader("Access-Control-Expose-Headers", "Content-Disposition, Retry-After");
+      }
+      if (req.method === "OPTIONS" && allowOrigin) {
+        if (origin !== allowOrigin) throw new RelayError(403, "ORIGIN_NOT_ALLOWED", "Ce site n’est pas autorisé à utiliser ce relais.");
+        if (!/^\/api\/books\/gutenberg\/[1-9]\d{0,8}\.epub$/.test(requestUrl)) throw new RelayError(400, "INVALID_BOOK_ID", "L’identifiant du livre est invalide.");
+        const requestedMethod = req.headers?.["access-control-request-method"];
+        const requestedHeaders = String(req.headers?.["access-control-request-headers"] || "").toLowerCase().split(",").map((name) => name.trim()).filter(Boolean);
+        if (!["GET", "HEAD"].includes(requestedMethod) || requestedHeaders.some((name) => name !== "accept")) throw new RelayError(403, "PREFLIGHT_NOT_ALLOWED", "Seuls les téléchargements EPUB sans authentification sont acceptés.");
+        res.statusCode = 204;
+        res.setHeader("Allow", "GET, HEAD, OPTIONS");
+        res.setHeader("Access-Control-Allow-Methods", "GET, HEAD");
+        res.setHeader("Access-Control-Allow-Headers", "Accept");
+        res.setHeader("Access-Control-Max-Age", "600");
+        res.setHeader("Cache-Control", "no-store");
+        return res.end();
+      }
       if (req.method !== "GET" && req.method !== "HEAD") {
-        res.setHeader("Allow", "GET, HEAD");
+        res.setHeader("Allow", allowOrigin ? "GET, HEAD, OPTIONS" : "GET, HEAD");
         throw new RelayError(405, "METHOD_NOT_ALLOWED", "Seuls les téléchargements de livres sont acceptés.");
       }
       const match = /^\/api\/books\/gutenberg\/([1-9]\d{0,8})\.epub$/.exec(requestUrl);

@@ -118,3 +118,47 @@ test("un EPUB personnel garde son image de couverture originale après rechargem
   expect(await appearance(libraryCover(page))).toEqual(expected);
   await expect.poll(() => libraryCover(page).locator("img").evaluate((img) => img.naturalWidth)).toBeGreaterThan(0);
 });
+
+async function expectWholeCoverText(page, container) {
+  const results = await container.locator(".cover").evaluateAll((covers) => covers.map((cover) => {
+    const bounds = cover.getBoundingClientRect();
+    const title = cover.querySelector(".cover-title");
+    const author = cover.querySelector(".cover-author");
+    const fits = (node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1 && rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1 && node.scrollHeight <= node.clientHeight + 1;
+    };
+    return { title: title.textContent, author: author.textContent, titleFits: fits(title), authorFits: fits(author), clamp: getComputedStyle(title).webkitLineClamp };
+  }));
+  expect(results.length).toBeGreaterThan(0);
+  for (const result of results) {
+    expect(result.titleFits, result.title).toBe(true);
+    expect(result.authorFits, result.author).toBe(true);
+    expect(result.clamp).toBe("none");
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+}
+
+test("les titres longs et leurs auteurs restent entiers dans les couvertures de recherche et de bibliothèque", async ({ page }) => {
+  await page.goto("/#discover");
+  await page.getByRole("searchbox", { name: "Titre ou auteur" }).fill("hugo");
+  await page.getByRole("button", { name: "Rechercher", exact: true }).click();
+  await expect(page.locator('.catalog-grid .book-card').first()).toBeVisible();
+  await expect(page.locator('section[aria-label="Résultats de recherche"]')).toHaveAttribute("aria-busy", "false");
+  await expectWholeCoverText(page, page.locator(".catalog-grid"));
+  await expect(page.locator(".cover-emblem")).toHaveCount(0);
+
+  const { makeEpub } = await import("./helpers/fixtures.js");
+  const title = "Les aventures extraordinaires d’une lectrice qui parcourait les bibliothèques du monde à la recherche d’une histoire inoubliable et de ses nombreux personnages";
+  const author = "Éléonore de la Fontaine et Jean-Baptiste des Horizons";
+  await importEpub(page, await makeEpub({ title, author }));
+  await expect(page.locator("#rsvp")).toBeVisible();
+  await page.getByRole("link", { name: "Retour à ma bibliothèque", exact: true }).click();
+  await expect(page.locator(".library-section .cover-title")).toHaveText(title);
+  await expect(page.locator(".library-section .cover-author")).toHaveText(author);
+  await expectWholeCoverText(page, page.locator(".library-section"));
+  await page.getByRole("searchbox", { name: "Titre ou auteur" }).fill("aventures extraordinaires");
+  await page.getByRole("button", { name: "Rechercher", exact: true }).click();
+  await expect(page.locator(".local-results .book-card")).toHaveCount(1);
+  await expectWholeCoverText(page, page.locator(".local-results"));
+});

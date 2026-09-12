@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { importEpub, makeEpub } from "./helpers/fixtures.js";
 
 // Legacy account links resolve to the only personal space: the local library.
 test.use({ serviceWorkers: "block" });
@@ -14,17 +15,15 @@ test("l’ancien lien Mon espace retrouve les livres locaux sans compte ni requ�
       authRequests.push(request.url());
   });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Essayer le lecteur", exact: true })
-    .click();
+  await importEpub(page, await makeEpub({ title: "Le livre de mon ancien espace" }));
   await expect(page.locator(".reader-title strong")).toHaveText(
-    "L’art de prendre le temps",
+    "Le livre de mon ancien espace",
   );
   await page.goto("/#account");
   await expect(page).toHaveURL(/#library$/);
   await expect(
     page.getByRole("button", {
-      name: "Lire L’art de prendre le temps",
+      name: "Lire Le livre de mon ancien espace",
       exact: true,
     }),
   ).toBeVisible();
@@ -35,7 +34,7 @@ test("l’ancien lien Mon espace retrouve les livres locaux sans compte ni requ�
   await page.reload();
   await page
     .getByRole("button", {
-      name: "Lire L’art de prendre le temps",
+      name: "Lire Le livre de mon ancien espace",
       exact: true,
     })
     .click();

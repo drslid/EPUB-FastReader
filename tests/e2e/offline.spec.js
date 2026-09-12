@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { storedRows } from "./helpers/fixtures.js";
+import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
 async function isolatedProductionServer() {
   const directory = fileURLToPath(new URL("../../dist/", import.meta.url));
@@ -61,19 +61,19 @@ test("la bibliothèque, la lecture et la progression restent disponibles hors li
     browserName === "webkit" ? await isolatedProductionServer() : null;
   try {
     await page.goto(server?.url || "/");
-    await page.getByRole("button", { name: "Essayer le lecteur" }).click();
+    await importEpub(page, await makeEpub({ title: "Un livre hors connexion", chapters: 3 }));
     await expect(
-      page.getByRole("heading", { name: "Un peu de place", exact: true }),
+      page.getByRole("heading", { name: "Chapitre 1", exact: true }),
     ).toBeVisible();
     await page.locator('[aria-label="Chapitre suivant"]').click();
     await expect(
-      page.getByRole("heading", { name: "Trouver son rythme", exact: true }),
+      page.getByRole("heading", { name: "Chapitre 2", exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Ajouter un signet" }).click();
     await page.getByRole("link", { name: "Retour à ma bibliothèque" }).click();
     await expect(
       page.getByRole("button", {
-        name: "Lire L’art de prendre le temps",
+        name: "Lire Un livre hors connexion",
         exact: true,
       }),
     ).toBeVisible();
@@ -114,51 +114,51 @@ test("la bibliothèque, la lecture et la progression restent disponibles hors li
       expect(await page.evaluate(() => navigator.onLine)).toBe(false);
     await expect(
       page.getByRole("button", {
-        name: "Lire L’art de prendre le temps",
+        name: "Lire Un livre hors connexion",
         exact: true,
       }),
     ).toBeVisible();
     await page
       .getByRole("button", {
-        name: "Lire L’art de prendre le temps",
+        name: "Lire Un livre hors connexion",
         exact: true,
       })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Trouver son rythme", exact: true }),
+      page.getByRole("heading", { name: "Chapitre 2", exact: true }),
     ).toBeVisible();
     await expect(page.locator("#chapter-scroll")).toContainText(
-      "Le lendemain, Camille",
+      "Une histoire à garder sur cet appareil",
     );
     await page.getByRole("button", { name: /Mes repères/ }).click();
     await expect(page.locator('[data-action="goto-bookmark"]')).toHaveCount(1);
-    await page.getByRole("button", { name: /Mes repères/ }).click();
+    await page.getByRole("button", { name: "Fermer mes repères", exact: true }).click();
 
     // Changes made without a connection also survive a complete document reload.
     await page.locator('[aria-label="Chapitre suivant"]').click();
     await expect(
-      page.getByRole("heading", { name: "La prochaine page", exact: true }),
+      page.getByRole("heading", { name: "Chapitre 3", exact: true }),
     ).toBeVisible();
     // Returning to the library completes its asynchronous save before closing the page.
     await page.getByRole("link", { name: "Retour à ma bibliothèque" }).click();
     await expect(
       page.getByRole("button", {
-        name: "Lire L’art de prendre le temps",
+        name: "Lire Un livre hors connexion",
         exact: true,
       }),
     ).toBeVisible();
     await page
       .getByRole("button", {
-        name: "Lire L’art de prendre le temps",
+        name: "Lire Un livre hors connexion",
         exact: true,
       })
       .click();
     await expect(
-      page.getByRole("heading", { name: "La prochaine page", exact: true }),
+      page.getByRole("heading", { name: "Chapitre 3", exact: true }),
     ).toBeVisible();
     await page.reload();
     await expect(
-      page.getByRole("heading", { name: "La prochaine page", exact: true }),
+      page.getByRole("heading", { name: "Chapitre 3", exact: true }),
     ).toBeVisible();
     expect(errors).toEqual([]);
   } finally {

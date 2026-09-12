@@ -39,6 +39,8 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Desktop, phone and tablet tests
         run: npm run test:e2e
+      - name: Static Pages with an external Gutenberg relay
+        run: npm run test:pages:relay
       - name: Upload browser failure report
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

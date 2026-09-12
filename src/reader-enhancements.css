@@ -1,0 +1,62 @@
+.chapter-content {
+  line-height: var(--reading-line-height, 1.85);
+  max-width: min(100%, var(--reading-column-width, 70ch));
+  margin-inline: auto;
+}
+.reading-preview-section { margin-block: 20px; }
+.reading-preview-section h3 { font-size: 12px; font-weight: 600; margin: 15px 0 8px; }
+.reading-preview {
+  border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+  font-family: var(--reading-font); font-size: var(--reading-size);
+  line-height: var(--reading-line-height); max-height: 190px; overflow: auto;
+  background: var(--surface); color: var(--text); overflow-wrap: anywhere;
+}
+.reading-preview p { font: inherit; margin: 0; }
+.reading-preview[data-focus="true"] { color: var(--focus-text, var(--text)); }
+.reading-preview .focus-prefix { color: var(--focus-prefix, var(--text)); font-weight: 850; }
+.advanced-reading, .keyboard-shortcuts { margin-block: 18px; }
+.advanced-reading summary, .keyboard-shortcuts summary {
+  cursor: pointer; min-height: 44px; display: list-item; align-content: center;
+  font-size: 13px; font-weight: 600;
+}
+.setting-check { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 13px; line-height: 1.5; margin-block: 10px; }
+.setting-check input { flex-shrink: 0; width: 20px; height: 20px; accent-color: var(--accent); }
+.keyboard-shortcuts dl { display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 12px; }
+.keyboard-shortcuts dd { margin: 0; }
+.sentence-back { min-height: 44px; justify-content: center; font-size: 12px; }
+.rsvp { position: relative; }
+.wake-lock-status { font-size: 10px; color: var(--muted); position: absolute; bottom: 0; left: 0; right: 0; text-align: center; pointer-events: none; }
+.toc-dialog { width: min(600px, calc(100vw - 24px)); max-height: 80dvh; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 20px; }
+.toc-dialog::backdrop { background: #0009; }
+.toc-dialog .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.toc-dialog h2 { font-size: 20px; margin: 0; }
+.toc-dialog ol { padding: 0; list-style: none; }
+.toc-dialog li button { display: block; text-align: left; width: 100%; min-height: 44px; padding: 12px; border-radius: 8px; color: inherit; background: transparent; border: 0; overflow-wrap: anywhere; }
+.toc-dialog [aria-current="location"] { background: var(--accent-soft); font-weight: 700; }
+.pwa-update { position: fixed; bottom: 24px; right: 24px; z-index: 100; display: flex; align-items: center; gap: 12px; padding: 12px 16px; max-width: calc(100vw - 24px); border: 1px solid var(--border); border-radius: 16px; color: var(--text); background: var(--surface); box-shadow: 0 8px 36px #0004; font-size: 13px; }
+.reading .pwa-update { bottom: calc(var(--reader-footer-height, 120px) + 12px); }
+.reader-settings[role="dialog"] { z-index: 60; }
+@media (max-width: 700px) {
+  .pwa-update { right: 12px; bottom: 86px; flex-wrap: wrap; gap: 8px; }
+  .pwa-update span { flex: 1 0 100%; }
+  .reader-tools { gap: 2px; }
+  .reader-tools .round-button { min-width: 44px; min-height: 44px; }
+  .reader-header .reader-title { min-width: 0; }
+  .sentence-back { margin-block: 0; }
+}
+@media (prefers-contrast: more) {
+  .reader-shell, .reading-preview { --focus-text: var(--text); --focus-prefix: var(--text); }
+  .focus-prefix { text-decoration: underline; text-underline-offset: 0.15em; }
+  :focus-visible { outline-width: 3px; }
+}
+@media (max-height: 660px) and (orientation: landscape) {
+  .rsvp .sentence-back { grid-column: 1; grid-row: 3; margin: 0; }
+  #rsvp-word { height: auto; line-height: 1.2; max-height: 100%; }
+}
+
+.reader-settings .mode-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.reader-settings .mode-option { min-height: 52px; padding: 8px 6px; gap: 5px; }
+.reader-settings .mode-option strong { font-size: 11px; line-height: 1.4; }
+.reader-settings .mode-option small { display: none; }
+.library-backup-button { font-size: 11px; padding: 8px 10px; min-height: 44px; }
+.library-backup-button .icon { width: 16px; height: 16px; }

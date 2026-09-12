@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import JSZip from "jszip";
-import { applyFocus, exportFocusedEpub, importEpub } from "../src/epub.js";
+import {
+  applyFocus,
+  exportClassicEpub,
+  exportFocusedEpub,
+  importEpub,
+} from "../src/epub.js";
+
+afterEach(() => vi.unstubAllGlobals());
 
 const PNG = Uint8Array.from(
   atob(
@@ -59,6 +66,56 @@ function readBlob(blob) {
 }
 
 describe("EPUB import", () => {
+  it("reports chapter progress and returns the original complete book contract", async () => {
+    const updates = [];
+    const file = await fixture();
+    const book = await importEpub(file, {
+      onProgress: (progress) => updates.push(progress),
+    });
+    expect(updates[0]).toMatchObject({ phase: "opening", percent: 0 });
+    expect(updates.filter((item) => item.phase === "chapters").map((item) => item.completed))
+      .toEqual([0, 1, 2]);
+    expect(updates.at(-1)).toMatchObject({
+      phase: "complete", completed: 2, total: 2, percent: 100,
+    });
+    expect(updates.map((item) => item.percent)).toEqual(
+      [...updates.map((item) => item.percent)].sort((a, b) => a - b),
+    );
+    expect(new Uint8Array(book.original)).toEqual(new Uint8Array(await readBlob(file)));
+    expect(book.chapters.every((chapter) => chapter.html && chapter.wordCount)).toBe(true);
+  });
+
+  it("still validates and reads books if the browser blocks worker construction", async () => {
+    vi.stubGlobal("Worker", class {
+      constructor() { throw new DOMException("Blocked", "SecurityError"); }
+    });
+    expect((await importEpub(await fixture())).chapters).toHaveLength(2);
+    await expect(importEpub(new File(["broken"], "broken.epub")))
+      .rejects.toThrow("archive EPUB valide");
+  });
+
+  it("preserves footnote return links, nested table semantics and inline text", async () => {
+    const book = await importEpub(await fixture({
+      "OPS/text/first.xhtml": xhtml(
+        '<h1>Lecture</h1><p id="appel">Une note<sup><a epub:type="noteref" href="second.xhtml#note">1</a></sup>, puis du <em>texte <strong>important</strong></em>.</p>' +
+        '<table><caption>Distances</caption><thead><tr><th scope="col">Étape</th><th scope="col">km</th></tr></thead><tbody><tr><th scope="row">Départ</th><td colspan="1">42</td></tr></tbody></table>',
+      ),
+      "OPS/text/second.xhtml": xhtml(
+        '<aside id="note" epub:type="footnote" role="doc-footnote"><p>Une explication. <a href="first.xhtml#appel">Retour</a></p></aside>',
+      ),
+    }));
+    const first = dom(book.chapters[1].html);
+    const second = dom(book.chapters[0].html);
+    expect(first.querySelector("sup a").getAttribute("href")).toBe("#chapter-1--note");
+    expect(first.querySelector("sup a").getAttribute("epub:type")).toBe("noteref");
+    expect(second.querySelector("aside").getAttribute("role")).toBe("doc-footnote");
+    expect(second.querySelector("a").getAttribute("href")).toBe("#chapter-2--appel");
+    expect(first.querySelector("caption").textContent).toBe("Distances");
+    expect(first.querySelector("tbody th").getAttribute("scope")).toBe("row");
+    expect(first.querySelector("td").getAttribute("colspan")).toBe("1");
+    expect(first.querySelector("em strong").textContent).toBe("important");
+  });
+
   it("reads metadata, embedded covers, navigation titles and the spine order", async () => {
     const book = await importEpub(await fixture());
     expect(book.title).toBe("Un livre & ses images");
@@ -274,6 +331,29 @@ describe("EPUB import", () => {
 });
 
 describe("Word-prefix focus", () => {
+  it("previews intensity, skips short words and resets previous Focus markup", () => {
+    const original = "<p>Le chat et les éléphants marchent.</p>";
+    const options = { intensity: 30, skipShortWords: true };
+    const gentle = applyFocus(original, true, options);
+    expect([...dom(gentle).querySelectorAll("strong.focus-prefix")].map((node) => node.textContent))
+      .toEqual(["ch", "élé", "mar"]);
+    expect(dom(gentle).textContent).toBe(dom(original).textContent);
+    const strong = applyFocus(gentle, true, { intensity: 70, skipShortWords: true });
+    expect([...dom(strong).querySelectorAll("strong.focus-prefix")].map((node) => node.textContent))
+      .toEqual(["cha", "éléphan", "marche"]);
+    expect(applyFocus(gentle, true, options)).toBe(gentle);
+    expect(applyFocus(strong, false)).toBe(original);
+  });
+
+  it("keeps complete graphemes and safely normalizes intensity bounds", () => {
+    expect(dom(applyFocus("<p>éclair</p>", true, { intensity: 30 }))
+      .querySelector("strong").textContent).toBe("éc");
+    expect(dom(applyFocus("<p>Bonjour</p>", true, { intensity: 200 }))
+      .querySelector("strong").textContent).toBe("Bonjour");
+    expect(applyFocus("<p>Bonjour</p>", true, { intensity: -20 })).toBe("<p>Bonjour</p>");
+    expect(applyFocus("<p>Bonjour</p>", true, { intensity: NaN })).toBe(applyFocus("<p>Bonjour</p>"));
+  });
+
   it("preserves whitespace, accents, punctuation, links and existing emphasis", () => {
     const original =
       '<p>Éléphant,  café\n éclair ! <em>déjà</em> <a href="#chapter-1">Lire</a></p>';
@@ -328,6 +408,30 @@ describe("Word-prefix focus", () => {
 });
 
 describe("Focused EPUB export", () => {
+  it("exports the chosen Focus settings and converts back to Classic without losing author emphasis", async () => {
+    const book = await importEpub(await fixture({
+      "OPS/text/first.xhtml": xhtml('<p id="bonjour">Le <strong>magnifique</strong> voyage.</p><img src="../images/cover.png" alt="Couverture"/>'),
+    }));
+    const focusedBlob = await exportFocusedEpub(book, { intensity: 30, skipShortWords: true });
+    const focusedZip = await JSZip.loadAsync(await readBlob(focusedBlob));
+    const focused = dom(await focusedZip.file("OPS/text/first.xhtml").async("string"));
+    expect([...focused.querySelectorAll("strong.focus-prefix")].map((node) => node.textContent))
+      .toEqual(["mag", "vo"]);
+    const focusedBook = await importEpub(new File([focusedBlob], "focus.epub"));
+    const classicBlob = await exportClassicEpub(focusedBook);
+    const classicZip = await JSZip.loadAsync(await readBlob(classicBlob));
+    const classic = dom(await classicZip.file("OPS/text/first.xhtml").async("string"));
+    expect(classic.querySelector(".focus-prefix")).toBeNull();
+    expect(classic.querySelector("strong").textContent).toBe("magnifique");
+    expect(classic.querySelector("p").textContent).toBe("Le magnifique voyage.");
+    expect(classic.querySelector("p").id).toBe("bonjour");
+    expect(classic.querySelector("img").getAttribute("src")).toBe("../images/cover.png");
+    expect(await classicZip.file("OPS/package.opf").async("string")).toBe(packageDocument);
+    const reimported = await importEpub(new File([classicBlob], "classic.epub"));
+    expect(reimported.title).toBe(book.title);
+    expect(reimported.totalWords).toBe(book.totalWords);
+  });
+
   it("preserves metadata and images, writes parseable XHTML and keeps mimetype first without compression", async () => {
     const book = await importEpub(await fixture());
     const blob = await exportFocusedEpub(book);

@@ -19,13 +19,15 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:live": "node scripts/verify-live-reading.mjs",
-    "test:pages": "node scripts/verify-pages.mjs"
+    "test:pages": "node scripts/verify-pages.mjs",
+    "test:pages:relay": "node scripts/verify-pages-relay.mjs"
   },
   "dependencies": {
     "dompurify": "3.4.15",
     "jszip": "3.10.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.63.0",
     "fake-indexeddb": "6.2.5",
     "jsdom": "29.1.1",

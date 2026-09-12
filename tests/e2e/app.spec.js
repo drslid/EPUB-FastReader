@@ -145,7 +145,7 @@ test("modes de lecture, thèmes, progression et commandes tactiles sans déborde
   );
   await openSettings(page);
   await page
-    .getByRole("radio", { name: "Classique La page, tout simplement" })
+    .getByRole("radio", { name: "Classique", exact: true })
     .check();
   await expect(page.locator("#chapter-content .focus-prefix")).toHaveCount(0);
   await page.getByRole("button", { name: "Sombre", exact: true }).click();
@@ -154,7 +154,7 @@ test("modes de lecture, thèmes, progression et commandes tactiles sans déborde
   await expect(page.locator("#font-size-value")).toHaveText("25 px");
   await page
     .getByRole("radio", {
-      name: /Mot à mot Un mot à la fois/,
+      name: "Mot à mot", exact: true,
     })
     .check();
   await page.locator("#reading-speed").fill("600");
@@ -177,12 +177,9 @@ test("modes de lecture, thèmes, progression et commandes tactiles sans déborde
   ).toBe(true);
   await page.getByRole("link", { name: "Retour à ma bibliothèque" }).click();
   await page.reload();
-  await page
-    .getByRole("button", {
-      name: "Lire L’art de prendre le temps",
-      exact: true,
-    })
-    .click();
+  await expect(page.locator(".library-section .book-card")).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: "Accueil", exact: true }).click();
+  await page.getByRole("button", { name: "Essayer le lecteur", exact: true }).click();
   await expect(page.locator("#rsvp")).toBeVisible();
   await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
   await expect(page.locator("#rsvp-count")).toContainText("600 mots/min");
@@ -202,7 +199,7 @@ test("fichier invalide, bibliothèque vide et mise en page étroite restent util
   });
   await expect(page.locator("#toast")).toContainText("archive EPUB valide");
   await expect(
-    page.getByRole("button", { name: "Importer un EPUB", exact: true }),
+    page.locator(".home-actions").getByRole("button", { name: "Importer un EPUB", exact: true }),
   ).toBeEnabled();
   expect(
     await page.evaluate(

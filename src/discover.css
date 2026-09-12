@@ -43,3 +43,47 @@
     gap: 0 8px;
   }
 }
+
+.catalog-book-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 7px;
+  margin-top: 4px;
+}
+.catalog-book-actions .button {
+  min-height: 44px;
+  flex: 1 1 110px;
+  width: auto;
+  margin-top: 0;
+  padding: 10px 9px;
+  font-size: 11px;
+}
+.catalog-book-actions .icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.catalog-grid .book-card .book-description {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.discovery-intro > p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.catalog-grid .book-card h3 {
+  font-size: 17px;
+  line-height: 1.4;
+}
+@media (max-width: 600px) {
+  .catalog-grid {
+    gap: 15px 12px;
+  }
+  .catalog-grid .book-card h3 {
+    font-size: 16px;
+  }
+  .catalog-grid .book-card .book-description {
+    font-size: 11px;
+  }
+}

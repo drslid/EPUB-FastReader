@@ -191,6 +191,12 @@ try {
     if (/\.epub$/.test(new URL(request.url()).pathname)) epubRequests.push(request.url());
   });
 
+  await page.goto(baseURL.href);
+  await expect(page.locator(".home-intro")).toBeVisible();
+  await expect(page.locator(".suggestion-card")).toHaveCount(3);
+  await page.getByRole("navigation", { name: "Navigation principale" }).getByRole("link", { name: /Ma bibliothèque/ }).click();
+  await expect(page.locator(".library-section .book-card")).toHaveCount(0);
+  await expect(page.locator(".suggestions-section, [data-action=demo]")).toHaveCount(0);
   await page.goto(`${baseURL}#discover`);
   await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
   await expect(page.locator(".catalog-grid .book-card")).toHaveCount(9);
@@ -260,7 +266,10 @@ try {
     has: page.locator('.book-open[data-id="gutenberg-5711"]'),
   });
   await expect(germinal.locator(".cover")).toBeVisible();
-  await expect(germinal).toContainText(/import|télécharg/i);
+  await expect(germinal.getByRole("button", { name: /Obtenir l’EPUB :/ })).toBeVisible();
+  await expect(germinal.getByRole("button", { name: "Lire", exact: true })).toBeVisible();
+  await expect(germinal).not.toContainText("EPUB à télécharger puis importer");
+  await expect(germinal).not.toContainText("Lecture en un clic");
   await germinal.locator(".book-open").click();
   const dialog = page.locator(".fallback-dialog");
   await expect(dialog).toBeVisible();

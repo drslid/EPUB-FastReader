@@ -1,0 +1,227 @@
+.home-intro {
+  padding: 20px 0 16px;
+}
+.home-intro .eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+}
+.home-intro h1 {
+  margin: 15px 0;
+  font: clamp(35px, 3.9vw, 52px)/1.12 Georgia, serif;
+  letter-spacing: -0.8px;
+}
+.home-intro h1 em {
+  color: var(--accent);
+  font-weight: normal;
+}
+.home-intro-copy > p {
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.home-actions .button {
+  min-height: 44px;
+}
+.home-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 10px 0 22px;
+}
+.home-mode {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--surface);
+}
+.home-mode h2 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.home-mode p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.home-mode-sample {
+  display: grid;
+  place-content: center;
+  min-height: 58px;
+  border-radius: 9px;
+  background: var(--surface-raised);
+  font: 22px/1.2 Georgia, serif;
+  color: var(--text);
+  text-align: center;
+}
+.home-mode-rsvp {
+  color: var(--accent);
+}
+.home-mode-classic {
+  font-size: 15px;
+}
+.home-mode-focus {
+  display: block;
+  align-content: center;
+  font-size: 20px;
+}
+.home-mode-focus strong {
+  font-weight: 900;
+  color: var(--accent);
+}
+.home-resume {
+  margin-top: 8px;
+}
+.home-help {
+  margin: 24px 0;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  max-width: 720px;
+}
+.home-help summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  list-style: none;
+}
+.home-help summary::-webkit-details-marker,
+.book-export summary::-webkit-details-marker {
+  display: none;
+}
+.home-help[open] summary > .icon {
+  transform: rotate(45deg);
+}
+.home-help ol {
+  padding-left: 20px;
+  margin: 6px 0 16px;
+}
+.home-help li,
+.home-help p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.home-help li + li {
+  margin-top: 9px;
+}
+.home-help strong {
+  color: var(--text);
+}
+.book-export {
+  margin-top: 9px;
+  border-top: 1px solid var(--border);
+}
+.book-export summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+}
+.book-export summary .icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.book-export-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 6px;
+}
+.book-export-options button {
+  flex: 1;
+  min-height: 44px;
+  padding: 9px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+@media (max-width: 980px) {
+  .home-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .home-modes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .home-mode {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 12px;
+  }
+  .home-intro-copy > p {
+    max-width: 560px;
+  }
+}
+@media (max-width: 580px) {
+  .home-intro {
+    padding-top: 7px;
+    gap: 23px;
+  }
+  .home-intro h1 {
+    font-size: clamp(29px, 8vw, 40px);
+    letter-spacing: -0.5px;
+  }
+  .home-intro .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+  .home-intro-copy > p {
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .home-actions .button {
+    flex: 1;
+    padding-inline: 10px;
+    font-size: 12px;
+  }
+  .home-modes {
+    gap: 7px;
+  }
+  .home-mode {
+    padding: 9px;
+    gap: 10px;
+    border-radius: 11px;
+  }
+  .home-mode h2 {
+    font-size: 12px;
+  }
+  .home-mode p {
+    font-size: 11px;
+  }
+  .home-mode-sample {
+    min-height: 46px;
+    font-size: 17px;
+  }
+  .home-mode-classic {
+    font-size: 12px;
+  }
+  .home-help {
+    padding-inline: 14px;
+  }
+}
