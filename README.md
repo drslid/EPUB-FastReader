@@ -56,7 +56,7 @@ Use **Download EPUB** in your library to save a Classic edition without added Fo
 
 Your books, reading positions, notes and preferences stay in the browser you use. You do not need an account, and personal EPUB imports are not uploaded to a server.
 
-1. Open **Backup**.
+1. Open **My library** and choose **Backup**.
 2. Choose **Export my backup** and keep the downloaded ZIP somewhere safe.
 3. To move to another device or recover your library, open FastReader there and restore the ZIP from the same panel.
 

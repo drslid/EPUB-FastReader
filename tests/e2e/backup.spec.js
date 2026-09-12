@@ -6,7 +6,7 @@ import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 test.use({ serviceWorkers: "block" });
 
 async function openBackup(page) {
-  await page.locator('.page-footer [data-action="backup"]').click();
+  await page.locator('.library-backup-button').click();
   await expect(page.getByRole("dialog", { name: "Sauvegarde" })).toBeVisible();
   await expect(page.locator("#backup-export")).toBeEnabled();
 }
@@ -72,7 +72,7 @@ test("la restauration invalide garde la bibliothèque intacte et le dialogue res
   expect(await page.locator(".backup-dialog").evaluate((element) => element.contains(document.activeElement))).toBe(true);
   await page.keyboard.press("Escape");
   await expect(page.locator(".backup-dialog")).toHaveCount(0);
-  await expect(page.locator('.page-footer [data-action="backup"]')).toBeFocused();
+  await expect(page.locator('.library-backup-button')).toBeFocused();
 });
 
 test("restaurer après un retour navigateur au lecteur conserve les nouveaux repères fusionnés", async ({ page }) => {

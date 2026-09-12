@@ -369,7 +369,7 @@ h1 em {
 .sidebar-bottom {
   margin-top: auto;
 }
-.mobile-import {
+.mobile-settings {
   display: none;
 }
 .quiet-card {
@@ -2346,7 +2346,7 @@ input[type="range"] {
   .sidebar-bottom {
     display: none;
   }
-  .mobile-import {
+  .mobile-settings {
     display: flex;
     background: transparent;
   }
@@ -2412,7 +2412,7 @@ input[type="range"] {
     font-size: 10px;
   }
   .page-footer > span {
-    max-width: 48%;
+    max-width: 100%;
   }
   .footer-install {
     display: flex;

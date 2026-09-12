@@ -8,7 +8,7 @@ const statusBody = (available = true) => ({ checkedAt: new Date().toISOString(),
   { providerId: "ebookzy", available }, { providerId: "loyalbooks", available },
 ] });
 async function openSettings(page) {
-  const trigger = page.locator('.page-footer [data-action="source-settings"]');
+  const trigger = page.locator('.sidebar [data-action="source-settings"]:visible');
   await trigger.click();
   await expect(page.getByRole("dialog", { name: "Paramètres", exact: true })).toBeVisible();
   return trigger;
