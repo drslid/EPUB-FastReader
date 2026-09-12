@@ -89,6 +89,14 @@ Les couvertures Gutenberg ne sont pas chargées par hotlink : sa [politique d’
 
 ## Autres sources et futur développement
 
+### Essais complémentaires du 12 septembre 2026
+
+La sélection des prochaines sources se fait **après un essai de recherche, de récupération du contenu et d’import**, puis validation avec le propriétaire. Aucun nouveau plugin n’est activé par ces audits.
+
+- [Wikisource](SOURCE-WIKISOURCE-AUDIT.md) : recherche API accessible dans les six langues ; l’EPUB officiel de WS Export nécessite un relais. Une autre voie a été démontrée sur le recueil du *Horla* : fabrication de l’EPUB dans le navigateur via les API autorisées, 14 nouvelles et 1 458 paragraphes comparés avec succès, puis import réel. Ce prototype couvre une édition française contrôlée, pas tout le catalogue.
+- [Bibebook et BEQ](SOURCE-BROWSER-CANDIDATES.md) : catalogues et EPUB testés ; leur accès direct externe échoue par CORS. Bibebook fournit un index de 1 722 notices et l’édition *Candide* examinée autorise la redistribution avec attribution et partage dans les mêmes conditions. Une sélection vérifiée pourrait donc être hébergée ici, sans relais. La taille et les droits de l’ensemble des fichiers ne sont pas validés.
+- [Gallica / ELG](SOURCE-ALTERNATIVES-AUDIT.md), [Standard Ebooks](SOURCE-STANDARDEBOOKS-AUDIT.md), [Internet Archive / OAPEN](SOURCE-ARCHIVE-OAPEN-AUDIT.md) et [autres fournisseurs](SOURCE-TRANSPORT-AUDIT.md) : résultats, limites de catalogue, droits et refus CORS documentés. Ne pas présenter une fiche ou un OPDS accessible côté serveur comme une lecture directe fonctionnelle sur Pages.
+
 [Public Domain Library](https://publicdomainlibrary.org/en/ebooks) reste accessible par lien. Les pages consultées ne fournissent pas de contrat d’API publique permettant ici une intégration de recherche et téléchargement maintenable. Ses conditions et ses restrictions techniques doivent être clarifiées avant de livrer un adaptateur automatique ; changer simplement le nom de la source ne résout pas CORS.
 
 Un prochain plugin pourra intégrer un catalogue OPDS ou une sélection redistribuable après vérification des droits et du contrat machine. Gutenberg utilise déjà le relais contrôlé décrit ci-dessus ; cette intégration ne donne pas automatiquement accès aux fichiers de toute autre source. Un proxy public arbitraire n’a pas été ajouté.
