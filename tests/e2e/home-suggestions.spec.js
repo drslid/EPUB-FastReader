@@ -96,8 +96,9 @@ test("les suggestions restent stables pendant les changements de thème, la rech
   expect(await suggestionIds(page)).toEqual(first);
   await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
   await page
-    .getByRole("button", { name: "Passer au thème sombre", exact: true })
+    .getByRole("button", { name: "Passer au thème sépia", exact: true })
     .click();
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
   expect(await suggestionIds(page)).toEqual(first);
 });
 

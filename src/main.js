@@ -55,6 +55,7 @@ const icons = {
   book: '<path d="M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-3H4z"/><path d="M20 4h-4a3 3 0 0 0-3 3v14a4 4 0 0 1 4-3h3z"/>',
   moon: '<path d="M20.7 13A9 9 0 0 1 11 3.3 9 9 0 1 0 20.7 13z"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
+  sepia: '<path d="M8 3h10a2 2 0 0 1 2 2v11M8 3a2 2 0 0 0-2 2v13a3 3 0 0 0 3 3h9a3 3 0 0 1-3-3v-2h7v2a3 3 0 0 1-3 3M6 7H2V5a2 2 0 0 1 4 0m4 3h6m-6 4h6"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
   grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/>',
@@ -223,12 +224,17 @@ function cover(book) {
   return `<div class="cover cover-${palette}" style="--cover-title-scale:${visual.title.length > 130 ? 0.72 : visual.title.length > 65 ? 0.85 : 1}"><div class="cover-design" aria-hidden="true"><span class="cover-kicker">${book.demo ? t("LES PETITES PAUSES") : t("LA BIBLIOTHÈQUE")}</span><span class="cover-title">${escape(visual.title)}</span><span class="cover-rule"></span><span class="cover-author">${escape(visual.author)}</span></div>${visual.image ? `<img src="${escape(visual.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}<span class="cover-open">${icon("book")} ${t("Lire")}</span></div>`;
 }
 
+function nextTheme() {
+  return {
+    night: { theme: "paper", label: t("Passer au thème clair"), icon: "sun" },
+    paper: { theme: "sepia", label: t("Passer au thème sépia"), icon: "sepia" },
+    sepia: { theme: "night", label: t("Passer au thème sombre"), icon: "moon" },
+  }[state.settings.theme];
+}
+
 function themeButton() {
-  const nextIsLight = state.settings.theme === "night";
-  const label = nextIsLight
-    ? t("Passer au thème clair")
-    : t("Passer au thème sombre");
-  return `<button class="round-button theme-toggle" data-action="global-theme" aria-label="${label}" title="${label}">${icon(nextIsLight ? "sun" : "moon")}</button>`;
+  const next = nextTheme();
+  return `<button class="round-button theme-toggle" data-action="global-theme" aria-label="${escape(next.label)}" title="${escape(next.label)}">${icon(next.icon)}</button>`;
 }
 
 function renderShell({ resetScroll = false } = {}) {
@@ -1309,11 +1315,13 @@ app.addEventListener("click", async (event) => {
   const action = button.dataset.action;
   try {
     if (action === "global-theme") {
-      state.settings.theme =
-        state.settings.theme === "night" ? "paper" : "night";
+      state.settings.theme = nextTheme().theme;
       savePreferences();
-      if (state.book) applySettings();
-      else renderShell();
+      applySettings();
+      const next = nextTheme();
+      button.setAttribute("aria-label", next.label);
+      button.title = next.label;
+      button.innerHTML = icon(next.icon);
     }
     if (action === "clear-search") {
       state.searchDraft = "";
