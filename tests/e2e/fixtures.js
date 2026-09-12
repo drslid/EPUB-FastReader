@@ -1,4 +1,5 @@
 import { test as base, expect } from "@playwright/test";
+import { GOOGLE_SEARCH_SCRIPT, googleSearchSdk } from "./helpers/google-search.js";
 
 export const emptyStandardSearch = '<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Browse Standard Ebooks</title></head><body><main class="ebooks"><form role="search"></form><p class="no-results">No ebooks matched your filters.</p></main></body></html>';
 export const emptyEpubbooksSearch = '<!doctype html><html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>';
@@ -30,12 +31,12 @@ export const test = base.extend({
     await context.route(/\/api\/sources\/ebookzy\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", body: emptyEbookzySearch }));
     await context.route(/\/api\/(?:books\/ebookzy\/|sources\/ebookzy\/cover\/)/u, (route) => route.fulfill({ status: 503, body: "No Ebookzy download fixture installed for this test." }));
     await context.route(/^https:\/\/ebookzy\.com\//u, (route) => route.abort("blockedbyclient"));
-    await context.route(/\/api\/sources\/atramenta\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", body: '<!doctype html><html><body><form action="/search/"></form><div id="main_content_wrapper"><h1>Recherche</h1><p>Aucun résultat</p></div></body></html>' }));
-    await context.route(/\/api\/books\/atramenta\//u, (route) => route.fulfill({ status: 503, body: "No Atramenta download fixture installed for this test." }));
-    await context.route(/^https:\/\/www\.atramenta\.net\//u, (route) => route.abort("blockedbyclient"));
-    await context.route(/\/catalog\/loyalbooks\.json$/u, (route) => route.fulfill({ json: { version: 1, updatedAt: "2026-09-12T00:00:00.000Z", coverage: "selection", languages: { en: { indexed: 0, total: 0, pages: 1, complete: true } }, books: [] } }));
-    await context.route(/\/api\/(?:books\/loyalbooks\/|sources\/loyalbooks\/cover\/)/u, (route) => route.fulfill({ status: 503, body: "No Loyal Books download fixture installed for this test." }));
-    await context.route(/^https:\/\/www\.loyalbooks\.com\//u, (route) => route.abort("blockedbyclient"));
+    await context.route(/\/api\/(?:books\/loyalbooks\/|sources\/loyalbooks\/(?:cover|detail)\/)/u, (route) => route.fulfill({ status: 503, body: "No Loyal Books edition fixture installed for this test." }));
+    await context.route(/^https?:\/\/(?:www\.)?loyalbooks\.com\//u, (route) => route.abort("blockedbyclient"));
+    // Generic filter tests receive an empty public SDK fixture; no Google
+    // endpoint, advertisement, or real source is contacted by the browser.
+    await context.route(/^https?:\/\/(?:[^/]+\.)?(?:google\.com|googleapis\.com|gstatic\.com|googlesyndication\.com|doubleclick\.net)\//u, (route) => route.abort("blockedbyclient"));
+    await context.route(GOOGLE_SEARCH_SCRIPT, (route) => route.fulfill({ contentType: "application/javascript", body: googleSearchSdk() }));
     await use();
   }, { auto: true }],
 });

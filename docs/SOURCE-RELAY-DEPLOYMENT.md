@@ -55,7 +55,7 @@ epubBooks utilise la recherche HTML publique `GET /search?q=...`. La fiche d’�
 
 Les bibliothèques et archives personnelles restent dans IndexedDB. Les adaptations du relais doivent être publiées avant une interface Pages qui dépend de nouvelles routes ; une simple publication des fichiers statiques ne met pas à jour le Worker.
 
-## Sources ajoutées : Ebookzy, Atramenta et Loyal Books
+## Sources ajoutées : Ebookzy et Loyal Books
 
 Les routes supplémentaires utilisent les mêmes restrictions d’origine et d’identifiants que les adaptateurs précédents. Aucun endpoint ne reçoit d’URL distante arbitraire.
 
@@ -64,16 +64,13 @@ Les routes supplémentaires utilisent les mêmes restrictions d’origine et d�
 | `GET /api/sources/ebookzy/search?query=Shakespeare&page=1` | Recherche publique Ebookzy, résultats HTML |
 | `GET /api/books/ebookzy/{slug}.epub` | EPUB annoncé par la fiche du livre |
 | `GET /api/sources/ebookzy/cover/{slug}.png` | Couverture annoncée par la fiche, conservée lors de l’import |
-| `GET /api/sources/atramenta/search?query=Flaubert&page=1` | Recherche Atramenta ; le client retient uniquement la lecture libre avec téléchargement annoncé |
-| `GET /api/books/atramenta/{id}-{slug}.epub` | Acquisition EPUB via le parcours anonyme proposé par Atramenta |
 | `GET /api/books/loyalbooks/{slug}.epub` | EPUB annoncé par la fiche Loyal Books |
 | `GET /api/sources/loyalbooks/cover/{slug}.jpg` | Couverture Loyal Books conservée lors de l’import |
+| `GET /api/sources/loyalbooks/detail/{slug}` | Fiche validée et métadonnées nécessaires au bouton Lire ; aucun EPUB téléchargé |
 
-La recherche Loyal Books lit `public/catalog/loyalbooks.json` depuis le site FastReader. Elle n’appelle ni le moteur Google intégré au site source ni une API privée. L’index indique sa couverture, les langues et la date de collecte ; la sélection initiale ne prétend pas représenter tout le catalogue. Le collecteur `npm run catalog:loyalbooks` respecte un intervalle minimal de 60 secondes, stocke sa reprise dans `.cache/` et ne télécharge aucun EPUB. Consulter son audit pour la mise à jour et l’extension du catalogue.
+La recherche Loyal Books utilise le composant Google public dans un panneau séparé du navigateur. Il reçoit la requête depuis la barre FastReader uniquement lorsque cette source est sélectionnée ; les résultats ne sont pas fusionnés avec ceux des autres sources. L’identifiant public du moteur n’est pas une clé API. Le relais n’effectue aucune recherche Google : il ne consulte que la fiche explicitement choisie, sa couverture et son EPUB. L’index `public/catalog/loyalbooks.json`, le collecteur et le script npm correspondant sont supprimés.
 
-Atramenta impose une allocation anonyme limitée. Le Durable Object conserve une session anonyme propre au service et les horodatages des tentatives d’acquisition, avec un plafond global de quatre sur 24 heures. La session ne provient jamais du navigateur d’un lecteur et ne doit pas être renouvelée pour réinitialiser la limite. Les refus et les délais annoncés restent applicables après redémarrage. Le client distingue une limite de téléchargement d’une connexion requise sur le site source. Ne pas supprimer les clés `atramenta-*` du stockage pour récupérer artificiellement un quota.
-
-Le statut public consulte ces restrictions à chaque demande, même quand les sondes de disponibilité sont en cache. Un bloc connu donne `available: false`, son code et le délai restant, sans contacter Atramenta. Le 12 septembre 2026, la première recherche depuis le Worker public a reçu `503 SOURCE_BUSY` : l’adaptateur est présent mais son accès public n’est pas validé ; voir l’audit Atramenta.
+Atramenta a été retiré après le refus constaté depuis le relais public. Ses anciennes routes retournent désormais 404 et aucun contrôle de disponibilité ne contacte cette source. Ses clés historiques `atramenta-*` restent intactes dans le Durable Object : ne pas les supprimer ni changer l’identité globale de l’objet pour réinitialiser les restrictions d’une source.
 
 ## Pipeline de publication
 

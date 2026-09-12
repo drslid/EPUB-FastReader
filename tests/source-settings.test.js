@@ -5,7 +5,7 @@ vi.mock("../src/sources/standard-ebooks.js", () => ({ default: { search: mocks.s
 vi.mock("../src/sources/relay-config.js", () => ({ relayAvailable: mocks.relayAvailable, configuredSourceRelay: mocks.configuredSourceRelay }));
 let settings;
 let fetchMock;
-const response = (sources = ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"].map((providerId) => ({ providerId, available: true }))) => ({ ok: true, json: async () => ({ sources }) });
+const response = (sources = ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "loyalbooks"].map((providerId) => ({ providerId, available: true }))) => ({ ok: true, json: async () => ({ sources }) });
 const escape = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 
 beforeEach(async () => {
@@ -32,6 +32,7 @@ describe("source availability", () => {
     expect(result.gutenberg.status).toBe("available");
     expect(result["ebooks-gratuits"].status).toBe("unavailable");
     expect(result).not.toHaveProperty("z-library");
+    expect(result).not.toHaveProperty("atramenta");
     expect(fetchMock).toHaveBeenCalledWith("/api/sources/status", expect.objectContaining({ credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store" }));
     expect(mocks.search).toHaveBeenCalledWith(expect.objectContaining({ language: "en", query: "Frankenstein" }));
   });
@@ -55,15 +56,15 @@ describe("source availability", () => {
     fetchMock.mockRejectedValue(new Error("Offline"));
     const sources = await settings.checkSourceAvailability();
     expect(sources.selection.status).toBe("available");
-    for (const id of ["standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"]) expect(sources[id].status).toBe("unavailable");
+    for (const id of ["standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "loyalbooks"]) expect(sources[id].status).toBe("unavailable");
   });
 
   it("discards a cached green status after acquisition and explains the known quota", async () => {
-    expect((await settings.checkSourceAvailability()).atramenta.status).toBe("available");
-    fetchMock.mockResolvedValue(response([{ providerId: "atramenta", available: false, code: "SOURCE_DAILY_LIMIT", retryAfter: 86400 }]));
+    expect((await settings.checkSourceAvailability())["ebooks-gratuits"].status).toBe("available");
+    fetchMock.mockResolvedValue(response([{ providerId: "ebooks-gratuits", available: false, code: "SOURCE_DAILY_LIMIT", retryAfter: 86400 }]));
     settings.invalidateSourceAvailability();
     const sources = await settings.checkSourceAvailability();
-    expect(sources.atramenta).toEqual({ status: "unavailable", reason: "La limite de téléchargement de cette source est atteinte. Réessayez plus tard." });
+    expect(sources["ebooks-gratuits"]).toEqual({ status: "unavailable", reason: "La limite de téléchargement de cette source est atteinte. Réessayez plus tard." });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -82,6 +83,11 @@ describe("source availability", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("https://relay.example/reader/api/sources/status");
     expect(sources.gutenberg.status).toBe("unavailable");
     expect(sources["ebooks-gratuits"].status).toBe("available");
+  });
+
+  it("ignores a retired source still returned by an older relay", async () => {
+    fetchMock.mockResolvedValue(response([{ providerId: "atramenta", available: true }]));
+    expect(await settings.checkSourceAvailability()).not.toHaveProperty("atramenta");
   });
 
   it("cancels requests, avoids publishing or caching an aborted result, and ignores no aborted cache reads", async () => {
@@ -108,6 +114,7 @@ it("relabels the open dialog in six languages without replacing focused source l
   const trigger = document.getElementById("trigger"); trigger.focus();
   settings.openSourceSettings({ icon: () => "", escape });
   await vi.waitFor(() => expect(document.querySelector("[data-check]").disabled).toBe(false));
+  expect(document.querySelector('[data-source="atramenta"]')).toBeNull();
   const link = document.querySelector('[data-source="gutenberg"] a');
   link.focus();
   for (const [language, title, available] of [["en", "Settings", "Available"], ["es", "Ajustes", "Disponible"], ["it", "Impostazioni", "Disponibile"], ["de", "Einstellungen", "Verfügbar"], ["pt", "Definições", "Disponível"], ["fr", "Paramètres", "Disponible"]]) {

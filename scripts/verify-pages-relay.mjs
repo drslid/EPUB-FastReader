@@ -14,6 +14,7 @@ import { makeEpub } from "../tests/e2e/helpers/fixtures.js";
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const projectPath = "/EPUB-FastReader/";
 const relayOrigin = "https://relay.fastreader.test";
+const googleHost = /(?:^|\.)(?:google\.[a-z.]+|(?:googleapis|gstatic|googleusercontent|googlesyndication|googletagmanager|google-analytics|googletagservices|googleadservices)\.com|doubleclick\.(?:com|net))$/iu;
 const run = promisify(execFile);
 const engineName = process.env.FASTREADER_RELAY_BROWSER || "chromium";
 assert.ok(["chromium", "webkit"].includes(engineName), "FASTREADER_RELAY_BROWSER must be chromium or webkit.");
@@ -133,6 +134,8 @@ try {
   const errors = [];
   const localApiRequests = [];
   const unexpectedRequests = [];
+  const googleRequests = [];
+  const legacyIndexRequests = [];
   const relayRequests = [];
   let refused = false;
   page.on("pageerror", (cause) => errors.push(cause.message));
@@ -140,19 +143,23 @@ try {
   context.on("requestfailed", (request) => diagnostics.push(`${request.url()}: ${request.failure()?.errorText}`));
   context.on("request", (request) => {
     const url = new URL(request.url());
+    if (googleHost.test(url.hostname)) googleRequests.push(url.href);
+    if (url.pathname.endsWith("/catalog/loyalbooks.json")) legacyIndexRequests.push(url.href);
     if (url.origin === base.origin && /\/api\//u.test(url.pathname)) localApiRequests.push(url.href);
     if (url.origin === relayOrigin && request.method() === "GET" && url.pathname.startsWith("/api/books/")) relayRequests.push(url.href);
     if (["http:", "https:"].includes(url.protocol) && ![base.origin, relayOrigin, "https://standardebooks.org"].includes(url.origin)) unexpectedRequests.push(url.href);
   });
   await context.route(/^https?:\/\//u, async (route) => {
-    const origin = new URL(route.request().url()).origin;
+    const url = new URL(route.request().url());
+    if (googleHost.test(url.hostname) || url.pathname.endsWith("/catalog/loyalbooks.json")) {
+      await route.abort("blockedbyclient");
+      return;
+    }
+    const origin = url.origin;
     if ([base.origin, relayOrigin].includes(origin)) await route.fallback();
     else await route.abort("blockedbyclient");
   });
   await context.route("https://standardebooks.org/ebooks?**", (route) => route.fulfill({ status: 200, contentType: "application/xhtml+xml", headers: { "access-control-allow-origin": "*" }, body: '<html><main class="ebooks"><form role="search"></form><p class="no-results">No ebooks matched your filters.</p></main></html>' }));
-  await context.route(`${base}catalog/loyalbooks.json`, (route) => route.fulfill({
-    json: { version: 1, updatedAt: "2026-09-12T00:00:00.000Z", coverage: "selection", languages: { en: { indexed: 0, total: 0, pages: 1, complete: true } }, books: [] },
-  }));
   await context.route(`${relayOrigin}/**`, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -168,7 +175,6 @@ try {
     }
     const additionalSearches = {
       "/api/sources/ebookzy/search": '<!doctype html><html><body><div id="content"><h1 class="page-title">Search results for: absent</h1><section class="no-results"></section></div></body></html>',
-      "/api/sources/atramenta/search": '<!doctype html><html><body><form action="/search/"></form><main id="main_content_wrapper"><h1>Recherche</h1><p>Aucun résultat</p></main></body></html>',
     };
     if (Object.hasOwn(additionalSearches, url.pathname)) {
       assert.equal(request.method(), "GET");
@@ -262,10 +268,12 @@ try {
   assert.equal(relayRequests.length, 2);
   passed("Offline page reload and reading work after the static server stops and a network probe fails");
 
+  assert.deepEqual(googleRequests, [], "The global search scenario must never attempt a Google, CSE, API or advertising request.");
+  assert.deepEqual(legacyIndexRequests, [], "Configured Pages must never request the retired Loyal Books local index.");
   assert.deepEqual(localApiRequests, [], "Configured Pages must never request a same-origin API.");
   assert.deepEqual(unexpectedRequests, [], "No real remote service may be contacted.");
   assert.deepEqual(errors, [], "No uncaught browser exception is expected.");
-  passed("No same-origin API calls, real external services or uncaught browser errors");
+  passed("No Google or retired Loyal Books index requests, same-origin API calls, real external services or uncaught browser errors");
   console.log(JSON.stringify({ browser: engineName, mode: "pages", relay: "intercepted local fixture", checks: checks.length, result: "passed" }));
 } catch (cause) {
   if (diagnostics.length) console.error(JSON.stringify({ diagnostics }));

@@ -1,11 +1,5 @@
 // Source settings and search status. The French source strings are the fallback locale.
 const rows = [
-  ["Livres en français · téléchargements quotidiens limités",
-    "Books in French · limited daily downloads",
-    "Libros en francés · descargas diarias limitadas",
-    "Libri in francese · download giornalieri limitati",
-    "Französische Bücher · begrenzte tägliche Downloads",
-    "Livros em francês · transferências diárias limitadas"],
   ["Sélection multilingue indexée",
     "Indexed multilingual selection",
     "Selección multilingüe indexada",

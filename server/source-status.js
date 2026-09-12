@@ -4,7 +4,6 @@ const PROBES = Object.freeze([
   { providerId: "fadedpage", method: "HEAD", url: "https://www.fadedpage.com/csearch.php", contentType: "html" },
   { providerId: "epubbooks", method: "GET", url: "https://www.epubbooks.com/", contentType: "html" },
   { providerId: "ebookzy", method: "HEAD", url: "https://ebookzy.com/", contentType: "html" },
-  { providerId: "atramenta", method: "HEAD", url: "https://www.atramenta.net/", contentType: "html" },
   { providerId: "loyalbooks", method: "HEAD", url: "https://www.loyalbooks.com/", contentType: "html" },
 ]);
 

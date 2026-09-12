@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const adapters = vi.hoisted(() => Object.fromEntries(["selection", "gutenberg", "standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"].map((id) => [id, {
+const adapters = vi.hoisted(() => Object.fromEntries(["selection", "gutenberg", "standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "loyalbooks"].map((id) => [id, {
   manifest: { id, name: id, capabilities: { search: true, download: true, bundled: id === "selection" } },
   search: vi.fn(), download: vi.fn(),
 }])));
@@ -12,7 +12,6 @@ vi.mock("../src/sources/ebooks-gratuits.js", () => ({ default: adapters["ebooks-
 vi.mock("../src/sources/fadedpage.js", () => ({ default: adapters.fadedpage }));
 vi.mock("../src/sources/epubbooks.js", () => ({ default: adapters.epubbooks }));
 vi.mock("../src/sources/ebookzy.js", () => ({ default: adapters.ebookzy }));
-vi.mock("../src/sources/atramenta.js", () => ({ default: adapters.atramenta }));
 vi.mock("../src/sources/loyalbooks.js", () => ({ default: adapters.loyalbooks }));
 import { searchBooks, providers } from "../src/catalog.js";
 import { buildSearchRoute, parseSearchRoute } from "../src/search-route.js";
@@ -38,7 +37,7 @@ beforeEach(() => {
   adapters["ebooks-gratuits"].search.mockResolvedValue(result([gratuit]));
   adapters.fadedpage.search.mockResolvedValue(result([faded]));
   adapters.epubbooks.search.mockResolvedValue(result([epubbooks]));
-  for (const id of ["ebookzy", "atramenta", "loyalbooks"]) adapters[id].search.mockResolvedValue(result([]));
+  for (const id of ["ebookzy", "loyalbooks"]) adapters[id].search.mockResolvedValue(result([]));
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -52,7 +51,7 @@ describe("incremental federated search", () => {
     await vi.waitFor(() => expect(updates.at(-1).pendingSources).toEqual(["ebooks-gratuits"]));
     expect(settled).toBe(false);
     expect(updates[0].books).toEqual([local]);
-    expect(updates[0].pendingSources).toEqual(["gutenberg", "standard-ebooks", "fadedpage", "epubbooks", "ebookzy", "ebooks-gratuits", "atramenta", "loyalbooks"]);
+    expect(updates[0].pendingSources).toEqual(["gutenberg", "standard-ebooks", "fadedpage", "epubbooks", "ebookzy", "ebooks-gratuits"]);
     expect(updates.at(-1).books).toEqual([local, gutenberg, standard, faded, epubbooks]);
     expect(updates.at(-1).pendingSources).toEqual(["ebooks-gratuits"]);
     expect(updates.at(-1).sourceStatuses["standard-ebooks"].status).toBe("available");
@@ -81,8 +80,7 @@ describe("incremental federated search", () => {
     expect(adapters[called].search).toHaveBeenCalledOnce();
     expect(adapters[skipped].search).not.toHaveBeenCalled();
     for (const id of ["fadedpage", "epubbooks", "ebookzy"]) expect(adapters[id].search).toHaveBeenCalledTimes(language === "en" ? 1 : 0);
-    expect(adapters.atramenta.search).toHaveBeenCalledTimes(language === "fr" ? 1 : 0);
-    expect(adapters.loyalbooks.search).toHaveBeenCalledOnce();
+    expect(adapters.loyalbooks.search).not.toHaveBeenCalled();
   });
 
   it("keeps an empty global search local without triggering remote catalogue crawls", async () => {
@@ -183,7 +181,7 @@ describe("incremental federated search", () => {
 });
 
 describe("explicit source integration", () => {
-  it.each(["standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"])("registers %s and preserves it in shareable search routes", (provider) => {
+  it.each(["standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "loyalbooks"])("registers %s and preserves it in shareable search routes", (provider) => {
     expect(providers.find((entry) => entry.id === provider).searchable).toBe(true);
     const route = { view: "search", provider, language: "en", query: "Austen", page: 2 };
     expect(parseSearchRoute(buildSearchRoute(route))).toEqual(route);
@@ -208,7 +206,7 @@ describe("explicit source integration", () => {
   });
 });
 
-it.each(["ebookzy", "atramenta", "loyalbooks"])("includes %s by default and publishes its late results without blocking other books", async (provider) => {
+it.each(["ebookzy"])("includes %s by default and publishes its late results without blocking other books", async (provider) => {
   const slow = deferred();
   adapters[provider].search.mockReturnValue(slow.promise);
   const updates = [];

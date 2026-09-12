@@ -1,97 +1,74 @@
-# Loyal Books — audit et intégration
+# Loyal Books — recherche officielle et lecture directe
 
-Vérifications effectuées le 12 septembre 2026. L’intégration recherche dans une **sélection locale et datée**, puis résout l’EPUB public de l’édition demandée. Elle ne prétend pas interroger tout le catalogue de Loyal Books.
+État de l’intégration après recontrôle du **12 septembre 2026** : Loyal Books utilise son moteur public Google Programmable Search dans un panneau distinct. **L’ancien index local partiel et son collecteur ont été supprimés.** La recherche inclut l’anglais ; elle porte sur les pages indexées par Google, sans garantir que chaque résultat fournisse un EPUB ni que toutes les éditions du site soient indexées.
 
-## Preuves d’accès et périmètre
+## Preuves et rectification du premier audit
 
-L’[accueil](https://www.loyalbooks.com/), les [listes par langue](https://www.loyalbooks.com/language-menu) et les fiches sont accessibles par navigation ordinaire. Une recherche « Candide » effectuée dans Chromium aboutit à `/search?q=Candide`, puis à des résultats injectés par Google Programmable Search. Ces résultats mélangent fiches de livres, flux audio et pages de langues. Aucun endpoint interne Google, aucune clé du fournisseur et aucune page `/search/` ne sont utilisés par le plugin ou le collecteur.
+Les preuves locales du recontrôle sont conservées dans `.cache/loyal-search-review/` : `home.json`, `emma-visible.json`, `candide-embed.json`, `robots.txt` et `RECHECK.md`. Ce répertoire de travail n’est pas une dépendance du produit.
 
-Le fichier [robots.txt](https://www.loyalbooks.com/robots.txt) publie `Content-Signal: search=yes`, indique un délai de collecte de 60 secondes et interdit `/search/`. Son [sitemap](https://www.loyalbooks.com/sitemap.xml), observé à 6 604 305 octets, contient 35 771 adresses de livres. Certaines entrées proposent une image avec titre/auteur, mais le sitemap ne garantit ni langue ni disponibilité EPUB. Il ne constitue donc pas à lui seul un catalogue de lecture directe.
+- À **20:18:47 UTC**, la recherche « Emma » depuis l’accueil aboutit à [`/search?q=Emma`](https://www.loyalbooks.com/search?q=Emma). Google affiche environ 351 résultats, dont *Emma* de Jane Austen en deuxième position. Les dix résultats visibles comprennent neuf fiches de livres et une page d’auteur. L’absence de fiches dans l’ancienne extraction de la liste anglaise ne signifiait donc pas que la recherche anglaise était indisponible.
+- À **20:20:37 UTC**, le prototype local du composant officiel recherche « Candide » et reçoit dix résultats, dont les éditions française et anglaise. La sélection de la fiche française fonctionne ; l’attribution Google est visible et le module d’annonces Google se charge. Aucun EPUB n’est acquis pendant ce recontrôle.
+- La première preuve du prototype ajoutait aussi une action à certains liens `/feed`. Cette limite est identifiée dans `RECHECK.md` : le code du produit accepte seulement le chemin exact `/book/{slug}`. Les liens audio, auteurs, langues et autres résultats restent affichés par Google avec leur fonctionnement d’origine.
 
-Le collecteur utilise exclusivement les listes publiques `/language/{Language}?type=ebook&results=100`, avec pagination annoncée par la source. Par exemple, la [liste française EPUB](https://www.loyalbooks.com/language/French?type=ebook&results=100) distingue explicitement les EPUB des livres audio. Les titres et auteurs sont conservés intégralement ; les scripts, publicités, descriptions commerciales et avis ne sont pas copiés.
+Le [`robots.txt`](https://www.loyalbooks.com/robots.txt) observé indique `Content-Signal: search=yes`, `Crawl-Delay: 60` et `Disallow: /search/`. La navigation publique observée est **`/search?q=…`, sans barre oblique finale**. Le premier audit assimilait trop largement ces chemins et les limites du collecteur. Ces directives de collecte ne sont pas un mécanisme d’authentification ; elles ne suffisent pas à conclure que le formulaire public est inaccessible. Voir aussi la [distinction précisée par la RFC 9309](https://www.rfc-editor.org/rfc/rfc9309.html#section-1).
 
-Snapshot initial : `public/catalog/loyalbooks.json`, **499 notices**, **117 080 octets**, **207 couvertures fournies**, collecte achevée à `2026-09-12T19:48:30.100Z`.
+## Composant Google et séparation des résultats
 
-| Langue | Notices indexées | Total annoncé dans la liste EPUB | Pages collectées |
-| --- | ---: | ---: | ---: |
-| Français | 100 | 1 434 | 1 |
-| Espagnol | 100 | 288 | 1 |
-| Italien | 100 | 272 | 1 |
-| Allemand | 99 | 701 | 1 |
-| Portugais | 100 | 477 | 1 |
+Le site charge `https://cse.google.com/cse.js?cx=71dbe754842244413`. La valeur `cx` est l’**identifiant public du moteur**, pas une clé API secrète. FastReader charge ce même composant standard et utilise ses méthodes publiques `render`, `getElement` et `execute`, ainsi que ses callbacks `starting` et `rendered`. Il n’appelle pas directement les endpoints internes de Google, ne récupère ni ne réutilise leur jeton, et n’utilise pas l’API JSON qui nécessite une clé propre. Référence : [documentation officielle du Search Element](https://developers.google.com/custom-search/docs/element).
 
-Ces chiffres décrivent les résultats indexés et les totaux annoncés par les listes, pas des archives téléchargées individuellement. Le lien EPUB de chaque édition est vérifié au moment de l’ouverture ; une édition supprimée ou devenue indisponible produit une erreur explicite. Une couverture absente reste absente dans les données : aucune image de remplacement n’est attribuée au fournisseur.
+Dans `src/loyal-search-panel.js`, Google conserve ses résultats, leur ordre, leurs liens, les promotions, les annonces, l’attribution et la pagination. FastReader ajoute uniquement une action secondaire **Lire** aux fiches admissibles. Le callback public de rendu est précisément le point d’extension documenté pour ce type d’action. Aucun résultat n’est converti en carte de la grille fédérée et aucune page non EPUB n’est masquée artificiellement. La séparation et la conservation des annonces/attributions correspondent aux points examinés dans les [conditions Programmable Search](https://support.google.com/programmable-search/answer/1714300), notamment §1.4, §1.6 et §2.3 ; la réussite technique du prototype ne constitue pas une garantie de disponibilité durable du moteur.
 
-L’anglais est explicitement exclu de cette première sélection. Sa liste publique renvoie HTTP 200 avec un total de 26 108 EPUB, mais aucune fiche exploitable. Ajouter `page=1` déclenche en outre une redirection qui retire les paramètres. Le classement Top 100 mélange formats et langues et ne fournit pas un remplacement fiable. Le collecteur omet `page=1` et ne publie jamais une liste vide comme une collecte réussie.
+Le lecteur sélectionne **Loyal Books** puis utilise la barre de recherche existante. Ce panneau gère toutes les langues, dont l’anglais : le filtre de langue de FastReader y est retiré plutôt que de laisser croire à un filtrage que le composant ne fournit pas. Google gère sa propre pagination. La recherche « Tout le catalogue » ne lance pas Loyal Books et n’additionne pas les résultats Google à ceux des autres sources.
 
-## EPUB réellement vérifié
+## Confidentialité et cycle de vie
 
-La [fiche d’Emma de Jane Austen](https://www.loyalbooks.com/book/emma-by-jane-austen) annonce un EPUB à l’adresse HTTPS `/download/epub/Emma-by-Jane-Austen.epub`. Ce fichier a été obtenu par accès anonyme ordinaire, sans cookie utilisateur, authentification ni redirection supplémentaire :
+Créer le panneau ou l’ouvrir avec une requête vide ne charge aucun script Google. Le composant est chargé à la première requête non vide dans la vue Loyal Books explicitement sélectionnée. Le texte saisi est alors transmis à Google ; cette transmission et le lien vers sa [politique de confidentialité](https://policies.google.com/privacy) sont indiqués dans le panneau. Les EPUB, notes et repères ne sont pas transmis par FastReader à ce moteur et restent dans le stockage du navigateur.
 
-- HTTP 200, `Content-Type: application/epub+zip`, 365 971 octets ;
-- archive ZIP lisible, entrée `mimetype` correcte et `META-INF/container.xml` présent ;
-- titre Emma, auteur Jane Austen, langue `en`, 18 entrées dans l’ordre de lecture ;
-- identifiant Gutenberg 158 et droits déclarés « Public domain in the USA. » ;
-- aucune couverture embarquée déclarée dans le manifeste EPUB.
+Les recherches globales dans un contexte qui n’a pas activé Loyal Books ne chargent pas Google. Les vérifications Pages bloquent et comptent toute tentative contraire. Une fois le script tiers chargé, il reste dans le document : quitter le panneau empêche FastReader de lancer de nouvelles recherches et ignore les callbacks périmés, mais l’API publique ne permet pas d’annuler une requête Google déjà émise. Une erreur ou un délai dépassé laisse disponibles **Réessayer** et le lien vers la recherche officielle de Loyal Books.
 
-Cette preuve valide un téléchargement réel, mais Emma n’est pas ajouté artificiellement à l’index anglais vide. Le fichier temporaire de cette vérification n’était plus présent lors de la reprise du runtime ; les résultats ci-dessus sont conservés dans les sorties de l’audit. Aucun second téléchargement de ce livre n’a été effectué pour les tests. Les tests automatisés emploient des EPUB locaux du projet ou des fixtures générées, sans réseau fournisseur.
+## De la fiche choisie à l’EPUB local
 
-La réponse EPUB observée n’annonçait pas d’en-tête `Access-Control-Allow-Origin`. Le plugin passe par le relais configuré pour fournir à GitHub Pages une réponse lisible par JavaScript. Une simple navigation réussie vers un téléchargement ne prouve pas un accès CORS utilisable depuis FastReader.
+Une action Lire accepte uniquement une URL HTTP ou HTTPS de `www.loyalbooks.com`, sans port personnalisé, identifiants, paramètres ni fragment, et avec le chemin exact `/book/{slug}`. Le lien Google original reste intact. Seul le slug Unicode décodé et validé est transmis au lecteur ; le relais reconstruit sa propre URL HTTPS officielle. Aucun résultat ne peut fournir une URL arbitraire de téléchargement.
 
-La [présentation de Loyal Books](https://www.loyalbooks.com/about) explique que ses textes proviennent notamment de Project Gutenberg et ses enregistrements de LibriVox. Cette source enrichit la sélection et sa présentation ; elle ne garantit pas des œuvres distinctes de celles des autres catalogues. Chaque résultat affiche Loyal Books et le rappel sur les droits applicables à l’édition et au pays.
-
-## Contrat du plugin et du relais
-
-`src/sources/loyalbooks.js` exporte le plugin `loyalbooks`, ainsi que `loadLoyalbooksCatalog`, `parseLoyalbooksCatalog`, `loyalbooksAvailable` et `downloadLoyalbooksCover`.
-
-La recherche charge le snapshot depuis l’origine de FastReader, filtre titre/auteur et langue, puis renvoie des pages de 24 notices. Elle expose `catalogCoverage: { kind, updatedAt, languages }`. Aucun terme saisi n’est envoyé à Loyal Books ou Google. Une langue non indexée renvoie simplement zéro résultat dans cette sélection.
-
-Identité : `loyalbooks-{slug}` ; identité canonique : `loyalbooks:{slug}`. Les slugs Unicode sont validés, puis encodés comme un seul segment d’URL. Les titres longs ne sont pas tronqués.
-
-`server/loyalbooks-source.js` exporte `createLoyalbooksHandler`, `createLoyalbooksMiddleware`, `parseLoyalbooksDetail` et `LOYALBOOKS_LIMITS`.
+`src/sources/loyalbooks.js` expose le plugin **2.0.0**, `resolveLoyalbooksBook`, `loyalbooksAvailable` et `downloadLoyalbooksCover`. Son manifeste porte `searchPresentation: "embedded"` et `searchPrivacy: "external"`. Sa méthode `search()` renvoie un résultat marqué `embedded` sans accès réseau ni index local ; ce résultat technique vide n’est pas affiché comme un décompte Google.
 
 | Route GET | Comportement |
 | --- | --- |
-| `/api/books/loyalbooks/{slug}.epub` | Consulte la fiche de l’édition, sélectionne son lien EPUB annoncé et valide l’archive obtenue. |
-| `/api/sources/loyalbooks/cover/{slug}.jpg` | Consulte la fiche puis récupère son image de couverture JPEG ou PNG. |
+| `/api/sources/loyalbooks/detail/{slug}` | Consulte la fiche publique, exige un EPUB annoncé et renvoie titre, auteur, langue renseignée, couverture et provenance sûrs. Aucun EPUB n’est téléchargé à cette étape. |
+| `/api/books/loyalbooks/{slug}.epub` | Résout le lien EPUB annoncé par la fiche, acquiert l’archive et la valide avant de la transmettre. |
+| `/api/sources/loyalbooks/cover/{slug}.jpg` | Résout la couverture de la fiche et récupère son image JPEG ou PNG. |
 
-Les couvertures de catalogue sont indépendantes de la couverture éventuellement embarquée dans l’EPUB. Le téléchargement optionnel de l’image permet de conserver sa présentation localement. Son échec n’empêche pas l’import du livre.
+Identités : `loyalbooks-{slug}` et `loyalbooks:{slug}`. La réponse détail ne divulgue pas d’URL de téléchargement utilisable comme instruction arbitraire. Le client revalide l’identité, les métadonnées et les adresses attendues, puis reconstruit la provenance et le lien vers les conditions de la source.
 
-Protections du relais :
+La fiche réelle [*Emma* de Jane Austen](https://www.loyalbooks.com/book/emma-by-jane-austen) a été relue une fois, en HTTP 200, pendant l’implémentation de cette résolution, sans acquisition EPUB. Son titre se trouve dans `h1 / span[itemprop="name"]`, son auteur dans `.book-author / a[itemprop="author"]`, et sa couverture sous `/image/detail/Emma-Jane-Austen.jpg`. Les avis comportent également des champs `name` et `author` : ils ne doivent pas remplacer des métadonnées manquantes. Le serveur refuse une fiche sans titre ou auteur exploitables ; il garde une langue absente vide, sans déduire l’anglais de la langue de la page, et conserve une couverture absente comme telle.
 
-- seule origine amont autorisée : `https://www.loyalbooks.com` ; aucun miroir, URL arbitraire, cookie utilisateur ou compte ;
-- fichiers annoncés sous `/download/epub/` et images sous `/image/detail/`, avec noms de fichiers validés ; redirections refusées ;
-- contrôle strict de l’origine appelante et des prérequêtes CORS ; GET uniquement pour les données ;
-- délais maximaux de 35 secondes pour un EPUB et 4 secondes pour une couverture ;
-- réponse de fiche limitée à 1 Mio, EPUB à 30 Mio et couverture à 1 Mio, y compris pour les flux sans `Content-Length` ;
-- signature ZIP, `mimetype` et conteneur EPUB contrôlés ; taille compressée du petit membre `mimetype` bornée avant décompression, même si son champ de taille décompressée est falsifié ;
-- signature JPEG/PNG contrôlée, SVG refusé ;
-- un téléchargement EPUB et deux couvertures simultanés au maximum ; annulation propagée et places libérées ;
-- HTTP 401, 403 et 429 interrompent l’accès et déclenchent une temporisation ; aucun changement d’adresse ni nouvelle identité ;
-- seul cache serveur : 16 petits descripteurs contenant deux URL validées, pendant cinq minutes. Aucun HTML, cookie, EPUB ou image n’y est conservé.
+Après résolution, le bouton Lire suit l’import ordinaire : EPUB conservé en IndexedDB, mode mot à mot, couverture téléchargée si disponible et reprise locale. L’échec de la couverture optionnelle ne bloque pas l’EPUB. Un livre déjà présent est ouvert depuis la bibliothèque sans nouvelle résolution ni acquisition. Les droits varient selon l’édition et le pays ; le livre garde son lien source et le rappel associé.
 
-Le délai de 60 secondes concerne le collecteur de métadonnées. La récupération d’une édition suit uniquement l’action explicite du lecteur et les liens de téléchargement du site ; elle ne lance aucune collecte de catalogue.
+## Limites du relais
 
-## Actualisation de la sélection
+- Origine amont unique : `https://www.loyalbooks.com`. Aucun miroir, compte ou cookie utilisateur n’est utilisé ; les redirections sont refusées.
+- EPUB annoncé sous `/download/epub/`, couverture sous `/image/detail/`, noms et chemins validés. Les liens présents uniquement dans scripts, commentaires ou attributs détournés ne sont pas des offres EPUB.
+- Origine appelante et prérequêtes CORS contrôlées ; seules les requêtes GET acquièrent des données.
+- Délai maximal de 35 secondes pour une résolution ou un EPUB, 4 secondes pour une couverture ; annulation propagée et places libérées.
+- Fiche limitée à 1 Mio, EPUB à 30 Mio, couverture à 1 Mio, y compris les flux sans `Content-Length`. La réponse JSON détail est aussi limitée à 32 Kio côté client.
+- Signature ZIP, `mimetype` et conteneur EPUB contrôlés ; taille compressée du membre `mimetype` bornée avant décompression. Signatures JPEG/PNG contrôlées, SVG refusé.
+- Un EPUB, deux couvertures et deux résolutions de fiche simultanés au maximum. HTTP 401, 403 et 429 interrompent l’accès avec temporisation, sans nouvelle identité ni adresse alternative.
+- Cache partagé de 16 fiches pendant cinq minutes : titres, auteurs et langues bornés, deux URL validées. Aucun HTML, cookie, EPUB ou contenu d’image n’y est conservé.
 
-```sh
-node scripts/update-loyalbooks.mjs
-node scripts/update-loyalbooks.mjs --pages-per-language 2
-node scripts/update-loyalbooks.mjs --refresh --pages-per-language 1
-```
+## Historique conservé, sans dépendance active
 
-Les langues par défaut sont `fr,es,it,de,pt`. `--languages` permet une sélection explicite ; les autres langues figurent dans `excludedLanguages`. L’anglais pourra être ajouté lorsque sa liste publique EPUB fournira effectivement des fiches.
+Le premier essai du **12 septembre 2026 à 19:48:30 UTC** avait constitué un snapshot de 499 notices sur cinq langues — français, espagnol, italien, allemand, portugais — avec 207 couvertures. L’extracteur de listes n’obtenait pas de fiches anglaises. Cette sélection incomplète a été abandonnée après le recontrôle du moteur public, qui trouve notamment Emma en anglais.
 
-Le checkpoint `.cache/loyalbooks-index.json` mémorise les pages validées et la prochaine date de requête autorisée. Cette date est persistée **avant** la requête. Une interruption, un refus ou un redémarrage ne réinitialise pas le délai. Un fichier de verrouillage interdit deux collecteurs concurrents ; après un arrêt forcé, vérifier que le processus précédent est terminé avant de retirer un verrou abandonné.
+`public/catalog/loyalbooks.json`, `scripts/update-loyalbooks.mjs`, `tests/loyalbooks-generator.test.js` et le script npm `catalog:loyalbooks` ont été supprimés. Il n’existe plus de tâche d’actualisation, de pagination locale à collecter ni d’index Loyal Books à publier. Les anciennes données d’audit dans `.cache/` ne pilotent plus le produit.
 
-Une exécution normale reprend les pages déjà collectées. `--refresh` ouvre une nouvelle collecte sans réinitialiser le délai ; une reprise de cette collecte conserve ses pages validées. Le snapshot public est remplacé atomiquement uniquement après validation de toutes les pages demandées. Les réponses refusées, les listes vides, les formats modifiés ou un résultat JSON supérieur à **2 Mio** préservent le snapshot existant. Au-delà de cette taille, réduire le nombre de pages ou faire évoluer le format en fichiers séparés avant publication.
-
-Le collecteur ne télécharge aucun EPUB ni aucune image. Il n’exécute pas les scripts du site et ne sollicite pas sa recherche Google. Une extension complète de la sélection prendrait plusieurs heures au délai annoncé : les volumes doivent être examinés avant de lancer davantage de pages.
+L’audit initial avait aussi enregistré une acquisition anonyme d’Emma : **365 971 octets**, EPUB/ZIP valide, titre Emma, auteur Jane Austen, langue `en`, 18 éléments dans l’ordre de lecture et identifiant Gutenberg 158. Ces mesures sont un **constat historique**, distinct des preuves de recherche et des tests simulés actuels ; elles ne sont pas présentées comme un nouveau téléchargement du panneau publié. La présentation de [Loyal Books](https://www.loyalbooks.com/about) indique notamment des textes issus de Project Gutenberg et des enregistrements de LibriVox : les résultats ne garantissent pas des œuvres inédites par rapport aux autres catalogues.
 
 ## Validation reproductible
 
-`tests/loyalbooks.test.js` couvre recherche locale, pagination, provenance, couverture datée de l’index, titres/identifiants Unicode, configuration Pages, téléchargement, CORS, chemins interdits, formats incorrects, taille, quota/refus, annulation et couverture optionnelle. Il comprend un ZIP forgé dont le membre `mimetype` dépasse quatre Mio tout en annonçant une petite taille décompressée.
+- `tests/loyalbooks.test.js` : recherche embarquée sans requête d’index, résolution client contrôlée, Unicode, configuration du relais, téléchargement et couverture, archivage inchangé, refus et annulation.
+- `tests/loyalbooks-detail-server.test.js` : métadonnées réelles du balisage de fiche, absence de langue, refus des données incomplètes, absence d’acquisition pendant la résolution, cache borné, chemins, CORS, délais et concurrence.
+- `tests/loyal-search-panel.test.js` : chargement différé, callbacks documentés, liens admissibles, conservation des résultats/annonces/attributions, stabilité du DOM, erreurs et réponses périmées.
+- `tests/e2e/loyalbooks.spec.js` : scénario navigateur du panneau et de l’import, avec composant Google et réponses fournisseur simulés. Les preuves du moteur public sont les captures datées ci-dessus, pas ces fixtures.
+- `scripts/verify-pages.mjs` et `scripts/verify-pages-relay.mjs` : parcours global Pages et lecture locale, sans mock de snapshot, avec blocage et assertion explicite de zéro requête Google et zéro lecture de l’ancien index.
 
-`tests/loyalbooks-generator.test.js` couvre extraction des listes EPUB, distinction audio, délai de 60 secondes, checkpoint, reprise, actualisation explicite, verrouillage concurrent, conservation du snapshot sur erreur et refus d’un fichier supérieur à 2 Mio.
-
-`tests/e2e/loyalbooks.spec.js` couvre recherche locale, couverture visible, clic Lire, ajout en IndexedDB, mode mot à mot, couverture locale après rechargement, réouverture sans second téléchargement et erreurs indépendantes d’EPUB/couverture. Les routes fournisseur sont simulées ; l’exécution groupée navigateur est assurée par la validation du projet.
+Les **57 tests** ciblant le client, le relais de détail et le Worker ont réussi après leur modification. Les validations Pages ont également réussi sur des builds temporaires isolés : **9 contrôles statiques sous Chromium**, puis **6 contrôles avec relais simulé sous Chromium et 6 sous WebKit**. Elles confirment zéro tentative Google et zéro accès à l’ancien index, ainsi que la reprise hors ligne. Le build principal et le serveur des autres tests n’ont pas été modifiés. La validation finale du panneau intégré est consignée séparément dans `VALIDATION.md`.

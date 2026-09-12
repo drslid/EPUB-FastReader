@@ -8,11 +8,10 @@ import ebooksGratuits from "./ebooks-gratuits.js";
 import fadedpage from "./fadedpage.js";
 import epubbooks from "./epubbooks.js";
 import ebookzy from "./ebookzy.js";
-import atramenta from "./atramenta.js";
 import loyalbooks from "./loyalbooks.js";
 
 // Explicit imports are the allowlist. A catalog response cannot install code.
-const sources = [selection, all, gutenberg, standardEbooks, ebooksGratuits, fadedpage, epubbooks, ebookzy, atramenta, loyalbooks, publicDomainLibrary];
+const sources = [selection, all, gutenberg, standardEbooks, ebooksGratuits, fadedpage, epubbooks, ebookzy, loyalbooks, publicDomainLibrary];
 const registry = new Map();
 for (const source of sources) {
   if (registry.has(source.manifest.id)) {

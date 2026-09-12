@@ -4,7 +4,6 @@ import { createSourceStatusMiddleware } from "./source-status.js";
 import { createFadedpageMiddleware } from "./fadedpage-source.js";
 import { createEpubbooksMiddleware } from "./epubbooks-source.js";
 import { createEbookzyMiddleware } from "./ebookzy-source.js";
-import { createAtramentaMiddleware } from "./atramenta-source.js";
 import { createLoyalbooksMiddleware } from "./loyalbooks-source.js";
 
 const install = (server) => {
@@ -13,7 +12,6 @@ const install = (server) => {
   server.middlewares.use(createFadedpageMiddleware());
   server.middlewares.use(createEpubbooksMiddleware());
   server.middlewares.use(createEbookzyMiddleware());
-  server.middlewares.use(createAtramentaMiddleware());
   server.middlewares.use(createLoyalbooksMiddleware());
   server.middlewares.use(createSourceStatusMiddleware());
 };

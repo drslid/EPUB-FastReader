@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import JSZip from "jszip";
-import source, { parseLoyalbooksCatalog, downloadLoyalbooksCover } from "../src/sources/loyalbooks.js";
+import source, { resolveLoyalbooksBook, downloadLoyalbooksCover } from "../src/sources/loyalbooks.js";
 import { createLoyalbooksHandler, parseLoyalbooksDetail } from "../server/loyalbooks-source.js";
 
 const ORIGIN = "https://www.loyalbooks.com";
@@ -14,39 +14,72 @@ const image = new Uint8Array([255, 216, 255, 224, 0, 0, 0, 0]);
 const detail = (epub = "/download/epub/Emma-by-Jane-Austen.epub", cover = "/image/detail/Emma-Jane-Austen.jpg") => `<html><h1>Emma</h1><img src="${cover}" alt="Emma"><div>eBook Downloads</div><a href="${epub}"><img src="/image/epub.png">ePUB eBook</a><a href="/download/mobi/Emma.mobi">Kindle</a></html>`;
 const responseHtml = (html = detail()) => new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 const request = (target = path, options = {}) => new Request(`https://relay.example${target}`, { headers: { Origin: origin }, ...options });
-const snapshot = (books = [{ slug: "emma-by-jane-austen", title: "Emma", author: "Jane Austen", language: "en", cover: `${ORIGIN}/image/layout2/Emma-Jane-Austen.jpg` }]) => ({ version: 1, updatedAt: "2026-09-12T12:00:00.000Z", coverage: "selection", languages: { en: { indexed: books.length, total: 26108, pages: 1, complete: false } }, books });
+const resolvedBook = (slug = "emma-by-jane-austen", extra = {}) => ({
+  id: `loyalbooks-${slug}`, canonicalSourceId: `loyalbooks:${slug}`, providerId: "loyalbooks",
+  title: "Emma", author: "Jane Austen", language: "en", cover: `${ORIGIN}/image/detail/Emma-Jane-Austen.jpg`,
+  source: "Loyal Books", sourceUrl: `${ORIGIN}/book/${encodeURIComponent(slug)}`, downloadMode: "direct",
+  rights: "Les droits varient selon votre pays et cette édition. Consultez les conditions de la source avant de télécharger.", rightsUrl: `${ORIGIN}/about`,
+  ...extra,
+});
 async function epub() { const zip = new JSZip(); zip.file("mimetype", "application/epub+zip"); zip.file("META-INF/container.xml", "<container/>"); return zip.generateAsync({ type: "uint8array" }); }
 
 beforeEach(() => { vi.stubEnv("MODE", "pages"); vi.stubEnv("VITE_SOURCE_RELAY_URL", "https://relay.example"); vi.stubEnv("BASE_URL", "/EPUB-FastReader/"); });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
-describe("Loyal Books local search", () => {
-  it("validates the index and exposes its dated, partial coverage", () => {
-    expect(parseLoyalbooksCatalog(snapshot())).toMatchObject({ coverage: "selection", languages: { en: { indexed: 1, total: 26108, complete: false } } });
-  });
-  it("rejects invalid counts, duplicate editions and dishonest complete coverage", () => {
-    for (const value of [{ ...snapshot(), coverage: "complete" }, { ...snapshot(), updatedAt: "bad" }, snapshot([snapshot().books[0], snapshot().books[0]]), { ...snapshot(), languages: { en: { indexed: 100, total: 26108, pages: 1, complete: false } } }]) expect(() => parseLoyalbooksCatalog(value)).toThrow();
-  });
-  it("retains complete long titles and Unicode slugs but strips foreign cover URLs", () => {
-    const entry = { ...snapshot().books[0], slug: "Contes-Français", title: "Le titre complet ".repeat(80).trim(), cover: "https://evil.example/cover.jpg" };
-    expect(parseLoyalbooksCatalog(snapshot([entry])).books[0]).toEqual({ ...entry, cover: null });
-  });
-  it("searches title and author in local metadata, paginates and never contacts Google or Loyal Books", async () => {
-    const books = Array.from({ length: 27 }, (_, i) => ({ ...snapshot().books[0], slug: `edition-${i}`, title: `Édition ${i}` }));
-    const fetch = vi.fn(async () => new Response(JSON.stringify(snapshot(books)))); vi.stubGlobal("fetch", fetch);
-    const first = await source.search({ query: "edition Austen", language: "en", page: 1 });
-    expect(first).toMatchObject({ count: 27, hasNext: true, catalogCoverage: { kind: "selection" } });
-    expect(first.books).toHaveLength(24);
-    expect((await source.search({ query: "edition", language: "en", page: 2 })).books).toHaveLength(3);
-    expect((await source.search({ query: "absent", language: "en", page: 1 })).count).toBe(0);
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(fetch.mock.calls[0][0]).toBe("/EPUB-FastReader/catalog/loyalbooks.json");
-  });
-  it("keeps unsupported-language and aborted searches offline", async () => {
+describe("Loyal Books embedded search and selected editions", () => {
+  it("declares its official external search panel without a local catalogue", async () => {
     const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
-    expect((await source.search({ language: "zz" })).books).toEqual([]);
+    expect(source.manifest).toMatchObject({ version: "2.0.0", searchPresentation: "embedded", searchPrivacy: "external", capabilities: { search: true, download: true } });
+    for (const language of ["", "all", "en", "fr", "de", "zh"]) {
+      expect(await source.search({ query: "Jane Austen", language, page: 2 })).toEqual({ books: [], count: 0, hasNext: false, countIsApproximate: false, searchPresentation: "embedded" });
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("keeps aborted search and resolution requests offline", async () => {
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
     const controller = new AbortController(); controller.abort();
     await expect(source.search({ signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    await expect(resolveLoyalbooksBook("emma-by-jane-austen", { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("resolves a selected edition through the bounded relay and preserves its complete metadata", async () => {
+    const metadata = resolvedBook("Contes-Français", { title: "Un titre français complet ".repeat(50).trim(), author: "Prosper Mérimée", language: "fr" });
+    const fetch = vi.fn(async () => new Response(JSON.stringify(metadata))); vi.stubGlobal("fetch", fetch);
+    expect(await resolveLoyalbooksBook("Contes-Français")).toEqual(metadata);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0][0]).toBe("https://relay.example/api/sources/loyalbooks/detail/Contes-Fran%C3%A7ais");
+    expect(fetch.mock.calls[0][1]).toMatchObject({ credentials: "omit", referrerPolicy: "no-referrer" });
+    expect(fetch.mock.calls[0][0]).not.toMatch(/\.epub$/u);
+  });
+  it("keeps missing language and artwork empty, and ignores remote fields that cannot control acquisition", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(resolvedBook("emma-by-jane-austen", { language: "", cover: "https://evil.example/book.jpg", downloadUrl: "https://evil.example/book.epub", rightsUrl: "https://evil.example/rights", source: "Injected label" })))); vi.stubGlobal("fetch", fetch);
+    const result = await resolveLoyalbooksBook("emma-by-jane-austen");
+    expect(result).toEqual(resolvedBook("emma-by-jane-austen", { language: "", cover: null }));
+    expect(result).not.toHaveProperty("downloadUrl");
+  });
+  it("rejects arbitrary URLs, paths, duplicate encoding and invalid identifiers before any request", async () => {
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    for (const slug of ["", "../private", "https://evil.example/book", "emma/book", "emma?url=private", "emma#fragment", "%2Fprivate", "a".repeat(201), null, 123]) {
+      await expect(resolveLoyalbooksBook(slug)).rejects.toMatchObject({ code: "INVALID_BOOK" });
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("rejects altered edition identities, missing metadata and malformed or oversized responses", async () => {
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    for (const extra of [{ id: "loyalbooks-other" }, { canonicalSourceId: "loyalbooks:other" }, { providerId: "gutenberg" }, { sourceUrl: "https://evil.example/book/emma" }, { downloadMode: "manual" }, { title: "" }, { title: "\u0000" }, { title: "a".repeat(2001) }, { author: "" }, { language: "English" }]) {
+      fetch.mockResolvedValueOnce(new Response(JSON.stringify(resolvedBook("emma-by-jane-austen", extra))));
+      await expect(resolveLoyalbooksBook("emma-by-jane-austen")).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+    }
+    fetch.mockResolvedValueOnce(new Response("<html>Not JSON</html>"));
+    await expect(resolveLoyalbooksBook("emma-by-jane-austen")).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+    fetch.mockResolvedValueOnce(new Response("x".repeat(32 * 1024 + 1)));
+    await expect(resolveLoyalbooksBook("emma-by-jane-austen")).rejects.toMatchObject({ code: "TOO_LARGE" });
+  });
+  it("requires a configured detail relay without preventing the external search panel", async () => {
+    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
+    vi.stubEnv("VITE_SOURCE_RELAY_URL", ""); vi.stubEnv("VITE_GUTENBERG_RELAY_URL", "");
+    await expect(resolveLoyalbooksBook("emma-by-jane-austen")).rejects.toMatchObject({ code: "SOURCE_NOT_CONFIGURED" });
+    expect((await source.search({ query: "Emma" })).searchPresentation).toBe("embedded");
     expect(fetch).not.toHaveBeenCalled();
   });
   it("ignores caller-provided download URLs and encodes non-ASCII edition names", async () => {

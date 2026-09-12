@@ -1017,8 +1017,11 @@ progress::-moz-progress-bar {
   overflow-x: auto;
   padding: 4px 0 8px;
   margin-top: 17px;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+}
+.source-tabs::-webkit-scrollbar {
+  display: none;
 }
 .source-tabs button {
   display: inline-flex;

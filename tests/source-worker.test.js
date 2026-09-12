@@ -21,13 +21,13 @@ describe("disponibilité des sources", () => {
       expect.objectContaining({ providerId: "fadedpage", available: true, code: "AVAILABLE" }),
       expect.objectContaining({ providerId: "epubbooks", available: true, code: "AVAILABLE" }),
       expect.objectContaining({ providerId: "ebookzy", available: true, code: "AVAILABLE" }),
-      expect.objectContaining({ providerId: "atramenta", available: true, code: "AVAILABLE" }),
       expect.objectContaining({ providerId: "loyalbooks", available: true, code: "AVAILABLE" }),
     ]);
     expect(fetchImpl.mock.calls.find(([url]) => url.endsWith(".epub"))[1].method).toBe("HEAD");
     expect(fetchImpl.mock.calls.find(([url]) => url.includes("ebooksgratuits"))[0]).toBe("https://www.ebooksgratuits.com/opds/");
     await handler(request("/api/sources/status"));
-    expect(fetchImpl).toHaveBeenCalledTimes(7);
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
+    expect(fetchImpl.mock.calls.some(([url]) => url.includes("atramenta.net"))).toBe(false);
     expect(fetchImpl.mock.calls.find(([url]) => url.includes("fadedpage"))).toEqual(["https://www.fadedpage.com/csearch.php", expect.objectContaining({ method: "HEAD" })]);
     expect(fetchImpl.mock.calls.find(([url]) => url.includes("epubbooks"))[0]).toBe("https://www.epubbooks.com/");
     expect((await handler(request("/api/sources/status", { headers: { Origin: "https://evil.test" } }))).status).toBe(403);
@@ -44,74 +44,72 @@ describe("disponibilité des sources", () => {
       expect.objectContaining({ providerId: "fadedpage", available: false, code: "SOURCE_UNAVAILABLE" }),
       expect.objectContaining({ providerId: "epubbooks", available: false, code: "SOURCE_UNAVAILABLE" }),
       expect.objectContaining({ providerId: "ebookzy", available: false, code: "SOURCE_UNAVAILABLE" }),
-      expect.objectContaining({ providerId: "atramenta", available: false, code: "SOURCE_UNAVAILABLE" }),
       expect.objectContaining({ providerId: "loyalbooks", available: false, code: "SOURCE_UNAVAILABLE" }),
     ]);
   });
 });
 
 describe("relais Worker", () => {
-  it("remplace une disponibilité en cache lorsque le quota Atramenta est atteint, puis vérifie son expiration", async () => {
-    vi.useFakeTimers();
-    const now = Date.UTC(2026, 8, 12, 12);
-    vi.setSystemTime(now);
-    const records = new Map();
-    const storage = { get: vi.fn(async (key) => records.get(key)), put: vi.fn(async (key, value) => records.set(key, value)) };
-    const fetch = vi.fn(async (url) => new Response(null, { headers: { "Content-Type": url.includes("ebooksgratuits") ? "application/atom+xml" : url.endsWith(".epub") ? "application/epub+zip" : "text/html" } }));
+  it("retire les anciennes routes Atramenta sans contacter la source", async () => {
+    const storage = { get: vi.fn(), put: vi.fn(), delete: vi.fn(), deleteAll: vi.fn() };
+    const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const object = new FastReaderSources({ storage }, { SOURCE_ALLOWED_ORIGIN: origin });
-    const status = async () => (await (await object.fetch(request("/api/sources/status"))).json()).sources.find((source) => source.providerId === "atramenta");
-    expect(await status()).toMatchObject({ available: true, code: "AVAILABLE" });
-    expect(fetch).toHaveBeenCalledTimes(7);
-
-    const timestamps = Array(4).fill(now - 86_400_000 + 60_000);
-    records.set("atramenta-download-timestamps", timestamps);
-    expect(await status()).toMatchObject({ available: false, code: "SOURCE_DAILY_LIMIT", retryAfter: 60 });
-    expect(fetch).toHaveBeenCalledTimes(7);
-    vi.setSystemTime(now + 30_000);
-    expect(await status()).toMatchObject({ available: false, code: "SOURCE_DAILY_LIMIT", retryAfter: 30 });
-    expect(fetch).toHaveBeenCalledTimes(7);
-
-    vi.setSystemTime(now + 60_000);
-    expect(await status()).toMatchObject({ available: true, code: "AVAILABLE" });
-    // Other source checks remain cached; Atramenta must be checked anew.
-    expect(fetch).toHaveBeenCalledTimes(8);
-    expect(fetch.mock.calls.filter(([url]) => url.includes("atramenta.net"))).toHaveLength(2);
-    expect(records.get("atramenta-download-timestamps")).toEqual(timestamps);
-    expect(storage.put).not.toHaveBeenCalled();
+    for (const path of ["/api/sources/atramenta/search?q=Flaubert", "/api/books/atramenta/15038-un-coeur-simple.epub"]) {
+      for (const method of ["GET", "HEAD", "OPTIONS"]) {
+        const response = await object.fetch(request(path, { method, headers: { Origin: origin } }));
+        expect(response.status).toBe(404);
+        expect(await response.json()).toEqual({ error: { code: "NOT_FOUND" } });
+      }
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    for (const operation of Object.values(storage)) expect(operation).not.toHaveBeenCalled();
   });
-  it("ne sonde jamais Atramenta pendant un bloc persistant, y compris après recréation du Worker", async () => {
+  it("préserve tous les anciens états Atramenta après recréation du Worker et contrôle des six sources actives", async () => {
     vi.useFakeTimers();
     const now = Date.UTC(2026, 8, 12, 12);
     vi.setSystemTime(now);
-    const records = new Map([["atramenta-download-block", { version: 1, source: { until: now + 600_000, scope: "source", status: 503, code: "SOURCE_BUSY", message: "La source demande de patienter." }, downloads: null }]]);
-    const storage = { get: vi.fn(async (key) => records.get(key)), put: vi.fn() };
+    const records = new Map([
+      ["atramenta-anonymous-session", { PHPSESSID: "historical-session", not_a_bot: "historical-marker" }],
+      ["atramenta-download-timestamps", [now - 90_000_000, now - 60_000, now - 50_000, now - 40_000, now - 30_000]],
+      ["atramenta-download-block", {
+        version: 1,
+        source: { until: now + 600_000, scope: "source", status: 503, code: "SOURCE_BUSY", message: "La source demande de patienter." },
+        downloads: { until: now + 86_400_000, scope: "downloads", status: 429, code: "SOURCE_DAILY_LIMIT", message: "Limite quotidienne atteinte." },
+      }],
+      ["elg-download-timestamps", [now - 1000]],
+    ]);
+    const originalRecords = structuredClone(records);
+    const storage = {
+      get: vi.fn(async (key) => records.get(key)),
+      put: vi.fn(async (key, value) => records.set(key, value)),
+      delete: vi.fn(async (key) => records.delete(key)),
+      deleteAll: vi.fn(async () => records.clear()),
+    };
     const fetch = vi.fn(async (url) => new Response(null, { headers: { "Content-Type": url.includes("ebooksgratuits") ? "application/atom+xml" : url.endsWith(".epub") ? "application/epub+zip" : "text/html" } }));
     vi.stubGlobal("fetch", fetch);
     for (let index = 0; index < 2; index++) {
       const object = new FastReaderSources({ storage }, { SOURCE_ALLOWED_ORIGIN: origin });
-      const response = await object.fetch(request("/api/sources/status", { headers: { Origin: origin } }));
-      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);
-      expect((await response.json()).sources.find((source) => source.providerId === "atramenta")).toMatchObject({ available: false, code: "SOURCE_BUSY", retryAfter: 600 });
+      const env = { SOURCE_ALLOWED_ORIGIN: origin, SOURCES: { idFromName: vi.fn((name) => name), get: vi.fn(() => object) } };
+      for (let check = 0; check < 2; check++) {
+        const response = await worker.fetch(request("/api/sources/status", { headers: { Origin: origin } }), env);
+        expect(response.headers.get("Access-Control-Allow-Origin")).toBe(origin);
+        const { sources } = await response.json();
+        expect(sources.map((source) => source.providerId)).toEqual(["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "loyalbooks"]);
+        expect(sources.every((source) => source.available && source.code === "AVAILABLE")).toBe(true);
+      }
+      for (const path of ["/api/sources/atramenta/search?q=Flaubert", "/api/books/atramenta/15038-un-coeur-simple.epub"]) {
+        expect((await worker.fetch(request(path, { headers: { Origin: origin } }), env)).status).toBe(404);
+      }
+      expect(env.SOURCES.idFromName.mock.calls).toEqual(Array(4).fill(["fastreader-public-sources-v1"]));
+      expect(env.SOURCES.get.mock.calls).toEqual(Array(4).fill(["fastreader-public-sources-v1"]));
+      expect(records).toEqual(originalRecords);
+      vi.setSystemTime(now + 2 * 86_400_000);
     }
     expect(fetch).toHaveBeenCalledTimes(12);
     expect(fetch.mock.calls.some(([url]) => url.includes("atramenta.net"))).toBe(false);
-    expect(storage.put).not.toHaveBeenCalled();
-  });
-  it("expose une connexion exigée et ne masque pas une restriction illisible derrière une pastille verte", async () => {
-    const now = Date.now();
-    const storage = { get: vi.fn(async (key) => key === "atramenta-download-block" ? { scope: "downloads", status: 403, code: "SOURCE_LOGIN_REQUIRED", message: "Connexion exigée", until: now + 120_000 } : []), put: vi.fn() };
-    const fetch = vi.fn(async (url) => new Response(null, { headers: { "Content-Type": url.includes("ebooksgratuits") ? "application/atom+xml" : url.endsWith(".epub") ? "application/epub+zip" : "text/html" } }));
-    vi.stubGlobal("fetch", fetch);
-    const object = new FastReaderSources({ storage }, { SOURCE_ALLOWED_ORIGIN: origin });
-    const status = async () => (await (await object.fetch(request("/api/sources/status"))).json()).sources.find((source) => source.providerId === "atramenta");
-    const blocked = await status();
-    expect(blocked).toMatchObject({ available: false, code: "SOURCE_LOGIN_REQUIRED" });
-    expect(blocked.retryAfter).toBeGreaterThan(0);
-    storage.get.mockRejectedValue(new Error("Storage unavailable"));
-    expect(await status()).toMatchObject({ available: false, code: "SOURCE_UNAVAILABLE", retryAfter: 30 });
-    expect(fetch.mock.calls.some(([url]) => url.includes("atramenta.net"))).toBe(false);
-    expect(storage.put).not.toHaveBeenCalled();
+    for (const operation of Object.values(storage)) expect(operation).not.toHaveBeenCalled();
+    expect(records).toEqual(originalRecords);
   });
   it("réutilise le middleware Gutenberg et fournit son EPUB intégral avec CORS", async () => {
     const zip = new JSZip(); zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
@@ -153,20 +151,5 @@ describe("relais Worker", () => {
     expect(response.status).toBe(429);
     expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(1);
     expect(fetch).not.toHaveBeenCalled();
-  });
-  it("préserve le quota partagé Atramenta après redémarrage sans contacter la source", async () => {
-    const timestamps = Array.from({ length: 4 }, (_, index) => Date.now() - 60_000 + index * 1000);
-    const records = new Map([["atramenta-download-timestamps", timestamps]]);
-    const storage = { get: vi.fn(async (key) => records.get(key)), put: vi.fn(async (key, value) => records.set(key, value)) };
-    const fetch = vi.fn(); vi.stubGlobal("fetch", fetch);
-    for (let index = 0; index < 2; index++) {
-      const response = await new FastReaderSources({ storage }, { SOURCE_ALLOWED_ORIGIN: origin }).fetch(request("/api/books/atramenta/15038-un-coeur-simple.epub", { headers: { Origin: origin } }));
-      expect(response.status).toBe(429);
-      expect(await response.json()).toMatchObject({ error: { code: "SOURCE_DAILY_LIMIT" } });
-      expect(Number(response.headers.get("Retry-After"))).toBeGreaterThan(0);
-    }
-    expect(fetch).not.toHaveBeenCalled();
-    expect(records.get("atramenta-download-timestamps")).toEqual(timestamps);
-    expect(storage.put.mock.calls.every(([key]) => key === "atramenta-download-block")).toBe(true);
   });
 });

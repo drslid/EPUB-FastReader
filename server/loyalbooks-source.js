@@ -3,7 +3,9 @@ import JSZip from "jszip";
 const ORIGIN = "https://www.loyalbooks.com";
 const BOOK_PATH = "/api/books/loyalbooks/";
 const COVER_PATH = "/api/sources/loyalbooks/cover/";
+const DETAIL_PATH = "/api/sources/loyalbooks/detail/";
 const EPUB = "application/epub+zip";
+const RIGHTS = "Les droits varient selon votre pays et cette édition. Consultez les conditions de la source avant de télécharger.";
 const SLUG = /^[\p{L}\p{N}][\p{L}\p{N}\p{M} _.,'()!~-]{0,199}$/u;
 export const LOYALBOOKS_LIMITS = Object.freeze({ timeoutMs: 35_000, coverTimeoutMs: 4000, maxCatalogBytes: 1024 * 1024, maxBookBytes: 30 * 1024 * 1024, maxCoverBytes: 1024 * 1024 });
 class SourceError extends Error {
@@ -43,7 +45,7 @@ async function limitedBytes(response, maxBytes, signal) {
   return bytes;
 }
 function attribute(tag, name) {
-  const value = new RegExp(`\\b${name}\\s*=\\s*(["'])(.*?)\\1`, "isu").exec(tag)?.[2];
+  const value = new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])(.*?)\\1`, "isu").exec(tag)?.[2];
   return value?.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&#39;", "'");
 }
 function officialAsset(value, prefix, extension) {
@@ -58,9 +60,10 @@ function officialAsset(value, prefix, extension) {
 export function parseLoyalbooksDetail(html) {
   let epub = null;
   let cover = null;
-  for (const match of html.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/giu)) {
-    if (!/\bepub\b/iu.test(match[1])) continue;
-    epub = officialAsset(attribute(match[0], "href"), "/download/epub/", /\.epub$/iu);
+  html = html.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/giu, " ");
+  for (const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/giu)) {
+    if (!/\bepub\b/iu.test(match[2])) continue;
+    epub = officialAsset(attribute(match[1], "href"), "/download/epub/", /\.epub$/iu);
     if (epub) break;
   }
   for (const match of html.matchAll(/<img\b[^>]*>/giu)) {
@@ -68,6 +71,42 @@ export function parseLoyalbooksDetail(html) {
     if (cover) break;
   }
   return { epub, cover };
+}
+function metadataText(value, maxLength) {
+  const entities = { amp: "&", quot: '"', apos: "'", nbsp: " ", lt: "<", gt: ">", eacute: "é", Eacute: "É", egrave: "è", Egrave: "È", ecirc: "ê", Ecirc: "Ê", agrave: "à", Agrave: "À", acirc: "â", Acirc: "Â", ccedil: "ç", Ccedil: "Ç", ocirc: "ô", Ocirc: "Ô", ugrave: "ù", Ugrave: "Ù", uuml: "ü", Uuml: "Ü", ouml: "ö", Ouml: "Ö", auml: "ä", Auml: "Ä", ntilde: "ñ", Ntilde: "Ñ", oelig: "œ", OElig: "Œ", ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘", ldquo: "“", rdquo: "”", laquo: "«", raquo: "»" };
+  const text = String(value || "").replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/giu, " ").replace(/<[^>]*>/gu, " ").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/giu, (entity, name) => {
+    if (!name.startsWith("#")) return Object.hasOwn(entities, name) ? entities[name] : entity;
+    const point = /^#x/iu.test(name) ? Number.parseInt(name.slice(2), 16) : Number(name.slice(1));
+    return point > 0 && point <= 0x10ffff && !(point >= 0xd800 && point <= 0xdfff) ? String.fromCodePoint(point) : " ";
+  }).replace(/<[^>]*>/gu, " ").replace(/[\p{Cc}\p{Cf}]/gu, " ").replace(/\s+/gu, " ").trim();
+  return text.length <= maxLength && /[\p{L}\p{N}]/u.test(text) ? text : "";
+}
+export function parseLoyalbooksMetadata(html) {
+  // Reviews also contain schema.org name/author fields. Read the book heading
+  // and its explicit author block rather than taking arbitrary microdata.
+  const cleanHtml = html.replace(/<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1>/giu, " ");
+  const heading = /<h1\b[^>]*>([\s\S]*?)<\/h1>/iu.exec(cleanHtml);
+  let author = "";
+  let authorIndex = -1;
+  for (const match of cleanHtml.matchAll(/<(font|div|span|p)\b([^>]*)>/giu)) {
+    if (!(attribute(match[2], "class") || "").split(/\s+/u).includes("book-author")) continue;
+    const contents = cleanHtml.slice(match.index + match[0].length).split(new RegExp(`<\\/${match[1]}>`, "iu"), 1)[0];
+    const link = /<a\b[^>]*>([\s\S]*?)<\/a>/iu.exec(contents);
+    author = metadataText(link ? link[1] : contents.replace(/^\s*By:\s*/iu, "").replace(/\s*\(\d{3,4}\s*[-–]\s*\d{0,4}\)\s*$/u, ""), 1000);
+    authorIndex = match.index;
+    break;
+  }
+  let rawLanguage = "";
+  for (const match of cleanHtml.matchAll(/<(meta|span|a)\b([^>]*)>/giu)) {
+    if (attribute(match[2], "itemprop") !== "inLanguage") continue;
+    const text = match[1].toLowerCase() === "meta" ? attribute(match[2], "content") : cleanHtml.slice(match.index + match[0].length).split(/<\/(?:span|a)>/iu, 1)[0];
+    rawLanguage = metadataText(text, 63).toLowerCase();
+    break;
+  }
+  if (!rawLanguage) rawLanguage = metadataText(/\bLanguage\s*:\s*(?:<[^>]+>\s*)*([^<\r\n]+)/iu.exec(cleanHtml)?.[1], 63).toLowerCase();
+  const languages = { english: "en", french: "fr", spanish: "es", italian: "it", german: "de", portuguese: "pt", dutch: "nl", russian: "ru", chinese: "zh", japanese: "ja", greek: "el", latin: "la", finnish: "fi", swedish: "sv", danish: "da", polish: "pl", hungarian: "hu", arabic: "ar", hebrew: "he", multilingual: "mul" };
+  const language = Object.hasOwn(languages, rawLanguage) ? languages[rawLanguage] : /^[a-z]{2,3}(?:-[a-z]{2,4})?$/u.test(rawLanguage) ? rawLanguage : "";
+  return { title: metadataText(heading && heading.index < authorIndex ? heading[1] : "", 2000), author, language };
 }
 function imageType(bytes) {
   if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) return "image/jpeg";
@@ -97,11 +136,10 @@ export function createLoyalbooksHandler(options = {}) {
     if (url.protocol !== "https:" || url.origin !== allowOrigin || url.username || url.password) throw new TypeError("Origine du relais invalide.");
   }
   const limits = Object.fromEntries(Object.entries(LOYALBOOKS_LIMITS).map(([key, max]) => [key, Number.isSafeInteger(options[key]) && options[key] > 0 ? Math.min(options[key], max) : max]));
-  let pendingBooks = 0;
-  let pendingCovers = 0;
+  const pending = { book: 0, cover: 0, detail: 0 };
   let cooldownUntil = 0;
-  // Only two validated URLs per entry: 16 entries, with filenames bounded by
-  // the 200-character allowlist above (including Unicode before URI encoding).
+  // Sixteen entries of bounded title/author/language and two validated URLs,
+  // with filenames limited to 200 characters before URI encoding.
   // The cache never retains HTML, cookies, EPUB archives or image bytes.
   const details = new Map();
 
@@ -131,15 +169,17 @@ export function createLoyalbooksHandler(options = {}) {
     details.delete(slug);
     const response = await upstream(`${ORIGIN}/book/${encodeURIComponent(slug)}`, signal);
     if (!response.headers.get("content-type")?.includes("text/html")) { void response.body?.cancel().catch(() => {}); throw unavailable(); }
-    const data = parseLoyalbooksDetail(new TextDecoder().decode(await limitedBytes(response, limits.maxCatalogBytes, signal)));
+    const html = new TextDecoder().decode(await limitedBytes(response, limits.maxCatalogBytes, signal));
+    const data = { ...parseLoyalbooksDetail(html), ...parseLoyalbooksMetadata(html) };
     if (!data.epub) throw new SourceError(404, "BOOK_UNAVAILABLE", "Cette édition n’est plus disponible en EPUB.");
     if (details.size >= 16) details.delete(details.keys().next().value);
     details.set(slug, { data, expires: now() + 300_000 });
     return data;
   }
-  async function acquire(slug, cover, signal) {
-    if (cover ? pendingCovers >= 2 : pendingBooks >= 1) throw new SourceError(429, "SOURCE_BUSY", "La source demande de patienter. Réessayez plus tard.", 5);
-    if (cover) pendingCovers++; else pendingBooks++;
+  async function acquire(slug, kind, signal) {
+    if (pending[kind] >= (kind === "book" ? 1 : 2)) throw new SourceError(429, "SOURCE_BUSY", "La source demande de patienter. Réessayez plus tard.", 5);
+    pending[kind]++;
+    const cover = kind === "cover";
     const controller = new AbortController();
     const abort = () => controller.abort(signal.reason);
     if (signal.aborted) abort();
@@ -149,6 +189,15 @@ export function createLoyalbooksHandler(options = {}) {
     try {
       return await abortable((async () => {
         const detail = await getDetail(slug, controller.signal);
+        if (kind === "detail") {
+          if (!detail.title || !detail.author) throw new SourceError(502, "INVALID_RESPONSE", "La fiche de cette édition est incomplète. Consultez la source ou réessayez plus tard.");
+          return {
+            id: `loyalbooks-${slug}`, canonicalSourceId: `loyalbooks:${slug}`, providerId: "loyalbooks",
+            title: detail.title, author: detail.author, language: detail.language, cover: detail.cover,
+            source: "Loyal Books", sourceUrl: `${ORIGIN}/book/${encodeURIComponent(slug)}`,
+            downloadMode: "direct", rights: RIGHTS, rightsUrl: `${ORIGIN}/about`,
+          };
+        }
         const url = cover ? detail.cover : detail.epub;
         if (!url) throw new SourceError(404, "COVER_UNAVAILABLE", "La couverture n’est pas disponible.");
         const response = await upstream(url, controller.signal);
@@ -162,12 +211,12 @@ export function createLoyalbooksHandler(options = {}) {
         controller.signal.throwIfAborted();
         return { bytes, type: EPUB };
       })(), controller.signal);
-    } finally { clearTimeout(timer); signal.removeEventListener("abort", abort); if (cover) pendingCovers--; else pendingBooks--; }
+    } finally { clearTimeout(timer); signal.removeEventListener("abort", abort); pending[kind]--; }
   }
 
   return async function loyalbooksHandler(request) {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith(BOOK_PATH) && !url.pathname.startsWith(COVER_PATH)) return null;
+    if (!url.pathname.startsWith(BOOK_PATH) && !url.pathname.startsWith(COVER_PATH) && !url.pathname.startsWith(DETAIL_PATH)) return null;
     const headers = new Headers({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" });
     if (allowOrigin) headers.set("Vary", "Origin");
     try {
@@ -175,7 +224,8 @@ export function createLoyalbooksHandler(options = {}) {
       if (origin && origin !== allowOrigin && origin !== url.origin) throw new SourceError(403, "ORIGIN_NOT_ALLOWED", "Ce site n’est pas autorisé à utiliser ce relais.");
       if (origin === allowOrigin && origin) { headers.set("Access-Control-Allow-Origin", origin); headers.set("Access-Control-Expose-Headers", "Content-Disposition, Retry-After"); }
       const cover = url.pathname.startsWith(COVER_PATH);
-      const match = (cover ? /^\/api\/sources\/loyalbooks\/cover\/([^/]+)\.jpg$/u : /^\/api\/books\/loyalbooks\/([^/]+)\.epub$/u).exec(url.pathname);
+      const detail = url.pathname.startsWith(DETAIL_PATH);
+      const match = (detail ? /^\/api\/sources\/loyalbooks\/detail\/([^/]+)$/u : cover ? /^\/api\/sources\/loyalbooks\/cover\/([^/]+)\.jpg$/u : /^\/api\/books\/loyalbooks\/([^/]+)\.epub$/u).exec(url.pathname);
       let slug;
       try { slug = match && decodeURIComponent(match[1]); } catch { /* rejected below */ }
       if (!slug || !SLUG.test(slug) || url.search) throw new SourceError(400, "INVALID_BOOK_ID", "L’identifiant du livre est invalide.");
@@ -186,7 +236,12 @@ export function createLoyalbooksHandler(options = {}) {
         return new Response(null, { status: 204, headers });
       }
       if (request.method !== "GET") { headers.set("Allow", "GET, OPTIONS"); throw new SourceError(405, "METHOD_NOT_ALLOWED", "Seules les requêtes publiques de lecture sont acceptées."); }
-      const { bytes, type } = await acquire(slug, cover, request.signal);
+      const result = await acquire(slug, detail ? "detail" : cover ? "cover" : "book", request.signal);
+      if (detail) {
+        headers.set("Content-Type", "application/json; charset=utf-8");
+        return new Response(JSON.stringify(result), { headers });
+      }
+      const { bytes, type } = result;
       headers.set("Content-Type", type); headers.set("Content-Length", String(bytes.byteLength));
       if (!cover) headers.set("Content-Disposition", "inline; filename=\"loyalbooks.epub\"");
       return new Response(bytes, { headers });
@@ -203,7 +258,7 @@ export function createLoyalbooksHandler(options = {}) {
 export function createLoyalbooksMiddleware(options = {}) {
   const handler = createLoyalbooksHandler(options);
   return async (req, res, next = () => {}) => {
-    if (!String(req.url).startsWith(BOOK_PATH) && !String(req.url).startsWith(COVER_PATH)) return next();
+    if (!String(req.url).startsWith(BOOK_PATH) && !String(req.url).startsWith(COVER_PATH) && !String(req.url).startsWith(DETAIL_PATH)) return next();
     const controller = new AbortController();
     const abort = () => { if (!res.writableEnded) controller.abort(); };
     res.on("close", abort);

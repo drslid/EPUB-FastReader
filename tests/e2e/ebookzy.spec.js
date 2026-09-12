@@ -66,7 +66,7 @@ test("Ebookzy : couverture et titre complet, EPUB local, rechargement hors ligne
   const server = createAppServer({
     ebookzyOptions: { fetchImpl },
     relayOptions: denied, ebooksGratuitsOptions: denied, fadedpageOptions: denied,
-    epubbooksOptions: denied, atramentaOptions: denied, loyalbooksOptions: denied,
+    epubbooksOptions: denied, loyalbooksOptions: denied,
     sourceStatusOptions: denied,
   });
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));

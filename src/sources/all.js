@@ -7,8 +7,6 @@ import ebooksGratuits from "./ebooks-gratuits.js";
 import fadedpage from "./fadedpage.js";
 import epubbooks from "./epubbooks.js";
 import ebookzy from "./ebookzy.js";
-import atramenta from "./atramenta.js";
-import loyalbooks from "./loyalbooks.js";
 
 const GUTENBERG_WARNING = "Le catalogue complet n’a pas pu être chargé. Les livres disponibles ici restent accessibles. Rechargez l’application puis réessayez.";
 
@@ -22,8 +20,7 @@ async function search(options = {}) {
   // A reader can still browse a provider explicitly using its own filter.
   if (query.trim()) {
     if (!language || language === "all" || language === "en") sources.push(standardEbooks, fadedpage, epubbooks, ebookzy);
-    if (!language || language === "all" || language === "fr") sources.push(ebooksGratuits, atramenta);
-    sources.push(loyalbooks);
+    if (!language || language === "all" || language === "fr") sources.push(ebooksGratuits);
   }
   const results = new Map();
   const warnings = new Map();
@@ -52,7 +49,6 @@ async function search(options = {}) {
       warnings: sources.map((source) => warnings.get(source.manifest.id)).filter(Boolean),
       pendingSources,
       sourceStatuses: Object.fromEntries([...statuses].map(([id, value]) => [id, { ...value }])),
-      catalogCoverage: results.get("loyalbooks")?.catalogCoverage,
     };
   };
   let active = true;
@@ -106,7 +102,7 @@ export default defineSource({
   manifest: {
     id: "all",
     name: "Tout le catalogue",
-    version: "5.0.0",
+    version: "6.0.0",
     apiVersion: 1,
     description:
       "Livres disponibles ici et catalogues partenaires dans une recherche commune.",

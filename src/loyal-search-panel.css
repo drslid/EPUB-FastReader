@@ -1,0 +1,73 @@
+/* Style the FastReader frame and secondary actions. Google's result content,
+   ads, source links, attribution, and pagination keep their supplied styles. */
+.loyal-search-intro {
+  margin-block: 20px 12px;
+}
+
+.loyal-search-intro h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.loyal-search-intro p,
+.loyal-search-section .source-privacy {
+  max-width: 75ch;
+  margin-block: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.loyal-search-panel {
+  width: 100%;
+  min-width: 0;
+  margin-block: 1rem;
+}
+
+.loyal-search-status {
+  margin-block: 0 1rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.loyal-search-retry {
+  margin: 0 1rem 1rem 0;
+}
+
+.loyal-search-source {
+  display: inline-block;
+  margin-block-end: 1rem;
+}
+
+.loyal-search-results {
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 14px;
+  background: #fff;
+  color: #202124;
+  color-scheme: light;
+}
+
+.loyal-search-read-action {
+  margin-block: 0.65rem 0.25rem;
+}
+
+.loyal-search-read-action .loyal-search-read {
+  min-height: 44px;
+  padding: 0.55rem 1.1rem;
+  font-family: inherit;
+}
+
+.loyal-search-panel > [hidden] {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .loyal-search-panel {
+    margin-block: 0.75rem;
+  }
+
+  .loyal-search-results {
+    border-radius: 8px;
+  }
+}

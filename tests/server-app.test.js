@@ -115,7 +115,7 @@ describe("production HTTP server", () => {
     expect(fetchSource).not.toHaveBeenCalled();
   });
 
-  it.each(["/api/missing", "/assets/missing.js", "/unknown-page", "/books", "/assets/"])("returns 404 instead of the app shell for %s", async (pathname) => {
+  it.each(["/api/missing", "/api/sources/atramenta/search?query=Flaubert&page=1", "/api/books/atramenta/15038-un-coeur-simple.epub", "/assets/missing.js", "/unknown-page", "/books", "/assets/"])("returns 404 instead of the app shell for %s", async (pathname) => {
     const response = await request(pathname);
     expect(response.status).toBe(404);
     expect(response.body.toString()).not.toContain("FastReader fixture");

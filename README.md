@@ -76,16 +76,17 @@ Discover brings supported catalogues into one search, with the title, author, co
 | [Faded Page](https://www.fadedpage.com/) | English | Books made available under Canadian copyright rules. |
 | [epubBooks](https://www.epubbooks.com/) | English | Classic books with covers and direct EPUB reading. |
 | [Ebookzy](https://ebookzy.com/) | English | Search by title or author and open an available EPUB. |
-| [Atramenta](https://www.atramenta.net/) | French | Free-reading works with EPUB downloads; paid books are excluded. Currently unavailable through the public app’s catalogue service; its status is shown in Settings. |
-| [Loyal Books](https://www.loyalbooks.com/) | French, Spanish, Italian, German, Portuguese | A dated selection of 499 EPUBs. FastReader shows its size and update date; the full catalogue and English titles are not yet included. |
+| [Loyal Books](https://www.loyalbooks.com/) | Multiple languages, including English | Live Google-powered search in a separate Loyal Books panel. Tap Read on a book result to open its available EPUB. |
 
-Choosing a source keeps **All languages** selected unless you choose a language yourself. Covers are retained when you add a book to your library, including for offline reading when its artwork is available.
+Search starts with **All languages**. Use the language filter where available. Covers are retained when you add a book to your library, including for offline reading when its artwork is available.
+
+Select **Loyal Books** to search beyond the other catalogues using the same search bar. Its panel searches all languages through Google, without FastReader’s former 499-book selection. It retains Google’s result links, pagination, attribution and any ads. Some results are audio feeds or other pages without an EPUB; Read checks the selected book’s EPUB before opening it. Google’s search component loads only when you search in this panel; it is separate from the combined catalogue results.
 
 [BDEbooks](https://bdebooks.com/en/ebooks/) was also evaluated, but its access protection currently prevents us from verifying direct reading in FastReader. It is not included in the connected catalogues. You can still import an EPUB you have obtained from that site.
 
 Open **Settings → Book sources** to check which catalogues are responding. A slow or unavailable source does not prevent you from using your library or the other results. Some providers apply shared download limits; if one is reached, FastReader explains it and you can use another source or import an EPUB you already have.
 
-Book availability and copyright vary by country. Download only editions that are in the public domain where you live or that you are authorized to use. Each book keeps its own rights and credits. External searches are sent to the selected catalogues and, where necessary, FastReader’s catalogue service; your personal notes and reading progress remain in your browser.
+Book availability and copyright vary by country. Download only editions that are in the public domain where you live or that you are authorized to use. Each book keeps its own rights and credits. External searches are sent to the selected catalogues and, where necessary, FastReader’s catalogue service. Searches in the Loyal Books panel are sent to Google. Your EPUBs, personal notes and reading progress remain in your browser.
 
 ## Need a hand?
 

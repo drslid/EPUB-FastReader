@@ -1,4 +1,4 @@
-import { t, formatNumber, formatDate } from "../i18n.js";
+import { t, formatNumber } from "../i18n.js";
 import { findLibraryBook } from "../suggestions.js";
 
 export function discoverMarkup(state, { icon, escape, cover, providers }) {
@@ -6,12 +6,11 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
   const unified = state.view === "search";
   const searchable = providers.filter((source) => source.searchable);
   const count = formatNumber(state.catalogCount);
-  const coverage = state.catalogCoverage;
-  const coverageNote = coverage?.kind === "selection" && Number.isFinite(Date.parse(coverage.updatedAt))
-    ? t("Loyal Books : recherche dans une sélection de {count} livres, indexée le {date}.", {
-      count: formatNumber(Object.values(coverage.languages || {}).reduce((total, entry) => total + entry.indexed, 0)),
-      date: formatDate(new Date(coverage.updatedAt)),
-    }) : "";
+  const tabs = `<div class="source-tabs" role="group" aria-label="${t("Sources de livres")}">${searchable.map((source) => `<button data-action="provider" data-provider="${escape(source.id)}" aria-pressed="${state.provider === source.id}">${source.id === "selection" ? icon("book") : icon("compass")}${escape(t(source.name))}</button>`).join("")}</div>`;
+  if (state.provider === "loyalbooks") {
+    const sourceUrl = `https://www.loyalbooks.com/search?${new URLSearchParams({ q: state.query || "" })}`;
+    return `<section class="loyal-search-section" aria-label="${t("Résultats de recherche")}" aria-busy="false" data-query="${escape(state.query)}"><div class="section-heading"><h2>${t("Dans les catalogues")}</h2></div>${tabs}<div class="loyal-search-intro"><h3>Loyal Books</h3><p>${t("Recherchez un titre ou un auteur dans la barre en haut. La recherche Loyal Books inclut toutes les langues.")}</p><p class="catalog-download-hint">${t("Les résultats sont fournis par Google et peuvent inclure des annonces ou des pages sans EPUB. Le bouton Lire ouvre les fiches compatibles dans FastReader.")}</p></div><div id="loyal-search-host"></div><p class="catalog-download-hint"><a data-loyal-source-link href="${escape(sourceUrl)}" target="_blank" rel="noopener noreferrer">${t("Ouvrir la recherche sur Loyal Books")} ${icon("external")}</a></p><p class="source-privacy">${t("Cette recherche est transmise à Google. Vos EPUB, notes et repères restent dans votre navigateur.")} <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">${t("Confidentialité")}</a></p></section><p class="rights-note">${t("Les droits varient selon votre pays. Téléchargez uniquement des livres du domaine public ou pour lesquels vous avez l’autorisation requise.")}</p>`;
+  }
   const countLabel = unified
     ? (state.catalogCount === 1 ? t("{count} référence", { count }) : t("{count} références", { count }))
     : (state.catalogCount === 1 ? t("{count} livre", { count }) : t("{count} livres", { count }));
@@ -35,10 +34,9 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
   return `${unified ? "" : `<section class="discovery-intro"><div class="eyebrow">${t("DES LIVRES LIBRES À EXPLORER")}</div><h1>${t("Une envie de <em>lecture ?</em>")}</h1><p>${t("Touchez une couverture pour commencer votre prochaine histoire.")}</p></section>`}
     <section aria-label="${t("Résultats de recherche")}" aria-busy="${state.searching}" data-query="${escape(state.query)}">
     ${unified ? heading : ""}
-    <div class="source-tabs" role="group" aria-label="${t("Sources de livres")}">${searchable.map((source) => `<button data-action="provider" data-provider="${escape(source.id)}" aria-pressed="${state.provider === source.id}">${source.id === "selection" ? icon("book") : icon("compass")}${escape(t(source.name))}</button>`).join("")}</div>
+    ${tabs}
     ${!unified && !selection && import.meta.env.MODE !== "pages" ? `<p class="catalog-download-hint">${t("Un premier téléchargement nécessite une connexion. Retrouvez ensuite vos livres et votre progression hors ligne.")}</p>` : ""}
     ${!unified ? heading : ""}
-    ${coverageNote ? `<p class="catalog-download-hint catalog-coverage">${escape(coverageNote)}</p>` : ""}
     ${state.searching && state.catalog.length && state.pendingSources?.length ? `<p class="source-status-short" role="status">${t("D’autres sources poursuivent la recherche… Vous pouvez déjà ouvrir un résultat.")}</p>` : ""}
 
     ${state.catalogError ? `<div class="notice" role="alert"><strong>${t("La recherche n’a pas pu aboutir.")}</strong><p>${escape(state.catalogError)}</p><div class="notice-actions"><button class="button secondary" data-action="search">${t("Réessayer")}</button><button class="button ink" data-action="provider" data-provider="selection">${t("Livres prêts à lire")}</button></div></div>` : ""}

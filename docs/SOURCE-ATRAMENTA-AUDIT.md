@@ -1,5 +1,7 @@
 # Atramenta integration audit
 
+**Archived: Atramenta has been removed from FastReader at the reader’s request after the public host could not access it. Its adapter, routes, catalogue tab and availability probes are no longer active. Previously imported EPUBs remain in each reader’s local library. The observations below describe the former integration.**
+
 Implementation and deterministic tests checked on 12 September 2026. Live observations and mocked regression tests are distinguished below.
 
 **Public deployment limitation:** on 12 September 2026 at approximately 19:53 UTC, the deployed Cloudflare service returned HTTP 503 with `SOURCE_BUSY` for its first Flaubert search. Its independent reachability check also reported Atramenta unavailable. The adapter persisted the refusal, no EPUB acquisition was attempted, and no alternative identity or route was tried. The integration remains visible with an unavailable status; direct reading from the public Pages application has **not** been demonstrated. The earlier successful anonymous acquisition from the exploratory environment does not establish access from this host.

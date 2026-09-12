@@ -5,6 +5,7 @@ import views from "../src/locales/views.js";
 import system from "../src/locales/system.js";
 import sources from "../src/locales/sources.js";
 import sourceSettings from "../src/locales/source-settings.js";
+import loyalSearch from "../src/locales/loyal-search.js";
 import { normalizeSettings } from "../src/storage.js";
 import { parseSearchRoute, buildSearchRoute } from "../src/search-route.js";
 
@@ -45,7 +46,7 @@ describe("interface language preferences", () => {
 
   it("provides every catalog message in all five target languages with matching placeholders", () => {
     const placeholders = (value) => [...value.matchAll(/\{\w+\}/g)].map(([token]) => token).sort();
-    for (const dictionary of [main, views, system, sources, sourceSettings]) {
+    for (const dictionary of [main, views, system, sources, sourceSettings, loyalSearch]) {
       for (const language of ["en", "es", "it", "de", "pt"]) {
         expect(Object.keys(dictionary[language]).sort()).toEqual(Object.keys(dictionary.en).sort());
         for (const [source, translated] of Object.entries(dictionary[language])) {

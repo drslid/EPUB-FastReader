@@ -17,6 +17,17 @@ const configuredRelay = configuredSourceRelay(process.env);
 import { languageUrl, SEO_LANGUAGES } from "../src/seo-data.js";
 
 const projectPath = "/EPUB-FastReader/";
+const googleHost = /(?:^|\.)(?:google\.[a-z.]+|(?:googleapis|gstatic|googleusercontent|googlesyndication|googletagmanager|google-analytics|googletagservices|googleadservices)\.com|doubleclick\.(?:com|net))$/iu;
+const googleRequests = [];
+const legacyIndexRequests = [];
+async function blockGoogleAndLegacyIndex(browserContext) {
+  browserContext.on("request", (request) => {
+    const url = new URL(request.url());
+    if (googleHost.test(url.hostname)) googleRequests.push(url.href);
+    if (url.pathname.endsWith("/catalog/loyalbooks.json")) legacyIndexRequests.push(url.href);
+  });
+  await browserContext.route((url) => googleHost.test(url.hostname) || url.pathname.endsWith("/catalog/loyalbooks.json"), (route) => route.abort("blockedbyclient"));
+}
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -74,6 +85,7 @@ async function staticServer() {
 function publishedURL(value) {
   const url = new URL(value);
   assert.equal(url.protocol, "https:", "A published Pages check requires HTTPS.");
+  assert.equal(googleHost.test(url.hostname), false, "Pages verification must never contact Google.");
   assert.equal(url.username + url.password, "", "Do not embed credentials in the Pages URL.");
   url.search = "";
   url.hash = "";
@@ -83,7 +95,8 @@ function publishedURL(value) {
 
 async function fetchAsset(baseURL, relative, expectedType) {
   const url = new URL(relative, baseURL);
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  assert.equal(googleHost.test(url.hostname), false, "Static asset verification must never contact Google.");
+  const response = await fetch(url, { redirect: "error", signal: AbortSignal.timeout(30_000) });
   assert.equal(response.status, 200, `${url.pathname} must be a real static file.`);
   if (expectedType) assert.match(response.headers.get("content-type") || "", expectedType);
   return Buffer.from(await response.arrayBuffer());
@@ -183,6 +196,7 @@ try {
   browser = await chromium.launch();
   const seoContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
   try {
+    await blockGoogleAndLegacyIndex(seoContext);
     const seoPage = await seoContext.newPage();
     for (const [language, copy] of Object.entries(SEO_LANGUAGES)) {
       const response = await seoPage.goto(new URL(language === "fr" ? "./" : copy.file, baseURL).href);
@@ -212,13 +226,12 @@ try {
     viewport: { width: 390, height: 844 },
     serviceWorkers: "allow",
   });
+  await blockGoogleAndLegacyIndex(context);
   await context.route("https://standardebooks.org/ebooks?**", (route) => route.fulfill({ status: 200, contentType: "application/xhtml+xml", headers: { "access-control-allow-origin": "*" }, body: emptyStandardSearch }));
   await context.route(/\/api\/sources\/ebooks-gratuits\/search(?:\?|$)/u, (route) => route.fulfill({ status: 200, contentType: "application/atom+xml", headers: { "access-control-allow-origin": baseURL.origin }, body: emptyEbooksGratuitsSearch }));
   await context.route(/\/api\/sources\/fadedpage\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "application/json", headers: { "access-control-allow-origin": baseURL.origin }, body: '{"nrows":0,"rows":[]}' }));
   await context.route(/\/api\/sources\/epubbooks\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>' }));
   await context.route(/\/api\/sources\/ebookzy\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<!doctype html><html><body><div id="content"><h1 class="page-title">Search results for: absent</h1><section class="no-results"></section></div></body></html>' }));
-  await context.route(/\/api\/sources\/atramenta\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<!doctype html><html><body><form action="/search/"></form><main id="main_content_wrapper"><h1>Recherche</h1><p>Aucun résultat</p></main></body></html>' }));
-  await context.route(`${baseURL}catalog/loyalbooks.json`, (route) => route.fulfill({ json: { version: 1, updatedAt: "2026-09-12T00:00:00.000Z", coverage: "selection", languages: { en: { indexed: 0, total: 0, pages: 1, complete: true } }, books: [] } }));
   if (configuredRelay) {
     const fixture = await makeEpub({ title: "Germinal — fixture de vérification", author: "Émile Zola", paragraphs: ["Ce fichier de test vérifie le téléchargement, la bibliothèque locale et la lecture. Il ne contient pas le texte du roman."] });
     await context.route(`${configuredRelay}/api/books/gutenberg/5711.epub`, (route) => route.fulfill({ status: 200, contentType: "application/epub+zip", headers: { "access-control-allow-origin": baseURL.origin }, body: fixture }));
@@ -413,10 +426,12 @@ try {
   assert.equal(state.positions.find((position) => position.id === horlaId).bookmarks.length, 1);
   passed("Offline page reload, saved position, French search and first opening of a precached EPUB");
 
+  assert.deepEqual(googleRequests, [], "The global search scenario must never attempt a Google, CSE, API or advertising request.");
+  assert.deepEqual(legacyIndexRequests, [], "Pages must never request the retired Loyal Books local index.");
   assert.deepEqual(apiRequests, [], "A static Pages build must never request a same-origin server API.");
   assert.deepEqual(httpErrors, [], "No missing assets or HTTP errors are expected.");
   assert.deepEqual(scriptErrors, [], "The browser must not report uncaught JavaScript errors.");
-  passed("No same-origin API calls, missing HTTP assets or uncaught browser errors");
+  passed("No Google or retired Loyal Books index requests, same-origin API calls, missing HTTP assets or uncaught browser errors");
   console.log(JSON.stringify({ url: baseURL.href, checks: completed.length, result: "passed" }));
 } finally {
   await context?.close();

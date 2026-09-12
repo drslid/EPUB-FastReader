@@ -32,7 +32,7 @@ describe("search route parsing", () => {
     for (const provider of ["selection", "all", "gutenberg"]) {
       expect(parseSearchRoute(`#search?provider=${provider}`).provider).toBe(provider);
     }
-    for (const provider of ["", "unknown", "public-domain-library", "https://other.example"]) {
+    for (const provider of ["", "unknown", "atramenta", "public-domain-library", "https://other.example"]) {
       expect(parseSearchRoute(`#search?provider=${provider}`).provider).toBe("all");
       expect(parseSearchRoute(`#discover?provider=${provider}`).provider).toBe("selection");
     }

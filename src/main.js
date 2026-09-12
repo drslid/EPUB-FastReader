@@ -10,6 +10,9 @@ import "./covers.css";
 import "./book-list.css";
 import "./reader-enhancements.css";
 import "./source-settings.css";
+import "./loyal-search-panel.css";
+import { createLoyalSearchPanel } from "./loyal-search-panel.js";
+import { resolveLoyalbooksBook } from "./sources/loyalbooks.js";
 import { openSourceSettings, invalidateSourceAvailability } from "./source-settings.js";
 import { homeMarkup } from "./views/home.js";
 import { createReadingWakeLock, wordDuration, previousSentenceIndex } from "./reading-comfort.js";
@@ -127,6 +130,9 @@ const state = {
 };
 let searchController;
 let catalogDownloadController;
+let loyalResolveController;
+let loyalShellKey = "";
+const loyalSearchPanel = createLoyalSearchPanel({ onRead: readLoyalResult });
 let toastTimer;
 let saveTimer;
 let playTimer;
@@ -244,6 +250,27 @@ function themeButton() {
 function renderShell({ resetScroll = false, preserveInteraction = false } = {}) {
   syncInterfaceLanguage();
   ensureImportInput();
+  const loyalSearch = isLoyalSearch();
+  const loyalKey = `${locale}:${state.view}:${state.offline}`;
+  const loyalHost = app.querySelector("#loyal-search-host");
+  // Keep Google's live results and ad frames connected while local state,
+  // download progress or the query changes. The component owns its results.
+  if (loyalSearch && loyalHost && loyalShellKey === loyalKey) {
+    applySettings();
+    const input = document.getElementById("search-query");
+    if (input && input.value !== state.searchDraft) input.value = state.searchDraft;
+    const clear = app.querySelector(".unified-search-clear");
+    if (clear) clear.hidden = !state.searchDraft && !state.query;
+    const section = app.querySelector(".loyal-search-section");
+    if (section) section.dataset.query = state.query;
+    const sourceLink = app.querySelector("[data-loyal-source-link]");
+    if (sourceLink) sourceLink.href = `https://www.loyalbooks.com/search?${new URLSearchParams({ q: state.query })}`;
+    loyalSearchPanel.mount(loyalHost, { query: state.query, busy: state.busy });
+    if (resetScroll) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    return;
+  }
+  loyalSearchPanel.unmount();
+  loyalShellKey = loyalSearch ? loyalKey : "";
   const focusedField = ["search-query", "search-language"].includes(document.activeElement?.id) ? document.activeElement.id : null;
   const selection = focusedField === "search-query" ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
   const interactiveResults = ".source-tabs button[data-action], .book-card button[data-action][data-id]";
@@ -268,6 +295,7 @@ function renderShell({ resetScroll = false, preserveInteraction = false } = {}) 
     <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button></footer></div>
     </div>`;
   bindImages();
+  if (loyalSearch && !state.localSearching) loyalSearchPanel.mount(app.querySelector("#loyal-search-host"), { query: state.query, busy: state.busy });
   window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
   if (filtersScroll !== undefined) {
     const filters = app.querySelector(".source-tabs");
@@ -289,6 +317,7 @@ function renderShell({ resetScroll = false, preserveInteraction = false } = {}) 
 }
 
 function discoverView() {
+  if (isLoyalSearch()) return discoverMarkup(state, { icon, escape, cover, providers });
   if (state.view !== "search") return discoverMarkup(state, { icon, escape, cover, providers });
   const { localBooks, remoteBooks, alreadyOwnedCount } = partitionSearchResults({ books: state.books, catalog: state.catalog, query: state.query });
   return `<section class="search-intro"><span class="eyebrow">${t("UNE RECHERCHE, TOUS VOS LIVRES")}</span><h1>${state.query ? t("Résultats pour « {query} »", { query: escape(state.query) }) : t("Tous les livres")}</h1><p>${t("Vos livres d’abord, puis de nouvelles lectures à découvrir.")}</p></section>${localSearchResultsMarkup({ ...state, localSearchResults: localBooks }, { icon, escape, cover })}${discoverMarkup({ ...state, catalog: remoteBooks, alreadyOwnedCount }, { icon, escape, cover, providers })}`;
@@ -360,6 +389,8 @@ function restoreReaderPosition() {
 }
 
 function renderReader() {
+  loyalSearchPanel.unmount();
+  loyalShellKey = "";
   syncInterfaceLanguage();
   const previousPanelFocus = document.activeElement?.closest("#reader-settings, #reader-notes") ? document.activeElement.id : null;
   ensureImportInput();
@@ -780,6 +811,7 @@ async function navigate() {
     window.dispatchEvent(new Event("languagechange"));
   }
   catalogDownloadController?.abort();
+  loyalResolveController?.abort();
   searchController?.abort();
   const route = location.hash.slice(1);
   if (route.startsWith("read=")) {
@@ -804,7 +836,6 @@ async function navigate() {
   state.catalogCount = 0;
   state.catalogError = "";
   state.catalogWarnings = [];
-  state.catalogCoverage = null;
   state.hasNext = false;
   state.searched = false;
   state.searching = ["search", "discover"].includes(state.view);
@@ -853,7 +884,7 @@ async function importFile(file, source, { signal } = {}) {
       /* Import can continue in memory. */
     }
     if (source || existing?.source) book.source = source || existing.source;
-    if (["standard-ebooks", "fadedpage", "atramenta"].includes(book.source?.providerId) && /^data:image\//u.test(book.cover || "") && /^https:\/\//u.test(book.source.presentation?.image || "")) {
+    if (["standard-ebooks", "fadedpage"].includes(book.source?.providerId) && /^data:image\//u.test(book.cover || "") && /^https:\/\//u.test(book.source.presentation?.image || "")) {
       book.source.presentation = { ...book.source.presentation, remoteImage: book.source.presentation.image, image: book.cover };
     }
     if (book.source?.providerId === "gutenberg" && !book.source.readingStart) {
@@ -892,6 +923,14 @@ async function importFile(file, source, { signal } = {}) {
 
 async function runSearch(page = 1) {
   searchController?.abort();
+  if (isLoyalSearch()) {
+    state.page = 1;
+    state.searching = false;
+    state.searched = true;
+    state.hasNext = false;
+    renderShell();
+    return;
+  }
   const controller = new AbortController();
   searchController = controller;
   state.page = page;
@@ -907,7 +946,6 @@ async function runSearch(page = 1) {
     state.hasNext = result.hasNext;
     state.catalogWarnings = result.warnings || [];
     state.catalogCountIsApproximate = !!result.countIsApproximate;
-    state.catalogCoverage = result.catalogCoverage || null;
     state.pendingSources = result.pendingSources || [];
     state.searched = true;
     if (state.view === "discover" || state.view === "search") renderShell({ preserveInteraction: true });
@@ -933,6 +971,37 @@ async function runSearch(page = 1) {
       state.searching = false;
       state.searched = true;
       if (state.view === "discover" || state.view === "search") renderShell({ preserveInteraction: true });
+    }
+  }
+}
+
+function isLoyalSearch() {
+  return state.provider === "loyalbooks" && ["search", "discover"].includes(state.view);
+}
+
+async function readLoyalResult({ slug }) {
+  if (state.busy || !isLoyalSearch()) return;
+  const identity = { id: `loyalbooks-${slug}`, canonicalSourceId: `loyalbooks:${slug}`, providerId: "loyalbooks" };
+  const local = findLibraryBook(identity, state.books);
+  if (local) { await openBook(local.id); return; }
+  loyalResolveController?.abort();
+  const controller = new AbortController();
+  loyalResolveController = controller;
+  state.busy = true;
+  loyalSearchPanel.update({ busy: true });
+  try {
+    const book = await resolveLoyalbooksBook(slug, { signal: controller.signal });
+    if (controller.signal.aborted || !isLoyalSearch()) return;
+    state.catalog = [...state.catalog.filter((entry) => entry.id !== book.id), book];
+    state.busy = false;
+    await readCatalogBook(book.id);
+  } catch (error) {
+    if (!controller.signal.aborted) toast(error.message || t("Impossible d’ouvrir ce livre pour le moment."));
+  } finally {
+    if (loyalResolveController === controller) {
+      loyalResolveController = undefined;
+      state.busy = false;
+      if (isLoyalSearch()) loyalSearchPanel.update({ busy: false });
     }
   }
 }
@@ -1383,7 +1452,7 @@ app.addEventListener("click", async (event) => {
     if (action === "clear-search") {
       state.searchDraft = "";
       if (state.view === "search") {
-        navigateSearch({ view: "search", language: state.searchLanguageDraft });
+        navigateSearch({ view: "search", language: isLoyalSearch() ? "" : state.searchLanguageDraft, provider: isLoyalSearch() ? "loyalbooks" : undefined });
       } else renderShell();
       document.querySelector("#search-query")?.focus({ preventScroll: true });
     }
@@ -1438,7 +1507,7 @@ app.addEventListener("click", async (event) => {
     }
     if (action === "search") await runSearch(state.page);
     if (action === "provider") {
-      const language = state.searchLanguageDraft;
+      const language = button.dataset.provider === "loyalbooks" ? "" : state.searchLanguageDraft;
       await navigateSearch({ view: state.searchDraft.trim() ? "search" : state.view, query: state.searchDraft, language, provider: button.dataset.provider });
     }
     if (action === "next-results" || action === "previous-results")
@@ -1614,7 +1683,7 @@ app.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(event.target);
   document.querySelector("#search-query")?.blur();
-  navigateSearch({ query: data.get("query"), language: data.get("language") });
+  navigateSearch({ query: data.get("query"), language: data.get("language"), provider: isLoyalSearch() ? "loyalbooks" : undefined });
 });
 
 app.addEventListener("change", (event) => {

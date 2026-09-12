@@ -9,7 +9,6 @@ import { createSourceStatusMiddleware } from "./source-status.js";
 import { createFadedpageMiddleware } from "./fadedpage-source.js";
 import { createEpubbooksMiddleware } from "./epubbooks-source.js";
 import { createEbookzyMiddleware } from "./ebookzy-source.js";
-import { createAtramentaMiddleware } from "./atramenta-source.js";
 import { createLoyalbooksMiddleware } from "./loyalbooks-source.js";
 
 const defaultRoot = fileURLToPath(new URL("../dist/", import.meta.url));
@@ -29,7 +28,7 @@ const types = {
   ".woff2": "font/woff2",
 };
 
-export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratuitsOptions, fadedpageOptions, epubbooksOptions, ebookzyOptions, atramentaOptions, loyalbooksOptions, sourceStatusOptions } = {}) {
+export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratuitsOptions, fadedpageOptions, epubbooksOptions, ebookzyOptions, loyalbooksOptions, sourceStatusOptions } = {}) {
   const directory = path.resolve(root);
   const relay = createGutenbergMiddleware({
     allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN,
@@ -40,9 +39,8 @@ export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratui
   const fadedpage = createFadedpageMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...fadedpageOptions });
   const epubbooks = createEpubbooksMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...epubbooksOptions });
   const ebookzy = createEbookzyMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...ebookzyOptions });
-  const atramenta = createAtramentaMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...atramentaOptions });
   const loyalbooks = createLoyalbooksMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...loyalbooksOptions });
-  const middleware = [relay, ebooksGratuits, fadedpage, epubbooks, ebookzy, atramenta, loyalbooks, sourceStatus];
+  const middleware = [relay, ebooksGratuits, fadedpage, epubbooks, ebookzy, loyalbooks, sourceStatus];
   return createServer((req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");

@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import views from "../src/locales/views.js";
 import sources from "../src/locales/sources.js";
 import sourceSettings from "../src/locales/source-settings.js";
+import loyalSearch from "../src/locales/loyal-search.js";
 import { setLocale, t } from "../src/i18n.js";
 import { defaultSettings } from "../src/storage.js";
 import { homeMarkup } from "../src/views/home.js";
@@ -47,7 +48,7 @@ describe("translated reading interface", () => {
     for (const key of ["Équilibré", "Confort", "Focus léger", "Personnalisé", "Toutes les langues", "Clair", "Sépia", "Sombre", "La page, tout simplement", "Le début des mots en évidence", "Un mot à la fois, à votre vitesse"]) keys.add(key);
     const placeholders = (text) => [...text.matchAll(/\{\w+\}/g)].map(([value]) => value).sort();
     for (const language of ["en", "es", "it", "de", "pt"]) {
-      const dictionary = { ...views[language], ...sources[language], ...sourceSettings[language] };
+      const dictionary = { ...views[language], ...sources[language], ...sourceSettings[language], ...loyalSearch[language] };
       for (const key of keys) {
         expect(dictionary[key], `${language}: ${key}`).toBeTypeOf("string");
         expect(dictionary[key].trim()).not.toBe("");

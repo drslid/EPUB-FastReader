@@ -40,7 +40,6 @@ describe("plugins de sources versionnés", () => {
       "fadedpage",
       "epubbooks",
       "ebookzy",
-      "atramenta",
       "loyalbooks",
       "public-domain-library",
     ]);
@@ -79,6 +78,15 @@ describe("plugins de sources versionnés", () => {
     await expect(
       searchBooks({ provider: "https://evil.test/plugin.js" }),
     ).rejects.toMatchObject({ code: "UNSUPPORTED_PROVIDER" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("retire Atramenta de la recherche et des nouvelles acquisitions sans contacter la source", async () => {
+    expect(providers.some(({ id }) => id === "atramenta")).toBe(false);
+    await expect(searchBooks({ provider: "atramenta", query: "Flaubert" }))
+      .rejects.toMatchObject({ code: "UNSUPPORTED_PROVIDER" });
+    await expect(downloadBook({ providerId: "atramenta", id: "atramenta-15038-un-coeur-simple", title: "Un cœur simple" }))
+      .rejects.toMatchObject({ code: "INVALID_BOOK" });
     expect(fetch).not.toHaveBeenCalled();
   });
 });
@@ -225,16 +233,6 @@ describe("recherche commune", () => {
       },
       {
         providerId: "ebooks-gratuits",
-        code: "NETWORK",
-        message: expect.stringContaining("catalogue est inaccessible"),
-      },
-      {
-        providerId: "atramenta",
-        code: "NETWORK",
-        message: expect.stringContaining("catalogue est inaccessible"),
-      },
-      {
-        providerId: "loyalbooks",
         code: "NETWORK",
         message: expect.stringContaining("catalogue est inaccessible"),
       },

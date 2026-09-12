@@ -1,4 +1,16 @@
-## Nouvelles sources et langue de recherche — 12 septembre 2026
+## Recherche Loyal Books et retrait d’Atramenta — 12 septembre 2026
+
+- **714 tests unitaires / 43 fichiers** réussis : composant Google, résolution d’une édition, annulations, bornes réseau, recherche fédérée, stockage historique et traductions.
+- **363 tests navigateur** réussis sur la suite complète, sans échec, relance ni scénario ignoré : Chromium ordinateur, Chromium téléphone et WebKit tablette.
+- **33 parcours Loyal Books** réussis sur Chromium ordinateur, Chromium téléphone et WebKit tablette : une seule barre de recherche visible, anglais inclus, résultats Google conservés, import EPUB, couverture, IndexedDB, Mot à mot, reprise hors ligne, erreurs et absence de téléchargement répété. Google et les sources sont simulés dans ces tests.
+- Les **6 parcours de livres provenant d’une source retirée** vérifient la lecture, la position, la couverture et l’export d’anciens imports Atramenta. Les métadonnées et EPUB déjà stockés restent utilisables.
+- **21 contrôles Pages** réussis dans des builds isolés : 9 statiques sous Chromium, 6 avec relais simulé sous Chromium et 6 sous WebKit. Aucun appel Google ni accès à l’ancien index Loyal Books dans la recherche globale.
+- Essai distinct avec le vrai composant Google : recherche **Emma**, résultats anglais et autres langues, couvertures, neuf boutons Lire sur dix résultats, pagination et attribution conservées. Une seule barre visible, aucune erreur JavaScript et aucun débordement horizontal à **320, 390 et 1280 px**. La barre de défilement des sources est masquée ; le défilement reste disponible.
+- Relais public publié en version `af4e85ba-a9bf-42e4-aeb6-90f8b0b14c9c` : résolution de la fiche **Emma, Jane Austen** en HTTP 200 avec sa couverture ; ancienne route Atramenta en 404 ; Atramenta absente des statuts. Cette résolution vérifie le lien EPUB sans télécharger son contenu.
+
+Le panneau Loyal Books recherche en direct dans toutes les langues ; il remplace l’ancien index partiel. Google conserve la présentation de ses résultats et peut afficher des annonces ou des pages sans EPUB. Les résultats Google ne sont pas mélangés avec ceux de la recherche globale. L’[audit Loyal Books](SOURCE-LOYALBOOKS-AUDIT.md) précise le fonctionnement et ses limites.
+
+## Nouvelles sources et langue de recherche — version précédente, 12 septembre 2026
 
 - **703 tests unitaires / 44 fichiers** réussis : adaptateurs, collecte Loyal Books, URL Unicode, quotas persistants, refus de source, EPUB invalides et recherche fédérée.
 - Les parcours nouveaux couvrent recherche, couverture, acquisition EPUB, IndexedDB, mode Mot à mot, reprise et erreurs. Les suites ciblées finales réussissent sur Chromium ordinateur/mobile et WebKit tablette : **9 contrôles Ebookzy** et **18 contrôles Atramenta/paramètres**, en complément des **12 contrôles Loyal Books**.

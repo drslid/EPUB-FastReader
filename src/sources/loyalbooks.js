@@ -1,57 +1,13 @@
 import { t } from "../i18n.js";
 import { defineSource } from "./source.js";
-import { request, catalogError, plainText, MAX_CATALOG_BYTES, MAX_BOOK_BYTES } from "./transport.js";
-import { normalizeCatalogQuery } from "./query.js";
+import { request, catalogError, plainText, MAX_BOOK_BYTES } from "./transport.js";
 import { relayAvailable, sourceRelayUrl } from "./relay-config.js";
 
 const ORIGIN = "https://www.loyalbooks.com";
-const LANGUAGES = ["en", "fr", "es", "it", "de", "pt"];
 const SLUG = /^[\p{L}\p{N}][\p{L}\p{N}\p{M} _.,'()!~-]{0,199}$/u;
 const RIGHTS = "Les droits varient selon votre pays et cette édition. Consultez les conditions de la source avant de télécharger.";
-let cachedCatalogue;
-
-export function parseLoyalbooksCatalog(value) {
-  const invalid = () => catalogError("INVALID_RESPONSE", "Le catalogue Loyal Books est illisible. Réessayez plus tard.");
-  if (value?.version !== 1 || !["selection", "complete"].includes(value.coverage) || !Number.isFinite(Date.parse(value.updatedAt)) || !value.languages || !Array.isArray(value.books) || value.books.length > 40_000) throw invalid();
-  const seen = new Set();
-  const counts = Object.fromEntries(LANGUAGES.map((language) => [language, 0]));
-  const books = value.books.map((entry) => {
-    if (!entry || !SLUG.test(entry.slug) || !LANGUAGES.includes(entry.language) || typeof entry.title !== "string" || !entry.title.trim() || entry.title.length > 2000 || typeof entry.author !== "string" || !entry.author.trim() || entry.author.length > 1000) throw invalid();
-    const key = `${entry.language}:${entry.slug}`;
-    if (seen.has(key)) throw invalid();
-    seen.add(key); counts[entry.language]++;
-    let cover = null;
-    if (entry.cover) {
-      try {
-        const url = new URL(entry.cover);
-        if (url.origin === ORIGIN && !url.search && !url.hash && !url.username && !url.password && /^\/image\/(?:layout2|detail)\/[A-Za-z0-9_().-]+\.(?:jpe?g|png)$/iu.test(url.pathname)) cover = url.href;
-      } catch { /* A missing illustration keeps the title and author usable. */ }
-    }
-    return { slug: entry.slug, title: plainText(entry.title, 2000), author: plainText(entry.author, 1000), language: entry.language, cover };
-  });
-  const languages = {};
-  for (const language of LANGUAGES) {
-    const entry = value.languages[language];
-    if (!entry) { if (counts[language]) throw invalid(); continue; }
-    if (!Number.isSafeInteger(entry.indexed) || entry.indexed !== counts[language] || !Number.isSafeInteger(entry.total) || entry.total < entry.indexed || !Number.isSafeInteger(entry.pages) || entry.pages < 1 || typeof entry.complete !== "boolean" || entry.complete && entry.indexed !== entry.total) throw invalid();
-    languages[language] = { indexed: entry.indexed, total: entry.total, pages: entry.pages, complete: entry.complete };
-  }
-  if (!Object.keys(languages).length || value.coverage === "complete" && (Object.keys(languages).length !== LANGUAGES.length || Object.values(languages).some((entry) => !entry.complete))) throw invalid();
-  return { version: 1, updatedAt: value.updatedAt, coverage: value.coverage, languages, books };
-}
 
 const validateLocalUrl = (expected) => (value) => new URL(value).href === new URL(expected, globalThis.location?.href || "http://localhost/").href;
-export async function loadLoyalbooksCatalog({ signal } = {}) {
-  signal?.throwIfAborted();
-  if (cachedCatalogue) return cachedCatalogue;
-  const url = `${import.meta.env.BASE_URL}catalog/loyalbooks.json`;
-  const data = await request(url, { signal, timeout: 15_000, maxBytes: MAX_CATALOG_BYTES, validateUrl: validateLocalUrl(url) });
-  signal?.throwIfAborted();
-  let json;
-  try { json = JSON.parse(await data.text()); } catch { throw catalogError("INVALID_RESPONSE", "Le catalogue Loyal Books est illisible. Réessayez plus tard."); }
-  cachedCatalogue = parseLoyalbooksCatalog(json);
-  return cachedCatalogue;
-}
 
 export const loyalbooksAvailable = () => relayAvailable();
 function bookSlug(book) {
@@ -59,6 +15,39 @@ function bookSlug(book) {
   if (!SLUG.test(slug)) throw catalogError("INVALID_BOOK", "L’adresse de téléchargement de ce livre n’est pas autorisée.");
   if (!loyalbooksAvailable()) throw catalogError("SOURCE_NOT_CONFIGURED", "Cette source nécessite un service de téléchargement pour ouvrir les EPUB directement.");
   return slug;
+}
+
+/** Resolve only an edition selected in the source's embedded search panel. */
+export async function resolveLoyalbooksBook(slug, { signal } = {}) {
+  signal?.throwIfAborted();
+  if (typeof slug !== "string" || !SLUG.test(slug)) throw catalogError("INVALID_BOOK", "L’adresse de téléchargement de ce livre n’est pas autorisée.");
+  bookSlug({ id: `loyalbooks-${slug}` });
+  const url = sourceRelayUrl(`api/sources/loyalbooks/detail/${encodeURIComponent(slug)}`);
+  const blob = await request(url, { signal, timeout: 40_000, maxBytes: 32 * 1024, validateUrl: validateLocalUrl(url) });
+  signal?.throwIfAborted();
+  const invalid = () => catalogError("INVALID_RESPONSE", "Le catalogue Loyal Books est illisible. Réessayez plus tard.");
+  let value;
+  try { value = JSON.parse(await blob.text()); } catch { throw invalid(); }
+  const sourceUrl = `${ORIGIN}/book/${encodeURIComponent(slug)}`;
+  const title = plainText(value?.title, 2000);
+  const author = plainText(value?.author, 1000);
+  if (value?.id !== `loyalbooks-${slug}` || value.canonicalSourceId !== `loyalbooks:${slug}` || value.providerId !== "loyalbooks" || value.sourceUrl !== sourceUrl || value.downloadMode !== "direct"
+    || !title || value.title.length > 2000 || !author || value.author.length > 1000
+    || typeof value.language !== "string" || value.language.length > 35 || value.language && !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/u.test(value.language)) throw invalid();
+  let cover = null;
+  if (typeof value.cover === "string") {
+    try {
+      const image = new URL(value.cover);
+      const match = /^\/image\/(?:layout2|detail)\/([^/]+)$/u.exec(image.pathname);
+      const name = match && decodeURIComponent(match[1]);
+      if (image.origin === ORIGIN && !image.username && !image.password && !image.search && !image.hash && name && SLUG.test(name) && /\.(?:jpe?g|png)$/iu.test(name)) cover = image.href;
+    } catch { /* The optional cover cannot redirect reading to another host. */ }
+  }
+  return {
+    id: `loyalbooks-${slug}`, canonicalSourceId: `loyalbooks:${slug}`, providerId: "loyalbooks",
+    title, author, language: value.language, cover,
+    source: "Loyal Books", sourceUrl, downloadMode: "direct", rights: t(RIGHTS), rightsUrl: `${ORIGIN}/about`,
+  };
 }
 
 export async function downloadLoyalbooksCover(book, { signal } = {}) {
@@ -72,22 +61,11 @@ export async function downloadLoyalbooksCover(book, { signal } = {}) {
   return new Blob([blob], { type });
 }
 
-async function search({ query = "", language = "all", page = 1, signal } = {}) {
+async function search({ signal } = {}) {
   signal?.throwIfAborted();
-  if (language && language !== "all" && !LANGUAGES.includes(language)) return { books: [], count: 0, hasNext: false, countIsApproximate: false };
-  const catalog = await loadLoyalbooksCatalog({ signal });
-  const terms = normalizeCatalogQuery(query).split(/\s+/u).filter(Boolean);
-  const matches = catalog.books.filter((entry) => (!language || language === "all" || entry.language === language) && terms.every((term) => normalizeCatalogQuery(`${entry.title} ${entry.author}`).includes(term)));
-  const start = (Math.max(1, Number.isSafeInteger(page) ? page : 1) - 1) * 24;
   return {
-    books: matches.slice(start, start + 24).map((entry) => ({
-      id: `loyalbooks-${entry.slug}`, canonicalSourceId: `loyalbooks:${entry.slug}`, providerId: "loyalbooks",
-      title: entry.title, author: entry.author, cover: entry.cover, language: entry.language,
-      source: "Loyal Books", sourceUrl: `${ORIGIN}/book/${encodeURIComponent(entry.slug)}`,
-      downloadMode: "direct", rights: t(RIGHTS), rightsUrl: `${ORIGIN}/about`,
-    })),
-    count: matches.length, hasNext: start + 24 < matches.length, countIsApproximate: false,
-    catalogCoverage: { kind: catalog.coverage, updatedAt: catalog.updatedAt, languages: catalog.languages },
+    books: [], count: 0, hasNext: false, countIsApproximate: false,
+    searchPresentation: "embedded",
   };
 }
 
@@ -99,11 +77,11 @@ async function download(book, { signal } = {}) {
 
 export default defineSource({
   manifest: {
-    id: "loyalbooks", name: "Loyal Books", version: "1.0.0", apiVersion: 1,
-    description: "Sélection multilingue de classiques, issue du catalogue public de Loyal Books.",
+    id: "loyalbooks", name: "Loyal Books", version: "2.0.0", apiVersion: 1,
+    description: "Recherche officielle de Loyal Books, avec couvertures et lecture directe des EPUB.",
     website: `${ORIGIN}/`, policy: `${ORIGIN}/about`,
     capabilities: { search: true, download: true, bundled: false },
-    languages: LANGUAGES, searchPrivacy: "local",
+    searchPresentation: "embedded", searchPrivacy: "external",
   },
   search, download,
 });
