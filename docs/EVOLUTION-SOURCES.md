@@ -3,7 +3,7 @@
 | Page ou parcours | Comportement livré | Vérifications |
 | --- | --- | --- |
 | Accueil | Sépia et Verdana par défaut ; favicon verte ; suggestions conservées lors des changements de thème | Navigateur à 320 px, trois profils, cycle des thèmes, contrôle des assets |
-| Recherche / Découvrir | Bibliothèque en tête ; Gutenberg local, Standard Ebooks anglais et ELG français en parallèle ; résultats et couvertures ouvrables dès leur arrivée ; source nommée sur chaque carte | Retard ELG, panne isolée, annulation, pagination, ouverture des trois sources |
+| Recherche / Découvrir | Bibliothèque en tête ; Gutenberg local, Standard Ebooks anglais et ELG français en parallèle ; résultats et couvertures ouvrables dès leur arrivée ; focus et filtres conservés pendant les réponses tardives ; source nommée sur chaque carte | Retard ELG, panne isolée, annulation, pagination, ouverture des trois sources |
 | Ma bibliothèque | Seuls les EPUB importés ou ouverts ; fichier original et progression conservés ; illustration Standard Ebooks conservée hors ligne | IndexedDB, rechargement, reprise, sauvegarde/restauration |
 | Lecteur | Ordre Mot à mot, Focus, Classique ; nouvelle ouverture en Mot à mot sans démarrage automatique ; Classique si réduction des mouvements ; Verdana et cinq autres choix de familles locales | Commandes, préférences, reprise exacte, affichage mobile, choix des six polices |
 | Focus | Graisse 700, différence de couleur adoucie, texte et surlignages lisibles dans les trois thèmes | Contrastes ≥ 4,5:1 avec le fond et audits axe |

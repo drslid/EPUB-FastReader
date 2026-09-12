@@ -155,3 +155,49 @@ test("un ancien résultat distant ne remplace pas une nouvelle recherche", async
     await expect(page.locator('.book-open[data-id="ebooks-gratuits-25"]')).toHaveCount(0);
   } finally { release(); }
 });
+
+for (const target of [
+  { name: "le livre déjà choisi", selector: '.book-open[data-id="selection-le-horla"]', opensBook: true },
+  { name: "le filtre de source", selector: '.source-tabs [data-provider="ebooks-gratuits"]', opensBook: false },
+]) {
+  test(`un résultat tardif conserve le focus sur ${target.name} et le défilement horizontal des filtres`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    let release;
+    const pending = new Promise((resolve) => { release = resolve; });
+    let requested = false;
+    await page.route("**/api/sources/ebooks-gratuits/search?*", async (route) => {
+      requested = true;
+      await pending;
+      await route.fulfill({ contentType: "application/atom+xml", body: frenchFeed() }).catch(() => {});
+    });
+    try {
+      await page.goto("/#search?q=maupassant&language=fr&provider=all&page=1");
+      await expect.poll(() => requested).toBe(true);
+      // Gutenberg has finished; only the controlled French source is still pending.
+      await expect.poll(() => page.locator('.catalog-grid [data-provider="gutenberg"]').count()).toBeGreaterThan(0);
+      await expect(results(page)).toHaveAttribute("aria-busy", "true");
+      const control = page.locator(target.selector);
+      await control.focus();
+      await expect(control).toBeFocused();
+      const filters = page.locator(".source-tabs");
+      const previousScroll = await filters.evaluate((element) => {
+        element.scrollLeft = element.scrollWidth;
+        return element.scrollLeft;
+      });
+      expect(previousScroll).toBeGreaterThan(0);
+      release();
+      await expect(results(page)).toHaveAttribute("aria-busy", "false");
+      await expect(page.locator('.book-open[data-id="ebooks-gratuits-23"]')).toBeVisible();
+      await expect(control).toBeFocused();
+      await expect.poll(() => filters.evaluate((element) => element.scrollLeft)).toBe(previousScroll);
+      // Enter still activates the original choice after its DOM node was replaced.
+      await page.keyboard.press("Enter");
+      if (target.opensBook) {
+        await expect(page.locator(".reader-title strong")).toHaveText("Le Horla");
+      } else {
+        await expect(page).toHaveURL(/provider=ebooks-gratuits/u);
+        await expect(results(page)).toHaveAttribute("aria-busy", "false");
+      }
+    } finally { release(); }
+  });
+}

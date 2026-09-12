@@ -239,11 +239,21 @@ function themeButton() {
   return `<button class="round-button theme-toggle" data-action="global-theme" aria-label="${escape(next.label)}" title="${escape(next.label)}">${icon(next.icon)}</button>`;
 }
 
-function renderShell({ resetScroll = false } = {}) {
+function renderShell({ resetScroll = false, preserveInteraction = false } = {}) {
   syncInterfaceLanguage();
   ensureImportInput();
   const focusedField = ["search-query", "search-language"].includes(document.activeElement?.id) ? document.activeElement.id : null;
   const selection = focusedField === "search-query" ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+  const interactiveResults = ".source-tabs button[data-action], .book-card button[data-action][data-id]";
+  const activeControl = preserveInteraction && app.contains(document.activeElement) && document.activeElement.matches(interactiveResults)
+    ? document.activeElement : null;
+  const controlIdentity = activeControl ? {
+    action: activeControl.dataset.action,
+    id: activeControl.dataset.id,
+    provider: activeControl.dataset.provider,
+    bookOpen: activeControl.classList.contains("book-open"),
+  } : null;
+  const filtersScroll = preserveInteraction ? app.querySelector(".source-tabs")?.scrollLeft : undefined;
   const scrollY = resetScroll ? 0 : window.scrollY;
   const pageTitle = state.view === "home" ? t("Accueil") : state.view === "library" ? t("Ma bibliothèque") : state.view === "search" ? t("Recherche") : t("Découvrir");
   applySettings();
@@ -257,10 +267,22 @@ function renderShell({ resetScroll = false } = {}) {
     </div>`;
   bindImages();
   window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
+  if (filtersScroll !== undefined) {
+    const filters = app.querySelector(".source-tabs");
+    if (filters) filters.scrollLeft = filtersScroll;
+  }
   if (focusedField) {
     const input = document.getElementById(focusedField);
     input?.focus({ preventScroll: true });
     if (selection) input?.setSelectionRange(...selection);
+  } else if (controlIdentity) {
+    const replacement = [...app.querySelectorAll(interactiveResults)].find((button) =>
+      button.dataset.action === controlIdentity.action &&
+      button.dataset.id === controlIdentity.id &&
+      button.dataset.provider === controlIdentity.provider &&
+      button.classList.contains("book-open") === controlIdentity.bookOpen,
+    );
+    replacement?.focus({ preventScroll: true });
   }
 }
 
@@ -884,7 +906,7 @@ async function runSearch(page = 1) {
     state.catalogCountIsApproximate = !!result.countIsApproximate;
     state.pendingSources = result.pendingSources || [];
     state.searched = true;
-    if (state.view === "discover" || state.view === "search") renderShell();
+    if (state.view === "discover" || state.view === "search") renderShell({ preserveInteraction: true });
   };
   try {
     const result = await searchBooks({
@@ -906,7 +928,7 @@ async function runSearch(page = 1) {
     if (!controller.signal.aborted) {
       state.searching = false;
       state.searched = true;
-      if (state.view === "discover" || state.view === "search") renderShell();
+      if (state.view === "discover" || state.view === "search") renderShell({ preserveInteraction: true });
     }
   }
 }

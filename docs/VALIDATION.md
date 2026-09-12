@@ -109,3 +109,5 @@ LD_LIBRARY_PATH=/tmp/fastreader-browser-libs/root/usr/lib/x86_64-linux-gnu PLAYW
 Le nouveau [rapport page par page](EVOLUTION-SOURCES.md) décrit le résultat et les limites.
 
 Essai navigateur public complet avant publication de l’interface : profil Pixel 7 neuf sur l’origine Pages, seuls les assets de l’application provenant du build local. Les recherches, couvertures et EPUB ont été récupérés sur les vrais serveurs publics. Les trois parcours Lire → Mot à mot/Sépia → IndexedDB → bibliothèque après rechargement → réouverture hors ligne ont réussi, sans erreur JavaScript. Livres : Pride and Prejudice (Standard Ebooks), Candide 637 (ELG), Alice 11 (Gutenberg). Les trois sources étaient disponibles dans les paramètres ; Z-Library était indisponible. La couverture embarquée Standard Ebooks était visible hors ligne.
+
+Contrôle complémentaire : le focus clavier et le défilement horizontal des filtres sont conservés lorsqu’une source répond plus tard. Deux scénarios, exécutés sur les trois profils, vérifient la conservation du contrôle actif et son activation par Entrée. Le démarrage d’une nouvelle recherche et les navigations voulues restent inchangés.
