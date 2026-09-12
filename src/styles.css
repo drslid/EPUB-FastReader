@@ -1161,36 +1161,6 @@ progress::-moz-progress-bar {
   width: 13px;
   height: 13px;
 }
-.catalog-note {
-  display: flex;
-  align-items: start;
-  gap: 15px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 23px;
-  margin-top: 32px;
-}
-.catalog-note > .icon {
-  color: var(--accent);
-  margin-top: 2px;
-}
-.catalog-note h3 {
-  font:
-    21px/1.25 Georgia,
-    serif;
-  margin-bottom: 9px;
-}
-.catalog-note p {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0;
-  max-width: 750px;
-}
-.catalog-note strong {
-  color: var(--text);
-  font-weight: 550;
-}
 .empty-state,
 .loading-state {
   padding: 44px 18px;
@@ -2614,17 +2584,6 @@ input[type="range"] {
   .source-chip,
   .source-instruction {
     font-size: 10px;
-  }
-  .catalog-note {
-    padding: 18px 16px;
-    gap: 12px;
-    border-radius: 14px;
-  }
-  .catalog-note h3 {
-    font-size: 20px;
-  }
-  .catalog-note p {
-    font-size: 12px;
   }
   .rights-note {
     font-size: 10px;
