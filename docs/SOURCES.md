@@ -1,5 +1,20 @@
 # Sources, recherche et droits
 
+## Ajouts du 12 septembre 2026
+
+Z-Library a été retirée à la demande de l’utilisateur. Le filtre initial de recherche vaut **Toutes les langues**, y compris lorsqu’on sélectionne un catalogue anglophone ou francophone. Un filtre de langue choisi explicitement reste respecté ; les recherches partagées conservent ce choix dans leur URL.
+
+- **Ebookzy** : recherche HTML publique en anglais, couvertures, acquisition de l’EPUB annoncé dans la fiche et ouverture directe. La couverture sélectionnée est conservée à l’import. [Audit](SOURCE-EBOOKZY-AUDIT.md).
+- **Atramenta** : adaptateur pour la section française de lecture libre avec téléchargement annoncé. La boutique payante et les extraits sont exclus. Le parcours respecte la session anonyme et le quota partagé. L’essai depuis le relais Cloudflare public a toutefois reçu un refus (`503 SOURCE_BUSY`) : la source reste signalée indisponible, sans acquisition ni autre tentative. [Audit](SOURCE-ATRAMENTA-AUDIT.md).
+- **Loyal Books** : recherche locale dans une sélection datée de 499 notices EPUB en français, espagnol, italien, allemand et portugais, avec couverture, source et accès au fichier annoncé par la fiche. Le catalogue anglais n’a pas fourni de liste exploitable lors de la collecte. Le nombre de notices indexées est affiché ; l’interface ne revendique pas la recherche de tout le catalogue. [Audit](SOURCE-LOYALBOOKS-AUDIT.md).
+- **BDEbooks** : évalué séparément, sans activation comme source connectée tant que la recherche et le téléchargement ne peuvent pas être validés derrière sa protection d’accès.
+
+Les adaptateurs ont chacun leur contrat et leurs tests ; les résultats sont publiés progressivement, sans attendre une source lente pour afficher les autres. Les codes de quota, connexion requise et attente sont distingués et traduits. Les comptes des lecteurs et leurs bibliothèques restent hors du relais.
+
+L’index Loyal Books se régénère avec `npm run catalog:loyalbooks`. Le collecteur accepte `--pages-per-language` pour étendre sa couverture, conserve sa reprise et son délai minimal de 60 secondes entre requêtes dans `.cache/`, et ne publie qu’un fichier validé complet pour les pages demandées. Il ne télécharge pas les livres. Cet outil et ses détails de maintenance sont séparés du README destiné aux lecteurs.
+
+Le reste de ce document conserve l’historique des premières intégrations.
+
 ## Pourquoi la recherche ne fonctionnait pas
 
 Diagnostic du 10 septembre 2026, avec de vraies requêtes réseau :

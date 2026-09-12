@@ -15,6 +15,7 @@
     "start": "node server/app.js",
     "preview": "vite preview --host 0.0.0.0",
     "icons:generate": "node scripts/generate-icons.mjs",
+    "catalog:loyalbooks": "node scripts/update-loyalbooks.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

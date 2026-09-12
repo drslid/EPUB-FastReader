@@ -5,6 +5,7 @@ test.use({ serviceWorkers: "block" });
 const statusUrl = /\/api\/sources\/status$/;
 const statusBody = (available = true) => ({ checkedAt: new Date().toISOString(), sources: [
   { providerId: "gutenberg", available }, { providerId: "ebooks-gratuits", available }, { providerId: "fadedpage", available }, { providerId: "epubbooks", available },
+  { providerId: "ebookzy", available }, { providerId: "atramenta", available }, { providerId: "loyalbooks", available },
 ] });
 async function openSettings(page) {
   const trigger = page.locator('.page-footer [data-action="source-settings"]');
@@ -22,12 +23,12 @@ test("les sources ont des états textuels rouge/vert, se revérifient et réutil
   await openSettings(page);
   const dialog = page.locator(".source-settings-dialog");
   await expect(dialog.locator("[data-check]")).toBeEnabled();
-  for (const id of ["selection", "standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks"]) {
+  for (const id of ["selection", "standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"]) {
     await expect(dialog.locator(`[data-source="${id}"] .source-status-label`)).toHaveText("Disponible");
     await expect(dialog.locator(`[data-source="${id}"] .source-status-dot`)).toHaveClass(/is-available/);
   }
-  await expect(dialog.locator('[data-source="z-library"] .source-status-dot')).toHaveClass(/is-unavailable/);
-  await expect(dialog.locator('[data-source="z-library"] .source-status-label')).toHaveText("Indisponible");
+  await expect(dialog.locator('[data-source="z-library"]')).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "Z-Library" })).toHaveCount(0);
   await dialog.locator("[data-check]").click();
   await expect(dialog.locator('[data-source="ebooks-gratuits"] .source-status-label')).toHaveText("Indisponible");
   await expect(dialog.locator("[data-check]")).toBeEnabled();
@@ -66,6 +67,21 @@ test("une source lente laisse apparaître les autres et fermer le panneau annule
   await expect(trigger).toBeFocused();
   await expect.poll(() => page.evaluate(() => window.sourceProbeAborted)).toBe(true);
   finish();
+});
+
+test("un quota connu est rouge et expliqué sans empêcher les autres sources", async ({ page }) => {
+  const body = statusBody();
+  Object.assign(body.sources.find(({ providerId }) => providerId === "atramenta"), {
+    available: false, code: "SOURCE_DAILY_LIMIT", retryAfter: 86400,
+  });
+  await page.route(statusUrl, (route) => route.fulfill({ json: body }));
+  await page.goto("/#library");
+  await openSettings(page);
+  const row = page.locator('.source-settings-dialog [data-source="atramenta"]');
+  await expect(row.locator(".source-status-label")).toHaveText("Indisponible");
+  await expect(row.locator(".source-status-dot")).toHaveClass(/is-unavailable/);
+  await expect(row.locator("[data-detail]")).toHaveText("La limite de téléchargement de cette source est atteinte. Réessayez plus tard.");
+  await expect(page.locator('.source-settings-dialog [data-source="ebookzy"] .source-status-label')).toHaveText("Disponible");
 });
 
 test("le panneau reste lisible dans les trois thèmes et contient le focus sur petit écran", async ({ page }) => {

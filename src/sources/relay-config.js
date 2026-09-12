@@ -15,7 +15,15 @@ export function configuredSourceRelay(env = import.meta.env) {
 }
 
 export function sourceRelayUrl(relativePath, env = import.meta.env) {
-  if (typeof relativePath !== "string" || !/^api\/(?:books|sources)\/[a-z0-9-]+(?:\/[A-Za-z0-9_.~-]+)+(?:\?[^#\\]*)?$/u.test(relativePath) || relativePath.split(/[/?]/u).some((part) => part === "." || part === "..")) {
+  const validPath = typeof relativePath === "string" && relativePath.length <= 8192 &&
+    /^api\/(?:books|sources)\/[a-z0-9-]+(?:\/(?:[A-Za-z0-9_.!~*'()-]|%[A-Fa-f0-9]{2})+)+(?:\?[^#\\\u0000-\u0020\u007f]*)?$/u.test(relativePath) &&
+    relativePath.split("?", 1)[0].split("/").every((segment) => {
+      try {
+        const decoded = decodeURIComponent(segment);
+        return decoded !== "." && decoded !== ".." && !/[/\\%?#\u0000-\u001f\u007f]/u.test(decoded);
+      } catch { return false; }
+    });
+  if (!validPath) {
     throw new TypeError("Le chemin du service de lecture est invalide.");
   }
   const relay = configuredSourceRelay(env);

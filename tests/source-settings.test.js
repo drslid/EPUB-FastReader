@@ -5,7 +5,7 @@ vi.mock("../src/sources/standard-ebooks.js", () => ({ default: { search: mocks.s
 vi.mock("../src/sources/relay-config.js", () => ({ relayAvailable: mocks.relayAvailable, configuredSourceRelay: mocks.configuredSourceRelay }));
 let settings;
 let fetchMock;
-const response = (sources = [{ providerId: "gutenberg", available: true }, { providerId: "ebooks-gratuits", available: true }, { providerId: "fadedpage", available: true }, { providerId: "epubbooks", available: true }]) => ({ ok: true, json: async () => ({ sources }) });
+const response = (sources = ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"].map((providerId) => ({ providerId, available: true }))) => ({ ok: true, json: async () => ({ sources }) });
 const escape = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 
 beforeEach(async () => {
@@ -31,7 +31,7 @@ describe("source availability", () => {
     const result = await pending;
     expect(result.gutenberg.status).toBe("available");
     expect(result["ebooks-gratuits"].status).toBe("unavailable");
-    expect(result["z-library"].status).toBe("unavailable");
+    expect(result).not.toHaveProperty("z-library");
     expect(fetchMock).toHaveBeenCalledWith("/api/sources/status", expect.objectContaining({ credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store" }));
     expect(mocks.search).toHaveBeenCalledWith(expect.objectContaining({ language: "en", query: "Frankenstein" }));
   });
@@ -55,7 +55,16 @@ describe("source availability", () => {
     fetchMock.mockRejectedValue(new Error("Offline"));
     const sources = await settings.checkSourceAvailability();
     expect(sources.selection.status).toBe("available");
-    for (const id of ["standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "z-library"]) expect(sources[id].status).toBe("unavailable");
+    for (const id of ["standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"]) expect(sources[id].status).toBe("unavailable");
+  });
+
+  it("discards a cached green status after acquisition and explains the known quota", async () => {
+    expect((await settings.checkSourceAvailability()).atramenta.status).toBe("available");
+    fetchMock.mockResolvedValue(response([{ providerId: "atramenta", available: false, code: "SOURCE_DAILY_LIMIT", retryAfter: 86400 }]));
+    settings.invalidateSourceAvailability();
+    const sources = await settings.checkSourceAvailability();
+    expect(sources.atramenta).toEqual({ status: "unavailable", reason: "La limite de téléchargement de cette source est atteinte. Réessayez plus tard." });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("does not request a nonexistent API on Pages without a configured relay", async () => {

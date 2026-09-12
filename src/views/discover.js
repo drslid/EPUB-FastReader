@@ -1,4 +1,4 @@
-import { t, formatNumber } from "../i18n.js";
+import { t, formatNumber, formatDate } from "../i18n.js";
 import { findLibraryBook } from "../suggestions.js";
 
 export function discoverMarkup(state, { icon, escape, cover, providers }) {
@@ -6,6 +6,12 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
   const unified = state.view === "search";
   const searchable = providers.filter((source) => source.searchable);
   const count = formatNumber(state.catalogCount);
+  const coverage = state.catalogCoverage;
+  const coverageNote = coverage?.kind === "selection" && Number.isFinite(Date.parse(coverage.updatedAt))
+    ? t("Loyal Books : recherche dans une sélection de {count} livres, indexée le {date}.", {
+      count: formatNumber(Object.values(coverage.languages || {}).reduce((total, entry) => total + entry.indexed, 0)),
+      date: formatDate(new Date(coverage.updatedAt)),
+    }) : "";
   const countLabel = unified
     ? (state.catalogCount === 1 ? t("{count} référence", { count }) : t("{count} références", { count }))
     : (state.catalogCount === 1 ? t("{count} livre", { count }) : t("{count} livres", { count }));
@@ -32,6 +38,7 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
     <div class="source-tabs" role="group" aria-label="${t("Sources de livres")}">${searchable.map((source) => `<button data-action="provider" data-provider="${escape(source.id)}" aria-pressed="${state.provider === source.id}">${source.id === "selection" ? icon("book") : icon("compass")}${escape(t(source.name))}</button>`).join("")}</div>
     ${!unified && !selection && import.meta.env.MODE !== "pages" ? `<p class="catalog-download-hint">${t("Un premier téléchargement nécessite une connexion. Retrouvez ensuite vos livres et votre progression hors ligne.")}</p>` : ""}
     ${!unified ? heading : ""}
+    ${coverageNote ? `<p class="catalog-download-hint catalog-coverage">${escape(coverageNote)}</p>` : ""}
     ${state.searching && state.catalog.length && state.pendingSources?.length ? `<p class="source-status-short" role="status">${t("D’autres sources poursuivent la recherche… Vous pouvez déjà ouvrir un résultat.")}</p>` : ""}
 
     ${state.catalogError ? `<div class="notice" role="alert"><strong>${t("La recherche n’a pas pu aboutir.")}</strong><p>${escape(state.catalogError)}</p><div class="notice-actions"><button class="button secondary" data-action="search">${t("Réessayer")}</button><button class="button ink" data-action="provider" data-provider="selection">${t("Livres prêts à lire")}</button></div></div>` : ""}

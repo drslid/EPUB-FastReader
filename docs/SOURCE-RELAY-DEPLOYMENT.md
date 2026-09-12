@@ -55,7 +55,27 @@ epubBooks utilise la recherche HTML publique `GET /search?q=...`. La fiche d’�
 
 Les bibliothèques et archives personnelles restent dans IndexedDB. Les adaptations du relais doivent être publiées avant une interface Pages qui dépend de nouvelles routes ; une simple publication des fichiers statiques ne met pas à jour le Worker.
 
-## Pipeline
+## Sources ajoutées : Ebookzy, Atramenta et Loyal Books
+
+Les routes supplémentaires utilisent les mêmes restrictions d’origine et d’identifiants que les adaptateurs précédents. Aucun endpoint ne reçoit d’URL distante arbitraire.
+
+| Route | Fonction |
+| --- | --- |
+| `GET /api/sources/ebookzy/search?query=Shakespeare&page=1` | Recherche publique Ebookzy, résultats HTML |
+| `GET /api/books/ebookzy/{slug}.epub` | EPUB annoncé par la fiche du livre |
+| `GET /api/sources/ebookzy/cover/{slug}.png` | Couverture annoncée par la fiche, conservée lors de l’import |
+| `GET /api/sources/atramenta/search?query=Flaubert&page=1` | Recherche Atramenta ; le client retient uniquement la lecture libre avec téléchargement annoncé |
+| `GET /api/books/atramenta/{id}-{slug}.epub` | Acquisition EPUB via le parcours anonyme proposé par Atramenta |
+| `GET /api/books/loyalbooks/{slug}.epub` | EPUB annoncé par la fiche Loyal Books |
+| `GET /api/sources/loyalbooks/cover/{slug}.jpg` | Couverture Loyal Books conservée lors de l’import |
+
+La recherche Loyal Books lit `public/catalog/loyalbooks.json` depuis le site FastReader. Elle n’appelle ni le moteur Google intégré au site source ni une API privée. L’index indique sa couverture, les langues et la date de collecte ; la sélection initiale ne prétend pas représenter tout le catalogue. Le collecteur `npm run catalog:loyalbooks` respecte un intervalle minimal de 60 secondes, stocke sa reprise dans `.cache/` et ne télécharge aucun EPUB. Consulter son audit pour la mise à jour et l’extension du catalogue.
+
+Atramenta impose une allocation anonyme limitée. Le Durable Object conserve une session anonyme propre au service et les horodatages des tentatives d’acquisition, avec un plafond global de quatre sur 24 heures. La session ne provient jamais du navigateur d’un lecteur et ne doit pas être renouvelée pour réinitialiser la limite. Les refus et les délais annoncés restent applicables après redémarrage. Le client distingue une limite de téléchargement d’une connexion requise sur le site source. Ne pas supprimer les clés `atramenta-*` du stockage pour récupérer artificiellement un quota.
+
+Le statut public consulte ces restrictions à chaque demande, même quand les sondes de disponibilité sont en cache. Un bloc connu donne `available: false`, son code et le délai restant, sans contacter Atramenta. Le 12 septembre 2026, la première recherche depuis le Worker public a reçu `503 SOURCE_BUSY` : l’adaptateur est présent mais son accès public n’est pas validé ; voir l’audit Atramenta.
+
+## Pipeline de publication
 
 Le job `deploy-sources` du dépôt déploie ce Worker automatiquement quand **`vars.SOURCE_RELAY_DEPLOY_ENABLED == 'true'`**. Fournir au job `CLOUDFLARE_API_TOKEN` via les secrets GitHub et `CLOUDFLARE_ACCOUNT_ID` via les variables GitHub, puis exécuter Wrangler 4.131.1. Le job doit attendre les vérifications unitaires et navigateur, puis contrôler l’URL publique avant le build Pages qui utilise `VITE_SOURCE_RELAY_URL`. Le service actuel a été publié avec la connexion OAuth locale disponible. Le job automatique reste désactivé tant qu’un jeton CI n’est pas configuré ; cela n’empêche pas le déploiement automatique de l’interface Pages vers le service existant. Une connexion OAuth locale ne doit jamais être copiée dans le dépôt ou les logs du pipeline.
 

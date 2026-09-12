@@ -75,14 +75,13 @@ it("translates worker errors in the document, using the current language", async
 
 it("uses a localized HTTP error instead of exposing the relay’s French body", async () => {
   setLocale("de");
-  const cancel = vi.fn();
-  const json = vi.fn(async () => ({ error: { code: "SOURCE_UNAVAILABLE", message: "La source du livre est temporairement indisponible." } }));
-  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 502, body: { cancel }, json })));
+  const response = new Response(JSON.stringify({ error: { code: "SOURCE_UNAVAILABLE", message: "La source du livre est temporairement indisponible." } }), { status: 502, headers: { "Content-Type": "application/json" } });
+  vi.stubGlobal("fetch", vi.fn(async () => response));
   await expect(request("https://relay.example/api/books/gutenberg/1.epub", {
     timeout: 1000, maxBytes: 30 * 1024 ** 2, download: true, validateUrl: () => true,
   })).rejects.toThrow("Die Quelle ist nicht verfügbar (HTTP 502). Versuche es später erneut oder öffne ihre Website.");
-  expect(cancel).toHaveBeenCalledOnce();
-  expect(json).not.toHaveBeenCalled();
+  expect(response.bodyUsed).toBe(true);
+  expect(fetch).toHaveBeenCalledOnce();
 });
 
 it("relabels a mounted PWA update without losing the save-before-update action", async () => {

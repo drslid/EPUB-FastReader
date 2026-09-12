@@ -1,3 +1,14 @@
+## Nouvelles sources et langue de recherche — 12 septembre 2026
+
+- **703 tests unitaires / 44 fichiers** réussis : adaptateurs, collecte Loyal Books, URL Unicode, quotas persistants, refus de source, EPUB invalides et recherche fédérée.
+- Les parcours nouveaux couvrent recherche, couverture, acquisition EPUB, IndexedDB, mode Mot à mot, reprise et erreurs. Les suites ciblées finales réussissent sur Chromium ordinateur/mobile et WebKit tablette : **9 contrôles Ebookzy** et **18 contrôles Atramenta/paramètres**, en complément des **12 contrôles Loyal Books**.
+- Le serveur privé du scénario PWA Ebookzy utilise des réponses amont strictement simulées, y compris lorsque WebKit passe par le service worker. Son arrêt vérifie un véritable rechargement hors ligne sans requête à la source réelle.
+- Pages : **6 groupes de contrôles avec relais simulé sous Chromium**, **6 sous WebKit**, **9 sans relais**, dans des builds isolés. Compilation production et bundle Worker réussis ; audit des dépendances de production sans vulnérabilité signalée.
+- Loyal Books : 499 notices réelles dans cinq langues, dont 207 couvertures ; index daté et partiel. L’anglais est exclu faute de liste exploitable. Aucun fichier EPUB n’est acquis par le collecteur.
+- Vérification du relais public : Ebookzy renvoie la recherche Shakespeare en HTTP 200 ; Atramenta renvoie `503 SOURCE_BUSY`, refus conservé sans acquisition ni autre tentative. BDEbooks n’est pas connecté après son refus Cloudflare. Ces limites figurent dans le README et les audits de source.
+
+Les résultats réseau réels restent distincts des fixtures automatisées. La suite complète GitHub Actions vérifie la révision publiée avant le déploiement Pages.
+
 ## Lecture rapide, liste de recherche et sources anglaises — 12 septembre 2026
 
 - **561 tests unitaires / 36 fichiers** réussis : parsers, sécurité des relais, CORS, cookies anonymes, cache borné, annulation isolée, recherche fédérée, EPUB Classique et traductions.

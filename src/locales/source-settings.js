@@ -1,5 +1,17 @@
 // Source settings and search status. The French source strings are the fallback locale.
 const rows = [
+  ["Livres en français · téléchargements quotidiens limités",
+    "Books in French · limited daily downloads",
+    "Libros en francés · descargas diarias limitadas",
+    "Libri in francese · download giornalieri limitati",
+    "Französische Bücher · begrenzte tägliche Downloads",
+    "Livros em francês · transferências diárias limitadas"],
+  ["Sélection multilingue indexée",
+    "Indexed multilingual selection",
+    "Selección multilingüe indexada",
+    "Selezione multilingue indicizzata",
+    "Indexierte mehrsprachige Auswahl",
+    "Seleção multilingue indexada"],
   ["Original", "Original", "Original", "Originale", "Original", "Original"],
   ["Pour cette édition, téléchargez l’EPUB original afin de conserver les conditions de la source.", "For this edition, download the original EPUB to preserve the source’s terms.", "Para esta edición, descarga el EPUB original para conservar las condiciones de la fuente.", "Per questa edizione, scarica l’EPUB originale per preservare le condizioni della fonte.", "Lade für diese Ausgabe das Original-EPUB herunter, damit die Bedingungen der Quelle erhalten bleiben.", "Para esta edição, descarrega o EPUB original para preservar as condições da fonte."],
   [
@@ -113,22 +125,6 @@ const rows = [
     "Libri in francese",
     "Bücher auf Französisch",
     "Livros em francês"
-  ],
-  [
-    "Accès direct non intégré",
-    "Direct access is not integrated",
-    "Acceso directo no integrado",
-    "Accesso diretto non integrato",
-    "Direkter Zugriff nicht integriert",
-    "Acesso direto não integrado"
-  ],
-  [
-    "L’accès automatisé à la recherche et aux EPUB n’a pas pu être vérifié.",
-    "Automated access to search and EPUB files could not be verified.",
-    "No se ha podido verificar el acceso automatizado a la búsqueda y a los archivos EPUB.",
-    "Non è stato possibile verificare l’accesso automatico alla ricerca e ai file EPUB.",
-    "Der automatische Zugriff auf die Suche und EPUB-Dateien konnte nicht bestätigt werden.",
-    "Não foi possível verificar o acesso automático à pesquisa e aos ficheiros EPUB."
   ],
   [
     "Disponible",

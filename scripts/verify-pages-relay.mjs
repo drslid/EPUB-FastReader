@@ -150,6 +150,9 @@ try {
     else await route.abort("blockedbyclient");
   });
   await context.route("https://standardebooks.org/ebooks?**", (route) => route.fulfill({ status: 200, contentType: "application/xhtml+xml", headers: { "access-control-allow-origin": "*" }, body: '<html><main class="ebooks"><form role="search"></form><p class="no-results">No ebooks matched your filters.</p></main></html>' }));
+  await context.route(`${base}catalog/loyalbooks.json`, (route) => route.fulfill({
+    json: { version: 1, updatedAt: "2026-09-12T00:00:00.000Z", coverage: "selection", languages: { en: { indexed: 0, total: 0, pages: 1, complete: true } }, books: [] },
+  }));
   await context.route(`${relayOrigin}/**`, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -161,6 +164,15 @@ try {
     if (url.pathname === "/api/sources/fadedpage/search" || url.pathname === "/api/sources/epubbooks/search") {
       const faded = url.pathname.includes("fadedpage");
       await route.fulfill({ status: 200, contentType: faded ? "application/json" : "text/html", headers: { "access-control-allow-origin": base.origin }, body: faded ? '{"nrows":0,"rows":[]}' : '<html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>' });
+      return;
+    }
+    const additionalSearches = {
+      "/api/sources/ebookzy/search": '<!doctype html><html><body><div id="content"><h1 class="page-title">Search results for: absent</h1><section class="no-results"></section></div></body></html>',
+      "/api/sources/atramenta/search": '<!doctype html><html><body><form action="/search/"></form><main id="main_content_wrapper"><h1>Recherche</h1><p>Aucun résultat</p></main></body></html>',
+    };
+    if (Object.hasOwn(additionalSearches, url.pathname)) {
+      assert.equal(request.method(), "GET");
+      await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", headers: { "access-control-allow-origin": base.origin }, body: additionalSearches[url.pathname] });
       return;
     }
     assert.match(url.pathname, /^\/api\/books\/gutenberg\/[1-9]\d{0,8}\.epub$/u);

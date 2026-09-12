@@ -3,16 +3,19 @@ const PROBES = Object.freeze([
   { providerId: "ebooks-gratuits", method: "GET", url: "https://www.ebooksgratuits.com/opds/", contentType: "xml" },
   { providerId: "fadedpage", method: "HEAD", url: "https://www.fadedpage.com/csearch.php", contentType: "html" },
   { providerId: "epubbooks", method: "GET", url: "https://www.epubbooks.com/", contentType: "html" },
+  { providerId: "ebookzy", method: "HEAD", url: "https://ebookzy.com/", contentType: "html" },
+  { providerId: "atramenta", method: "HEAD", url: "https://www.atramenta.net/", contentType: "html" },
+  { providerId: "loyalbooks", method: "HEAD", url: "https://www.loyalbooks.com/", contentType: "html" },
 ]);
 
 /** Reachability check only; no book is downloaded and no search term is sent. */
-export function createSourceStatusHandler({ fetchImpl = globalThis.fetch, allowOrigin = "", now = Date.now, timeoutMs = 15_000, cacheTtlMs = 300_000 } = {}) {
+export function createSourceStatusHandler({ fetchImpl = globalThis.fetch, allowOrigin = "", now = Date.now, timeoutMs = 15_000, cacheTtlMs = 300_000, getRestrictions = async () => ({}) } = {}) {
   if (allowOrigin) {
     const url = new URL(allowOrigin);
     if (url.protocol !== "https:" || url.origin !== allowOrigin || url.username || url.password) throw new TypeError("Origine de disponibilité invalide.");
   }
-  let cache;
-  let pending;
+  const cache = new Map();
+  const pending = new Map();
   async function probe(definition) {
     const controller = new AbortController();
     let timer;
@@ -32,15 +35,37 @@ export function createSourceStatusHandler({ fetchImpl = globalThis.fetch, allowO
       return { providerId: definition.providerId, available: false, checkedAt: new Date(now()).toISOString(), code: controller.signal.aborted ? "SOURCE_TIMEOUT" : "SOURCE_UNAVAILABLE" };
     } finally { clearTimeout(timer); }
   }
-  async function results() {
-    if (cache && cache.expires > now()) return cache.data;
-    if (pending) return pending;
-    pending = Promise.all(PROBES.map(probe)).then((sources) => {
-      const data = { checkedAt: new Date(now()).toISOString(), sources };
-      cache = { data, expires: now() + Math.min(cacheTtlMs, 300_000) };
+  async function reachable(definition) {
+    const id = definition.providerId;
+    const cached = cache.get(id);
+    if (cached?.expires > now()) return cached.data;
+    if (pending.has(id)) return pending.get(id);
+    const task = probe(definition).then((data) => {
+      cache.set(id, { data, expires: now() + Math.min(cacheTtlMs, 300_000) });
       return data;
-    }).finally(() => { pending = undefined; });
-    return pending;
+    }).finally(() => { pending.delete(id); });
+    pending.set(id, task);
+    return task;
+  }
+  async function results() {
+    // A reachable homepage cannot override a known download restriction.
+    // Read these on every request, independently of the reachability cache.
+    const restrictions = await getRestrictions();
+    const sources = await Promise.all(PROBES.map((definition) => {
+      const restriction = restrictions?.[definition.providerId];
+      if (restriction && ["SOURCE_DAILY_LIMIT", "SOURCE_BUSY", "SOURCE_LOGIN_REQUIRED", "SOURCE_UNAVAILABLE"].includes(restriction.code)) {
+        // Do not probe a refused source. Once its restriction expires, a fresh
+        // check must replace any green result from before the restriction.
+        cache.delete(definition.providerId);
+        return {
+          providerId: definition.providerId, available: false,
+          checkedAt: new Date(now()).toISOString(), code: restriction.code,
+          ...(Number.isSafeInteger(restriction.retryAfter) && restriction.retryAfter > 0 ? { retryAfter: restriction.retryAfter } : {}),
+        };
+      }
+      return reachable(definition);
+    }));
+    return { checkedAt: new Date(now()).toISOString(), sources };
   }
   return async (request) => {
     const url = new URL(request.url);

@@ -39,6 +39,9 @@ describe("plugins de sources versionnés", () => {
       "ebooks-gratuits",
       "fadedpage",
       "epubbooks",
+      "ebookzy",
+      "atramenta",
+      "loyalbooks",
       "public-domain-library",
     ]);
     expect(
@@ -203,7 +206,7 @@ describe("recherche commune", () => {
       new Set(result.books.map((book) => book.canonicalSourceId)).size,
     ).toBe(result.books.length);
     expect(result).toMatchObject({
-      count: manifest.languages.fr.count,
+      count: manifest.count,
       countIsApproximate: false,
       hasNext: true,
       warnings: [],
@@ -212,7 +215,7 @@ describe("recherche commune", () => {
 
   it("garde la sélection et affiche une indisponibilité explicite si le fichier d’index manque", async () => {
     fetch.mockRejectedValue(new TypeError("Offline"));
-    const result = await searchBooks({ provider: "all", query: "Horla" });
+    const result = await searchBooks({ provider: "all", query: "Horla", language: "fr" });
     expect(result.books).toHaveLength(1);
     expect(result.warnings).toEqual([
       {
@@ -222,6 +225,16 @@ describe("recherche commune", () => {
       },
       {
         providerId: "ebooks-gratuits",
+        code: "NETWORK",
+        message: expect.stringContaining("catalogue est inaccessible"),
+      },
+      {
+        providerId: "atramenta",
+        code: "NETWORK",
+        message: expect.stringContaining("catalogue est inaccessible"),
+      },
+      {
+        providerId: "loyalbooks",
         code: "NETWORK",
         message: expect.stringContaining("catalogue est inaccessible"),
       },

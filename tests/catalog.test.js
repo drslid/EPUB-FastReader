@@ -61,6 +61,7 @@ describe("catalogue officiel local", () => {
     const result = await catalog.searchBooks({
       provider: "gutenberg",
       query: "HUGO misérables",
+      language: "fr",
     });
     expect(result.books.length).toBeGreaterThan(0);
     expect(
@@ -103,10 +104,11 @@ describe("catalogue officiel local", () => {
   });
 
   it("pagine exactement le catalogue français et réutilise les fichiers chargés", async () => {
-    const first = await catalog.searchBooks({ provider: "gutenberg" });
+    const first = await catalog.searchBooks({ provider: "gutenberg", language: "fr" });
     const second = await catalog.searchBooks({
       provider: "gutenberg",
       page: 2,
+      language: "fr",
     });
     expect(first.count).toBe(manifest.languages.fr.count);
     expect(first.books).toHaveLength(24);
@@ -121,11 +123,12 @@ describe("catalogue officiel local", () => {
     const last = await catalog.searchBooks({
       provider: "gutenberg",
       page: Math.ceil(first.count / 24),
+      language: "fr",
     });
     expect(last.hasNext).toBe(false);
     expect(last.books).toHaveLength(first.count % 24);
     expect(
-      (await catalog.searchBooks({ provider: "gutenberg", page: 1000 })).books,
+      (await catalog.searchBooks({ provider: "gutenberg", language: "fr", page: 1000 })).books,
     ).toEqual([]);
   });
 
@@ -136,6 +139,9 @@ describe("catalogue officiel local", () => {
       query: "",
     });
     expect(result.count).toBe(manifest.count);
+    const defaults = await catalog.searchBooks({ provider: "gutenberg" });
+    expect(defaults.count).toBe(manifest.count);
+    expect(defaults.books).toEqual(result.books);
     expect(result.books).toHaveLength(24);
     expect(
       (
@@ -164,7 +170,7 @@ describe("catalogue officiel local", () => {
     await catalog.searchBooks({ query: "Verne", provider: "gutenberg" });
     expect(
       fetch.mock.calls.every(([url]) =>
-        url.startsWith("/EPUB-FastReader/catalog/fr-"),
+        url.startsWith("/EPUB-FastReader/catalog/"),
       ),
     ).toBe(true);
   });

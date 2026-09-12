@@ -10,7 +10,7 @@ import "./covers.css";
 import "./book-list.css";
 import "./reader-enhancements.css";
 import "./source-settings.css";
-import { openSourceSettings } from "./source-settings.js";
+import { openSourceSettings, invalidateSourceAvailability } from "./source-settings.js";
 import { homeMarkup } from "./views/home.js";
 import { createReadingWakeLock, wordDuration, previousSentenceIndex } from "./reading-comfort.js";
 import { readingProfiles, focusOptions, readingFont } from "./reading-preferences.js";
@@ -804,6 +804,7 @@ async function navigate() {
   state.catalogCount = 0;
   state.catalogError = "";
   state.catalogWarnings = [];
+  state.catalogCoverage = null;
   state.hasNext = false;
   state.searched = false;
   state.searching = ["search", "discover"].includes(state.view);
@@ -852,7 +853,7 @@ async function importFile(file, source, { signal } = {}) {
       /* Import can continue in memory. */
     }
     if (source || existing?.source) book.source = source || existing.source;
-    if (["standard-ebooks", "fadedpage"].includes(book.source?.providerId) && /^data:image\//u.test(book.cover || "") && /^https:\/\//u.test(book.source.presentation?.image || "")) {
+    if (["standard-ebooks", "fadedpage", "atramenta"].includes(book.source?.providerId) && /^data:image\//u.test(book.cover || "") && /^https:\/\//u.test(book.source.presentation?.image || "")) {
       book.source.presentation = { ...book.source.presentation, remoteImage: book.source.presentation.image, image: book.cover };
     }
     if (book.source?.providerId === "gutenberg" && !book.source.readingStart) {
@@ -906,6 +907,7 @@ async function runSearch(page = 1) {
     state.hasNext = result.hasNext;
     state.catalogWarnings = result.warnings || [];
     state.catalogCountIsApproximate = !!result.countIsApproximate;
+    state.catalogCoverage = result.catalogCoverage || null;
     state.pendingSources = result.pendingSources || [];
     state.searched = true;
     if (state.view === "discover" || state.view === "search") renderShell({ preserveInteraction: true });
@@ -1013,6 +1015,7 @@ async function readCatalogBook(id) {
     if (!controller.signal.aborted) showDownloadFallback(book, error);
   } finally {
     if (catalogDownloadController === controller) {
+      invalidateSourceAvailability();
       catalogDownloadController = undefined;
       state.busy = false;
       if (state.view !== "reader") renderShell();
@@ -1320,7 +1323,7 @@ async function downloadCatalogOriginal(id) {
     downloadText(file, file.name || "livre.epub", "application/epub+zip");
     toast("L’EPUB est prêt à être téléchargé.");
   } catch (error) { toast(error.message || t("Le téléchargement n’a pas abouti.")); }
-  finally { state.busy = false; if (!state.book) renderShell(); }
+  finally { invalidateSourceAvailability(); state.busy = false; if (!state.book) renderShell(); }
 }
 
 app.addEventListener("click", async (event) => {
@@ -1435,7 +1438,7 @@ app.addEventListener("click", async (event) => {
     }
     if (action === "search") await runSearch(state.page);
     if (action === "provider") {
-      const language = { "standard-ebooks": "en", "ebooks-gratuits": "fr", fadedpage: "en", epubbooks: "en" }[button.dataset.provider] || state.searchLanguageDraft;
+      const language = state.searchLanguageDraft;
       await navigateSearch({ view: state.searchDraft.trim() ? "search" : state.view, query: state.searchDraft, language, provider: button.dataset.provider });
     }
     if (action === "next-results" || action === "previous-results")

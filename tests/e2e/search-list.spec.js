@@ -17,6 +17,22 @@ test("une recherche sans filtre trouve les livres anglais et conserve toutes les
   await expect(page.locator('.catalog-grid .book-card[data-language="en"]').first()).toBeVisible();
 });
 
+test("les catalogues ne changent pas la langue et les nouvelles pages repartent sur toutes les langues", async ({ page }) => {
+  await page.goto("/#discover");
+  for (const provider of ["standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks", "all"]) {
+    await page.locator(`[data-action="provider"][data-provider="${provider}"]`).first().click();
+    await expect(page.locator("#search-language")).toHaveValue("");
+    await expect(page).toHaveURL(/language=&/);
+  }
+  await page.locator("#search-language").selectOption("fr");
+  await page.locator('[data-action="provider"][data-provider="standard-ebooks"]').first().click();
+  await expect(page.locator("#search-language")).toHaveValue("fr");
+  await page.goto("/#library");
+  await expect(page.locator("#search-language")).toHaveValue("");
+  await page.goto("/#search?q=Shakespeare");
+  await expect(page.locator("#search-language")).toHaveValue("");
+});
+
 test("la recherche affiche un livre par ligne, ses titres complets et ses actions, même à 320 px", async ({ page }) => {
   const title = "Voyage au cœur des livres : une très longue histoire pour les lecteurs qui aiment découvrir de nouveaux horizons";
   await page.goto("/");

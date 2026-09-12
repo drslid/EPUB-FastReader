@@ -1,0 +1,3535 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-12T19:48:30.100Z",
+  "coverage": "selection",
+  "languages": {
+    "fr": {
+      "indexed": 100,
+      "total": 1434,
+      "pages": 1,
+      "complete": false
+    },
+    "es": {
+      "indexed": 100,
+      "total": 288,
+      "pages": 1,
+      "complete": false
+    },
+    "it": {
+      "indexed": 100,
+      "total": 272,
+      "pages": 1,
+      "complete": false
+    },
+    "de": {
+      "indexed": 99,
+      "total": 701,
+      "pages": 1,
+      "complete": false
+    },
+    "pt": {
+      "indexed": 100,
+      "total": 477,
+      "pages": 1,
+      "complete": false
+    }
+  },
+  "excludedLanguages": [
+    "en"
+  ],
+  "books": [
+    {
+      "slug": "le-tour-du-monde-en-quatre-vingts-jours-by-jules-verne",
+      "title": "Le tour du monde en quatre-vingts jours",
+      "author": "Jules Verne",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/le_tour_du_monde_en_quatre-vingts_jours.jpg"
+    },
+    {
+      "slug": "le-comte-de-monte-cristo-by-alexandre-dumas",
+      "title": "Le Comte de Monte Cristo",
+      "author": "Alexandre Dumas",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/monte_cristo.jpg"
+    },
+    {
+      "slug": "les-mille-et-une-nuits-tome-premier-by-anonymous",
+      "title": "Les mille et une nuits, tome premier",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/les-mille-et-une-nuits-tome-premier-by-anonymous.jpg"
+    },
+    {
+      "slug": "les-trois-mousquetaires-by-alexandre-dumas",
+      "title": "Les Trois Mousquetaires",
+      "author": "Alexandre Dumas",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-Trois-Mousquetaires.jpg"
+    },
+    {
+      "slug": "candide-by-voltaire-2",
+      "title": "Candide ou L'optimisme",
+      "author": "Voltaire",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Candide.jpg"
+    },
+    {
+      "slug": "Fables-de-La-Fontaine-livre-1",
+      "title": "Fables de La Fontaine",
+      "author": "Jean de La Fontaine",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Fables-de-La-Fontaine-1.jpg"
+    },
+    {
+      "slug": "les-miserables-tome-1-by-victor-hugo-0910-di",
+      "title": "Les Misérables",
+      "author": "Victor Hugo",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/les-miserables-vol-1-by-victor-hugo.jpg"
+    },
+    {
+      "slug": "illuminations-by-arthur-rimbaud",
+      "title": "Illuminations (Poésies complètes)",
+      "author": "Arthur Rimbaud",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/illuminations.jpg"
+    },
+    {
+      "slug": "tartarin-de-tarascon-by-alphonse-daudet-ezwa",
+      "title": "Tartarin de Tarascon",
+      "author": "Alphonse Daudet",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Tartarin-de-Tarascon.jpg"
+    },
+    {
+      "slug": "cinq-semaines-en-ballon-by-jules-verne",
+      "title": "Cinq semaines en ballon",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/cinq_semaines_en_ballon_cover.jpg"
+    },
+    {
+      "slug": "le-pays-des-fourrures-de-jules-verne-0712",
+      "title": "Le Pays des Fourrures",
+      "author": "Jules Verne",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/pays_des_fourrures.jpg"
+    },
+    {
+      "slug": "a-lombre-des-jeunes-filles-en-fleur-by-marcel-proust-0905",
+      "title": "À lӯmbre des jeunes filles en fleur",
+      "author": "Marcel Proust",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/a-lombre-des-jeunes-filles-en-fleur-by-marcel-proust-0905.jpg"
+    },
+    {
+      "slug": "dictionnaire-des-idees-recues-by-gustave-flaubert",
+      "title": "Dictionnaire des idées reçues",
+      "author": "Gustave Flaubert",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/dictionnaire-des-idees-recues-by-gustave-flaubert.jpg"
+    },
+    {
+      "slug": "les-contes-de-la-becasse-by-guy-de-maupassant",
+      "title": "Les contes de la bécasse",
+      "author": "Guy de Maupassant",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-contes-de-la-becasse.jpg"
+    },
+    {
+      "slug": "20000-lieues-sous-les-mers",
+      "title": "20000 lieues sous les mers",
+      "author": "Jules Verne",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/20000-lieues-sous-les-mers.jpg"
+    },
+    {
+      "slug": "la-mare-au-diable-by-george-sand",
+      "title": "La mare au diable",
+      "author": "George Sand",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Mare-au-diable.jpg"
+    },
+    {
+      "slug": "poemes-saturniens-by-paul-verlaine",
+      "title": "Poèmes Saturniens",
+      "author": "Paul Verlaine",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/poemes-saturniens-by-paul-verlaine.jpg"
+    },
+    {
+      "slug": "nouveaux-contes-de-fees-pour-les-petits-enfants-by-sophie-comtesse-de-segur",
+      "title": "Nouveaux contes de fées pour les petits enfants",
+      "author": "Comtesse Sophie de Ségur",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Nouveaux-contes-de-fees-pour-les-petits-enfants.jpg"
+    },
+    {
+      "slug": "a-se-tordre-by-alphonse-allais",
+      "title": "À se tordre",
+      "author": "Alphonse Allais",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/a-se-tordre-by-alphonse-allais.jpg"
+    },
+    {
+      "slug": "la-chasse-galerie-by-honore-beaugrand",
+      "title": "La chasse-galerie",
+      "author": "Honoré Beaugrand",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/chasse-galerie.jpg"
+    },
+    {
+      "slug": "Vampire-Paul-Henry-Corentin",
+      "title": "La Vampire",
+      "author": "Féval, Paul Henry Corentin",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Vampire-Paul-Henry-Corentin.jpg"
+    },
+    {
+      "slug": "Mystere-de-la-chambre-jaune",
+      "title": "Le Mystère de la chambre jaune",
+      "author": "Gaston Leroux",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Mystere-de-la-chambre-jaune.jpg"
+    },
+    {
+      "slug": "fetes-galantes-by-paul-verlaine",
+      "title": "Fêtes galantes",
+      "author": "Paul Verlaine",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/fetes_galantes.jpg"
+    },
+    {
+      "slug": "bruges-la-morte-by-georges-rodenbach-0908",
+      "title": "Bruges-la-Morte",
+      "author": "Georges Rodenbach",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Bruges-la-Morte.jpg"
+    },
+    {
+      "slug": "Les-Chants-de-Maldoror-by-comte-de-Lautréamont",
+      "title": "Les Chants de Maldoror",
+      "author": "Comte de Lautréamont",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-Chants-de-Maldoror.jpg"
+    },
+    {
+      "slug": "Les-Precieuses-ridicules",
+      "title": "Les Précieuses ridicules",
+      "author": "Molière",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-Precieuses-ridicules.jpg"
+    },
+    {
+      "slug": "Fille-du-Pirate",
+      "title": "La Fille du Pirate",
+      "author": "Henri Émile Chevalier",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Fille-du-Pirate.jpg"
+    },
+    {
+      "slug": "Carmen-et-la-Venus-dIlle",
+      "title": "Carmen et la Vénus d'Ille",
+      "author": "Prosper Mérimée",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Carmen-et-la-Venus-dIlle.jpg"
+    },
+    {
+      "slug": "regrets-sur-ma-vieille-robe-de-chambre-by-denis-diderot",
+      "title": "Regrets sur ma vieille robe de chambre",
+      "author": "Denis Diderot",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/regrets-sur-ma-vieille-robe-de-chambre-by-denis-diderot.jpg"
+    },
+    {
+      "slug": "boule-de-suif-by-guy-de-maupassant-0904",
+      "title": "Boule de suif",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Boule-de-suif.jpg"
+    },
+    {
+      "slug": "Les-Tribulations-dun-chinois-en-Chine",
+      "title": "Les Tribulations d'un chinois en Chine",
+      "author": "Jules Verne",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-Tribulations-dun-chinois-en-Chine.jpg"
+    },
+    {
+      "slug": "Fauteuil-hante",
+      "title": "Le Fauteuil hante",
+      "author": "Gaston Leroux",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Fauteuil-hante.jpg"
+    },
+    {
+      "slug": "Keraban-le-Tetu",
+      "title": "Kéraban-le-Têtu",
+      "author": "Jules Verne",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Keraban-le-Tetu.jpg"
+    },
+    {
+      "slug": "Monsieur-Lecoq",
+      "title": "Monsieur Lecoq",
+      "author": "Emile Gaboriau",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Monsieur-Lecoq.jpg"
+    },
+    {
+      "slug": "Les-Maitres-sonneurs",
+      "title": "Les Maîtres sonneurs",
+      "author": "George Sand",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-Maitres-sonneurs.jpg"
+    },
+    {
+      "slug": "Princesse-de-Monpensier",
+      "title": "La Princesse de Monpensier",
+      "author": "Madame de La Fayette",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Princesse-de-Monpensier.jpg"
+    },
+    {
+      "slug": "Le-Chat-Charles-Baudelaire",
+      "title": "Le Chat",
+      "author": "Charles Baudelaire",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Le-Chat-Charles-Baudelaire.jpg"
+    },
+    {
+      "slug": "Fabrique-de-crimes",
+      "title": "La Fabrique de crimes",
+      "author": "Paul Auguste Jean Nicolas Féval",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Fabrique-de-crimes.jpg"
+    },
+    {
+      "slug": "Les-mystères-de-Paris-Tome-I-by-Eugène-Sue",
+      "title": "Les mystères de Paris, Tome 1",
+      "author": "Eugène Sue",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-mysteres-de-paris-tome-1-by-eugene-sue.jpg"
+    },
+    {
+      "slug": "Art-de-Payer-ses-Dettes",
+      "title": "L'Art de payer ses dettes et de satisfaire ses créanciers sans débourser un sou",
+      "author": "Émile Marco de Saint-Hilaire",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Art-de-Payer-ses-Dettes.jpg"
+    },
+    {
+      "slug": "Madame-Bovary-by-Gustave-Flaubert-2",
+      "title": "Madame Bovary (French)",
+      "author": "Gustave Flaubert",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Madame-Bovary.jpg"
+    },
+    {
+      "slug": "Le-Horla-and-Others-by-Guy-de-Maupassant",
+      "title": "Le Horla",
+      "author": "Guy de Maupassant",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Le-Horla.jpg"
+    },
+    {
+      "slug": "L-Epouvante-Maurice-Level",
+      "title": "L'Épouvante",
+      "author": "Maurice Level",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/L-Epouvante-Maurice-Level.jpg"
+    },
+    {
+      "slug": "Voyage-au-Centre-de-la-Terre-by-Jules-Verne",
+      "title": "Voyage au centre de la terre",
+      "author": "Jules Verne",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Voyage-au-centre-de-la-terre.jpg"
+    },
+    {
+      "slug": "Oliver-Twist-by-Charles-Dickens-3",
+      "title": "Oliver Twist (Français)",
+      "author": "Charles Dickens",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Oliver-Twist.jpg"
+    },
+    {
+      "slug": "Macbeth-by-William-Shakespeare-7",
+      "title": "Macbeth (Français)",
+      "author": "William Shakespeare",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Tragedy-of-Macbeth-William-Shakespeare.jpg"
+    },
+    {
+      "slug": "La-Vie-Électrique-by-Albert-Robida",
+      "title": "La Vie Électrique",
+      "author": "Albert Robida",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/La-Vie-Electrique-by-Albert-Robida.jpg"
+    },
+    {
+      "slug": "Nouveau-voyage-en-France",
+      "title": "Nouveau voyage en France Conversations familières, instructives et amusantes par un Papa",
+      "author": "Anonymous",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Nouveau-voyage-en-France-by-Anonymous.jpg"
+    },
+    {
+      "slug": "Les-petites-filles-modèles-by-Ségur",
+      "title": "Les petites filles modèles",
+      "author": "Sophie Ségur",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-petites-filles-modeles-by-Segur-2.jpg"
+    },
+    {
+      "slug": "James-Ensor-by-Émile-Verhaeren",
+      "title": "James Ensor",
+      "author": "Émile Verhaeren",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/James-Ensor-by-Emile-Verhaeren.jpg"
+    },
+    {
+      "slug": "Le-Blé-qui-lève-by-René-Bazin",
+      "title": "Le Blé qui lève",
+      "author": "René Bazin",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Le-Ble-qui-leve.jpg"
+    },
+    {
+      "slug": "Ivanhoe-1-4-by-Sir-Walter-Scott",
+      "title": "Ivanhoe (1/4) Le retour du croisé",
+      "author": "Walter Scott",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ivanhoe-1-4-by-Sir-Walter-Scott.jpg"
+    },
+    {
+      "slug": "Ivanhoe-4-4-by-Sir-Walter-Scott",
+      "title": "Ivanhoe (4/4) Le retour du croisé",
+      "author": "Walter Scott",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ivanhoe-4-4-by-Sir-Walter-Scott.jpg"
+    },
+    {
+      "slug": "Les-Précurseurs-by-Romain-Rolland",
+      "title": "Les Précurseurs",
+      "author": "Romain Rolland",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-Precurseurs-by-Romain-Rolland.jpg"
+    },
+    {
+      "slug": "Ivanhoe-2-4-by-Sir-Walter-Scott",
+      "title": "Ivanhoe (2/4) Le retour du croisé",
+      "author": "Walter Scott",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ivanhoe-2-4-by-Sir-Walter-Scott.jpg"
+    },
+    {
+      "slug": "Ivanhoe-3-4-by-Sir-Walter-Scott",
+      "title": "Ivanhoe (3/4) Le retour du croisé",
+      "author": "Walter Scott",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ivanhoe-3-4-by-Sir-Walter-Scott.jpg"
+    },
+    {
+      "slug": "L'art-du-taupier-by-Étienne-François-Dralet",
+      "title": "L'art du taupier ou méthode amusante et infaillible de prendre les taupes",
+      "author": "Étienne François Dralet",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Lart-du-taupier-by-Etienne-Francois-Dralet.jpg"
+    },
+    {
+      "slug": "Le-chat-de-la-mère-Michel",
+      "title": "Le chat de la mère Michel Complainte",
+      "author": "Anonymous",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Le-chat-de-la-mere-Michel-by-Anonymous.jpg"
+    },
+    {
+      "slug": "Mémoires-authentiques-de-Latude-by-Latude",
+      "title": "Mémoires authentiques de Latude, écrites par lui au donjon de Vincennes et à Charenton",
+      "author": "Jean Henri Latude",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Memoires-authentiques-de-Latude-by-Latude.jpg"
+    },
+    {
+      "slug": "Manuscrit-de-1814",
+      "title": "Manuscrit de 1814",
+      "author": "Agathon Jean François Fain",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Manuscrit-de-1814-trouve-dans-les-voitures-imp.jpg"
+    },
+    {
+      "slug": "Isis-by-comte-de-Auguste-Villiers-de-L'Isle-Adam",
+      "title": "Isis",
+      "author": "Auguste Villiers de L'Isle-Adam",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Isis-by-comte-de-Auguste-Villiers-de-LIsle-Adam.jpg"
+    },
+    {
+      "slug": "LIllustration-No-3274-25-Novembre-1905",
+      "title": "L'Illustration, No. 3274, 25 Novembre 1905",
+      "author": "Various",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/LIllustration.jpg"
+    },
+    {
+      "slug": "Les-assiégés-de-Compiègne-by-Albert-Robida",
+      "title": "Les assiégés de Compiègne 1430",
+      "author": "Albert Robida",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Les-assieges-de-Compiegne-by-Albert-Robida.jpg"
+    },
+    {
+      "slug": "Histoire-de-Édouard-Manet-et-de-son-oeuvre",
+      "title": "Histoire de Édouard Manet et de son oeuvre",
+      "author": "Théodore Duret",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Histoire-de-Edouard-Manet-et-de-son-oeuvre.jpg"
+    },
+    {
+      "slug": "Mémoires-de-madame-de-Rémusat-1",
+      "title": "Mémoires de madame de Rémusat",
+      "author": "Claire de Rémusat",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Memoires-de-madame-de-Remusat-1-3-by-Remusat.jpg"
+    },
+    {
+      "slug": "travers-Paris-by-Victor-Eugène-Géruzez",
+      "title": "A travers Paris",
+      "author": "Victor Eugène Géruzez",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/travers-Paris-by-Victor.jpg"
+    },
+    {
+      "slug": "Clotilde-by-Alphonse-Karr",
+      "title": "Clotilde",
+      "author": "Alphonse Karr",
+      "language": "fr",
+      "cover": "https://www.loyalbooks.com/image/layout2/Clotilde-by-Alphonse-Karr.jpg"
+    },
+    {
+      "slug": "Kamasutra-by-Vatsyayana",
+      "title": "Kamasutra. $l French",
+      "author": "Vatsyayana",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Contes-Français",
+      "title": "Contes Français",
+      "author": "Prosper Mérimée",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Du-côté-de-chez-Swann-by-Marcel-Proust",
+      "title": "Du côté de chez Swann",
+      "author": "Marcel Proust",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Aline-et-Valcour-tome-1-by-marquis-de-Sade",
+      "title": "Aline et Valcour, tome 1 ou le roman philosophique",
+      "author": "marquis de Sade",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Discours-de-la-méthode-by-René-Descartes",
+      "title": "Discours de la méthode",
+      "author": "René Descartes",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Picture-of-Dorian-Gray-French-by-Oscar-Wilde",
+      "title": "Le portrait de Dorian Gray",
+      "author": "Oscar Wilde",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Germinal-by-Émile-Zola",
+      "title": "Germinal",
+      "author": "Émile Zola",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Le-Grand-Meaulnes-by-Alain-Fournier",
+      "title": "Le Grand Meaulnes",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Les-crimes-de-l'amour-by-marquis-de-Sade",
+      "title": "Les crimes de l'amourPrécédé d'un avant-propos",
+      "author": "marquis de Sade",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Poésies-de-Charles-dOrléans-by-dOrléans",
+      "title": "Poésies de Charles d'Orléans",
+      "author": "Charles d'Orléans",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Oeuvres-complètes-de-François-Villon-by-Villon",
+      "title": "Oeuvres complètes de François Villon Suivies d'un choix des poésies de ses disciples",
+      "author": "François Villon",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Voyage-de-J-Cartier-au-Canada-by-Jacques-Cartier",
+      "title": "Voyage de J. Cartier au Canada Relation originale de Jacques Cartier",
+      "author": "Jacques Cartier",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Notre-Dame-de-Paris-by-Victor-Hugo-2",
+      "title": "Notre-Dame de Paris",
+      "author": "Victor Hugo",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "La-nuit-de-Noël-dans-tous-les-pays-by-Chabot",
+      "title": "La nuit de Noël dans tous les pays",
+      "author": "Alphonse Chabot",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Poeme-Du-Mois-007-Le-Dormeur-Du-Val",
+      "title": "Poème du Mois - 007 Le dormeur du val",
+      "author": "Arthur Rimbaud",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Nana-by-Émile-Zola",
+      "title": "Nana",
+      "author": "Émile Zola",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Oeuvres-de-Napoléon-Bonaparte-Tome-I",
+      "title": "Oeuvres de Napoléon Bonaparte, Tome I.",
+      "author": "Napoléon Bonaparte",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Le-roman-de-la-rose-by-Guillaume-and-Jean",
+      "title": "Le roman de la rose Tome I",
+      "author": "de Meun Jean",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Christmas-Carol-French-by-Charles-Dickens",
+      "title": "Cantique de Noël",
+      "author": "Charles Dickens",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Nouvelles-histoires-extraordinaires-by-Poe",
+      "title": "Nouvelles histoires extraordinaires",
+      "author": "Edgar Allan Poe",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "L'homme-Qui-Rit-by-Victor-Hugo",
+      "title": "L'homme Qui Rit",
+      "author": "Victor Hugo",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Cyrano-de-Bergerac-by-Edmond-Rostand-2",
+      "title": "Cyrano de Bergerac",
+      "author": "Edmond Rostand",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Contes-merveilleux-Tome-I-by-H-C-Andersen",
+      "title": "Contes merveilleux, Tome I",
+      "author": "Hans Christian Andersen",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Ubu-Roi-by-Alfred-Jarry",
+      "title": "Ubu Roi ou les Polonais",
+      "author": "Alfred Jarry",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Catéchisme-libertin-by-Théroigne-de-Méricourt",
+      "title": "Catéchisme libertin à l'usage des filles de joie et des jeunes demoiselles qui se destinent à embrasser cette profession",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Moll-Flanders-by-Daniel-Defoe-2",
+      "title": "Moll Flanders",
+      "author": "Daniel Defoe",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Eugénie-Grandet-by-Honoré-de-Balzac",
+      "title": "Eugénie Grandet",
+      "author": "Honoré de Balzac",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "La-Chartreuse-De-Parme-by-Stendhal",
+      "title": "La Chartreuse De Parme",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "La-danse-macabre-des-femmes",
+      "title": "La danse macabre des femmes toute hystoriee et augmentee de plusieurs personnages et beaux dictz en latin et francoys",
+      "author": "Anonymous",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "L'Avare-by-Molière",
+      "title": "L'Avare",
+      "author": "Unknown",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Noël-dans-les-pays-étrangers-by-Alphonse-Chabot",
+      "title": "Noël dans les pays étrangers",
+      "author": "Alphonse Chabot",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Arsène-Lupin-gentleman-cambrioleur-by-Leblanc",
+      "title": "Arsène Lupin gentleman-cambrioleur",
+      "author": "Maurice Leblanc",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "Nouvel-atlas-de-poche-des-champignons-Comestibles",
+      "title": "Nouvel atlas de poche des champignons Comestibles et Vénéneux les plus répandus",
+      "author": "Paul Dumée",
+      "language": "fr",
+      "cover": null
+    },
+    {
+      "slug": "novelas-cortas-by-pedro-antonio-de-alarcon",
+      "title": "Novelas Cortas",
+      "author": "Pedro Antonio de Alarcón",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/novelas-cortas-by-pedro-antonio-de-alarcon.jpg"
+    },
+    {
+      "slug": "el-evangelio-segun-san-juan-version-reina-valera",
+      "title": "El Evangelio Segun San Juan",
+      "author": "Reina Valera",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/el-evangelio-segun-san-juan-version-reina-valera.jpg"
+    },
+    {
+      "slug": "historia-de-la-celebre-reina-de-espana-dona-juana-llamada-vulgarmente-la-loca-anonymous",
+      "title": "Historia de la célebre Reina de España Doña Juana, llamada vulgarmente La Loca",
+      "author": "Anonymous",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Historia-de-la-celebre-reina-de-espana-dona-juana.jpg"
+    },
+    {
+      "slug": "la-nariz-de-un-notario-by-edmond-about",
+      "title": "La Naríz de un Notario",
+      "author": "Edmond About",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/la-nariz-de-un-notario-by-edmond-about.jpg"
+    },
+    {
+      "slug": "don-quijote-vol-1-by-miguel-de-cervantes-saavedra",
+      "title": "Don Quijote",
+      "author": "Miguel de Cervantes Saavedra",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Don-Quixote-Vol-1.jpg"
+    },
+    {
+      "slug": "El-Capitan-Veneno",
+      "title": "El Capitán Veneno",
+      "author": "Pedro Antonio de Alarcón",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/El-Capitan-Veneno.jpg"
+    },
+    {
+      "slug": "La-letra-escarlata-by-Nathaniel-Hawthorne",
+      "title": "La letra escarlata novela escrita en inglés",
+      "author": "Nathaniel Hawthorne",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/La-letra-escarlata-by-Nathaniel-Hawthorne.jpg"
+    },
+    {
+      "slug": "La-Navidad-en-las-Montañas-by-Altamirano",
+      "title": "La Navidad en las Montañas",
+      "author": "Ignacio Manuel Altamirano",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/La-Navidad-en-las-Monta.jpg"
+    },
+    {
+      "slug": "Spanish-Tales-for-Beginners-by-Hills-and-Various",
+      "title": "Spanish Tales for Beginners",
+      "author": "Various",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Spanish-Tales-for-Beginners-by-Hills-and-Various.jpg"
+    },
+    {
+      "slug": "Los-enemigos-de-la-mujer-by-Blasco-Ibáñez",
+      "title": "Los enemigos de la mujer",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Los-enemigos-de-la-mujer-by-Blasco-Ibaanez.jpg"
+    },
+    {
+      "slug": "Facundo-by-Domingo-Faustino-Sarmiento",
+      "title": "Facundo",
+      "author": "Domingo Faustino Sarmiento",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Facundo-by-Domingo-Faustino-Sarmiento.jpg"
+    },
+    {
+      "slug": "Ratón-Pérez-by-Luis-Coloma",
+      "title": "Ratón Pérez",
+      "author": "Luis Coloma",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Raton-Perez-by-Luis-Coloma.jpg"
+    },
+    {
+      "slug": "Historia-de-la-literatura-y-del-arte-dramático-en-2",
+      "title": "Historia de la literatura y del arte dramático en España, tomo I",
+      "author": "Adolf Friedrich von Schack",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Historia-de-la-literatura.jpg"
+    },
+    {
+      "slug": "Silas-Marner-by-George-Eliot-3",
+      "title": "Silas Marner (Español)",
+      "author": "George Eliot",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Silas-Marner.jpg"
+    },
+    {
+      "slug": "Cosas-nuevas-y-viejas-by-Chaves-and-Nogales",
+      "title": "Cosas nuevas y viejas (apuntes sevillanos)",
+      "author": "Manuel Chaves",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Cosas-nuevas-y-viejas-by-Chaves-and-Nogales.jpg"
+    },
+    {
+      "slug": "La-horda-by-Vicente-Blasco-Ibáñez",
+      "title": "La horda",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/La-horda-by-Vicente-Blasco-.jpg"
+    },
+    {
+      "slug": "Crónicas-de-Marianela",
+      "title": "Crónicas de Marianela",
+      "author": "Anonymous",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Cronicas-de-Marianela-by-Anonymous.jpg"
+    },
+    {
+      "slug": "Los-cursos-by-Pierre-Eugène-Veber",
+      "title": "Los cursos",
+      "author": "Pierre-Eugène Veber",
+      "language": "es",
+      "cover": "https://www.loyalbooks.com/image/layout2/Los-cursos-by-Pierre-Eugene-Veber.jpg"
+    },
+    {
+      "slug": "La-Edad-de-Oro",
+      "title": "La Edad de Oro",
+      "author": "Jose Marti",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-Diablo-Cojuelo",
+      "title": "El Diablo Cojuelo",
+      "author": "Luis Vélez de Guevara",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Bible-RVG-Romanos",
+      "title": "Bible (Reina Valera 1909) NT 06: La Epistola del Apostol San Pablo a los Romanos",
+      "author": "Reina Valera",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Angelina-by-Rafael-Delgado",
+      "title": "Angelina",
+      "author": "Rafael Delgado",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Platero-Y-Yo-by-Juan-Ramon-Jimenez",
+      "title": "Platero Y Yo",
+      "author": "Juan Ramon Jimenez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Los-cuatro-jinetes-del-apocalipsis",
+      "title": "Los cuatro jinetes del apocalipsis",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Lecturas-fáciles-con-ejercicios-by-Luria",
+      "title": "Lecturas fáciles con ejercicios",
+      "author": "Max Aaron Luria",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Clásicos-Castellanos-Libro-de-Buen-Amor-by-Ruiz",
+      "title": "Clásicos Castellanos: Libro de Buen Amor",
+      "author": "Juan Ruiz",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-Gaucho-Martín-Fierro-by-José-Hernández",
+      "title": "Gaucho Martín Fierro",
+      "author": "José Hernández",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Filosofía-Fundamental-Tomo-I-by-Balmes",
+      "title": "Filosofía Fundamental, Tomo I",
+      "author": "Jaime Luciano Balmes",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "An-Elementary-Spanish-Reader-by-Harrison",
+      "title": "An Elementary Spanish Reader",
+      "author": "Earl Stanley Harrison",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "As-we-forgive-them-Spanish-by-William-Le-Queux",
+      "title": "El tesoro misterioso",
+      "author": "William Le Queux",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Cosmografía-by-Amédée-Guillemin",
+      "title": "Cosmografía",
+      "author": "Amédée Guillemin",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Zalacaín-El-Aventurero-by-Pío-Baroja",
+      "title": "Zalacaín El Aventurero",
+      "author": "Pío Baroja",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Vida-y-obras-de-don-Diego-Velázquez-by-Picón",
+      "title": "Vida y obras de don Diego Velázquez",
+      "author": "Jacinto Octavio Picón",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Candido-o-El-Optimismo-by-Voltaire",
+      "title": "Candido, o El Optimismo",
+      "author": "Unknown",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Historia-de-los-Judíos-en-España-by-Castro",
+      "title": "Historia de los Judíos en España desde los tiempos de su establecimiento hasta principios del present siglo",
+      "author": "Adolfo de Castro",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Barraca-by-Vicente-Blasco-Ibáñez",
+      "title": "La Barraca",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-guardia-blanca-by-Sir-Arthur-Conan-Doyle",
+      "title": "La guardia blanca novela histórica escrita en inglés",
+      "author": "Sir Arthur Conan Doyle",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Mejor-Cocinera-by-Calleja",
+      "title": "La Mejor Cocinera Recetas de Cocina",
+      "author": "Calleja (pseudonym)",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Las-inquietudes-de-Shanti-Andia-by-Pío-Baroja",
+      "title": "Las inquietudes de Shanti Andia",
+      "author": "Pío Baroja",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Vuelta-de-Martín-Fierro-by-José-Hernández",
+      "title": "La Vuelta de Martín Fierro",
+      "author": "José Hernández",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Viajes-por-España-by-Pedro-Antonio-de-Alarcón",
+      "title": "Viajes por España",
+      "author": "Pedro Antonio de Alarcón",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-deseo-by-Hermann-Sudermann",
+      "title": "El deseo",
+      "author": "Hermann Sudermann",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Los-Bombardeos-Atomicos-de-Hiroshima-y-Nagasaki",
+      "title": "Los Bombardeos Atomicos de Hiroshima y Nagasaki",
+      "author": "United States. Army. Corps of Engineers. Manhattan District",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Novelas-y-teatro-by-Miguel-de-Cervantes-Saavedra",
+      "title": "Novelas y teatro",
+      "author": "Miguel de Cervantes Saavedra",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Los-argonautas-by-Vicente-Blasco-Ibáñez",
+      "title": "Los argonautas",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Heaths-Modern-Language-Series-Spanish-Short-Stor",
+      "title": "Heath's Modern Language Series: Spanish Short Stories",
+      "author": "Louise Reinhardt",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Comedias-El-remedio-en-la-desdicha-El-mejor-alca",
+      "title": "Comedias: El remedio en la desdicha; El mejor alcalde, el rey",
+      "author": "Lope de Vega",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-sombrero-de-tres-picos-by-Alarcón",
+      "title": "El sombrero de tres picos Historia verdadera de un sucedido que anda en romances escrita ahora tal y como pasó",
+      "author": "Pedro Antonio de Alarcón",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Sangre-y-arena-by-Vicente-Blasco-Ibáñez",
+      "title": "Sangre y arena",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-origen-del-pensamiento-by-Palacio-Valdés",
+      "title": "El origen del pensamiento",
+      "author": "Armando Palacio Valdés",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-transformación-de-las-razas-en-América",
+      "title": "La transformación de las razas en América",
+      "author": "Agustín Alvarez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-desheredada-by-Benito-Pérez-Galdós",
+      "title": "La desheredada",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Paginas-Sudamericanas-by-Helen-Phipps",
+      "title": "Paginas Sudamericanas",
+      "author": "Helen Phipps",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-nao-Santa-María-memória-de-la-Comisión-arqu",
+      "title": "La nao Santa María: memória de la Comisión arqueológica ejecutiva, 1892",
+      "author": "Spain. Comisión arqueológica ejecutiva",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Misericordia-by-Benito-Pérez-Galdós",
+      "title": "Misericordia",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Los-pescadores-de-Trépang-by-Emilio-Salgari",
+      "title": "Los pescadores de Trépang",
+      "author": "Emilio Salgari",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Novelas-de-Voltaire-Tomo-Primero-by-Voltaire",
+      "title": "Novelas de Voltaire — Tomo Primero",
+      "author": "Unknown",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-paraiso-de-las-mujeres-by-Blasco-Ibáñez",
+      "title": "El paraiso de las mujeres Novela",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Naufragios-de-Alvar-Núñez-Cabeza-de-Vaca-by-Vaca",
+      "title": "Naufragios de Alvar Núñez Cabeza de Vaca",
+      "author": "Alvar Núñez Cabeza de Vaca",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-niña-robada-by-Hendrik-Conscience",
+      "title": "La niña robada",
+      "author": "Hendrik Conscience",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Amaury-by-Alexandre-Dumas",
+      "title": "Amaury",
+      "author": "Alexandre Dumas",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Torquemada-en-la-hoguera-by-Benito-Pérez-Galdós",
+      "title": "Torquemada en la hoguera",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Doña-Clarines-y-Mañana-de-Sol",
+      "title": "Doña Clarines y Mañana de Sol",
+      "author": "Serafin Alvarez Quintero",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Pepita-Jiménez-by-Juan-Valera",
+      "title": "Pepita Jiménez",
+      "author": "Juan Valera",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "En-viaje-1881-1882-by-Miguel-Cané",
+      "title": "En viaje (1881-1882)",
+      "author": "Miguel Cané",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Cecilia-Valdés-o-la-Loma-del-Ángel-by-Villaverde",
+      "title": "Cecilia Valdés o la Loma del Ángel",
+      "author": "Cirilo Villaverde",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Filosofía-Fundamental-Tomo-II-by-Balmes",
+      "title": "Filosofía Fundamental, Tomo II",
+      "author": "Jaime Luciano Balmes",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Mare-nostrum-by-Vicente-Blasco-Ibáñez",
+      "title": "Mare nostrum",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Fígaro-by-Mariano-José-de-Larra",
+      "title": "Fígaro (Artículos selectos)",
+      "author": "Mariano José de Larra",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Cádiz-by-Benito-Pérez-Galdós",
+      "title": "Cádiz",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Mi-Ultimo-Adiós-by-José-Rizal",
+      "title": "Mi Ultimo Adiós",
+      "author": "José Rizal",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Zadig-by-Voltaire",
+      "title": "Zadig",
+      "author": "Unknown",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Amistad-funesta-by-José-Martí",
+      "title": "Amistad funesta Novela",
+      "author": "José Martí",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Arroz-y-tartana-by-Vicente-Blasco-Ibáñez",
+      "title": "Arroz y tartana",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Romance-de-lobos-comedia-barbara-by-Valle-Inclan",
+      "title": "Romance de lobos, comedia barbara",
+      "author": "Ramon del Valle-Inclan",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Un-viaje-de-novios-by-Pardo-Bazán",
+      "title": "Un viaje de novios",
+      "author": "Emilia Pardo Bazán",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-gaviota-by-Fernán-Caballero",
+      "title": "La gaviota",
+      "author": "Fernán Caballero",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Ariel-by-José-Enrique-Rodó",
+      "title": "Ariel",
+      "author": "José Enrique Rodó",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Catedral-by-Vicente-Blasco-Ibáñez",
+      "title": "La Catedral",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Viage-al-Parnaso-by-Miguel-de-Cervantes-Saavedra",
+      "title": "Viage al Parnaso La Numancia (Tragedia) y El Trato de Argel (Comedia)",
+      "author": "Miguel de Cervantes Saavedra",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-moza-de-cántaro-by-Lope-de-Vega",
+      "title": "La moza de cántaro",
+      "author": "Lope de Vega",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Un-paseo-por-Paris-retratos-al-natural-by-Barcia",
+      "title": "Un paseo por Paris, retratos al natural",
+      "author": "Roque Barcia",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Electra-by-Benito-Pérez-Galdós",
+      "title": "Electra",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-Mar-by-Jules-Michelet",
+      "title": "El Mar",
+      "author": "Jules Michelet",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Los-espectros-by-Leonid-Nikolayevich-Andreyev",
+      "title": "Los espectros Novelas breves",
+      "author": "Leonid Nikolayevich Andreyev",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Mindanao-Su-Historia-y-Geografía-by-Aguilar",
+      "title": "Mindanao: Su Historia y Geografía",
+      "author": "José Nieto Aguilar",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Tormento-by-Benito-Pérez-Galdós",
+      "title": "Tormento",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Filosofía-Fundamental-Tomo-IV-by-Balmes",
+      "title": "Filosofía Fundamental, Tomo IV",
+      "author": "Jaime Luciano Balmes",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Tribuna-by-condesa-de-Emilia-Pardo-Bazán",
+      "title": "La Tribuna",
+      "author": "Emilia Pardo Bazán",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Novela-Picaresca",
+      "title": "La Novela Picaresca",
+      "author": "Various",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Biografia-del-libertador-Simon-Bolívar-o-La-inde",
+      "title": "Biografia del libertador Simon Bolívar, o La independencia de la America del sud Resena historico-biografica",
+      "author": "L.C.",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-de-Bringas-by-Benito-Pérez-Galdós",
+      "title": "La de Bringas",
+      "author": "Benito Pérez Galdós",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Entre-naranjos-by-Vicente-Blasco-Ibáñez",
+      "title": "Entre naranjos",
+      "author": "Vicente Blasco Ibáñez",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Tratado-metódico-y-práctico-de-Materia-Médica-y-2",
+      "title": "Tratado metódico y práctico de Materia Médica y de Terapéutica, tomo primero",
+      "author": "Alexis Espanet",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Filosofía-Fundamental-Tomo-III-by-Balmes",
+      "title": "Filosofía Fundamental, Tomo III",
+      "author": "Jaime Luciano Balmes",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-infierno-del-amor-by-Fernández-y-González",
+      "title": "El infierno del amor leyenda fantastica",
+      "author": "Manuel Fernández y González",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Estudios-históricos-del-reinado-de-Felipe-II",
+      "title": "Estudios históricos del reinado de Felipe II",
+      "author": "Cesáreo Fernández Duro",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "El-Filibusterismo-by-José-Rizal",
+      "title": "El Filibusterismo (Continuación del Noli me tángere)",
+      "author": "José Rizal",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "La-Argentina-by-Martín-del-Barco-Centenera",
+      "title": "La Argentina La conquista del Rio de La Plata. Poema histórico",
+      "author": "Martín del Barco Centenera",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "Su-único-hijo-by-Leopoldo-Alas",
+      "title": "Su único hijo",
+      "author": "Leopoldo Alas",
+      "language": "es",
+      "cover": null
+    },
+    {
+      "slug": "la-divina-commedia-by-dante-alighieri",
+      "title": "La Divina Commedia",
+      "author": "Dante Alighieri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/la-divina-commedia-by-dante-alighieri.jpg"
+    },
+    {
+      "slug": "ricordi-di-parigi-by-edmondo-de-amicis",
+      "title": "Ricordi di Parigi",
+      "author": "Edmondo De Amicis",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/ricordi-di-parigi-by-edmondo-de-amicis.jpg"
+    },
+    {
+      "slug": "la-contessa-di-karolystria-by-antonio-ghislanzoni",
+      "title": "La Contessa di Karolystria",
+      "author": "Antonio Ghislanzoni",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/la-contessa-di-karolystria-by-antonio-ghislanzoni.jpg"
+    },
+    {
+      "slug": "Il-ritratto-del-diavolo",
+      "title": "Il ritratto del diavolo",
+      "author": "Anton Giulio Barrili",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Il-ritratto-del-diavolo.jpg"
+    },
+    {
+      "slug": "galatea-by-anton-giulio-barrili",
+      "title": "Galatea",
+      "author": "Anton Giulio Barrili",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/galatea-by-anton-giulio-barrili.jpg"
+    },
+    {
+      "slug": "Mattinate-Napoletane",
+      "title": "Mattinate Napoletane",
+      "author": "Salvatore Di Giacomo",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Mattinate-Napoletane.jpg"
+    },
+    {
+      "slug": "Maternità-by-Ada-Negri",
+      "title": "Maternità",
+      "author": "Ada Negri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Maternita-by-Ada-Negri.jpg"
+    },
+    {
+      "slug": "Dal-profondo-by-Ada-Negri",
+      "title": "Dal profondo",
+      "author": "Ada Negri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Dal-profondo-by-Ada-Negri.jpg"
+    },
+    {
+      "slug": "Garibaldi-by-Francesco-Crispi",
+      "title": "Garibaldi",
+      "author": "Francesco Crispi",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Garibaldi-by-Francesco-Crispi.jpg"
+    },
+    {
+      "slug": "Fatalità-by-Ada-Negri",
+      "title": "Fatalità",
+      "author": "Ada Negri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Fatalita-by-Ada-Negri.jpg"
+    },
+    {
+      "slug": "La-Repubblica-di-Venezia-e-la-Persia-by-Berchet",
+      "title": "La Repubblica di Venezia e la Persia",
+      "author": "Guglielmo Berchet",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/La-Repubblica-di-Venezia-e-la-Persia-by-Berchet.jpg"
+    },
+    {
+      "slug": "L'amore-di-Loredana-by-Luciano-Zùccoli",
+      "title": "L'amore di Loredana",
+      "author": "Luciano Zùccoli",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Lamore-di-Loredana.jpg"
+    },
+    {
+      "slug": "Esilio-by-Ada-Negri",
+      "title": "Esilio",
+      "author": "Ada Negri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Esilio-by-Ada-Negri.jpg"
+    },
+    {
+      "slug": "San-Pantaleone-by-Gabriele-DAnnunzio",
+      "title": "San Pantaleone",
+      "author": "Gabriele D'Annunzio",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/San-Pantaleone-by-Gabriele-DAnnunzio.jpg"
+    },
+    {
+      "slug": "Ciarle-e-macchiette-by-Luigi-Arnaldo-Vassallo",
+      "title": "Ciarle e macchiette",
+      "author": "Luigi Arnaldo Vassallo",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ciarle-e-macchiette-by-Luigi-Arnaldo-Vassallo.jpg"
+    },
+    {
+      "slug": "Novelle-e-paesi-valdostani-by-Giuseppe-Giacosa",
+      "title": "Novelle e paesi valdostani",
+      "author": "Giuseppe Giacosa",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Novelle-e-paesi-valdostani-by-Giuseppe-Giacosa.jpg"
+    },
+    {
+      "slug": "Tempeste-by-Ada-Negri",
+      "title": "Tempeste",
+      "author": "Ada Negri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Tempeste-by-Ada-Negri.jpg"
+    },
+    {
+      "slug": "Dal-molino-di-Cerbaia-a-Cala-Martina-by-Guelfi",
+      "title": "Dal molino di Cerbaia a Cala Martina Notizie inedite sulla vita di Giuseppe Garibaldi",
+      "author": "Guelfo Guelfi",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Dal-molino-di-Cerbaia-a-Cala-Martina-by-Guelfi.jpg"
+    },
+    {
+      "slug": "Sciogli-la-treccia-Maria-Maddalena-by-Verona",
+      "title": "Sciogli la treccia, Maria Maddalena",
+      "author": "Guido da Verona",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Sciogli-la-treccia-Maria-Maddalena-by-Verona.jpg"
+    },
+    {
+      "slug": "Orazioni-by-Ada-Negri",
+      "title": "Orazioni",
+      "author": "Ada Negri",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Orazioni-by-Ada-Negri.jpg"
+    },
+    {
+      "slug": "Dr-Teodoro-Herzl-by-Dante-A-Lattes",
+      "title": "Dr. Teodoro Herzl",
+      "author": "Dante A. Lattes",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/Dr-Teodoro-Herzl-by-Dante-A-Lattes.jpg"
+    },
+    {
+      "slug": "La-famiglia-Bonifazio-by-Antonio-Caccianiga",
+      "title": "La famiglia Bonifazio",
+      "author": "Antonio Caccianiga",
+      "language": "it",
+      "cover": "https://www.loyalbooks.com/image/layout2/La-famiglia-Bonifazio-by-Antonio-Caccianiga.jpg"
+    },
+    {
+      "slug": "La-Tempesta-by-William-Shakespeare",
+      "title": "La Tempesta",
+      "author": "William Shakespeare",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Lezioni-e-Racconti-per-i-bambini-by-Ida-Baccini",
+      "title": "Lezioni e Racconti per i bambini",
+      "author": "Ida Baccini",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Il-libro-della-cucina-del-sec-XIV",
+      "title": "Il libro della cucina del sec. XIV",
+      "author": "Anonymous",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Racconti-fantastici-by-Iginio-Ugo-Tarchetti",
+      "title": "Racconti fantastici",
+      "author": "Iginio Ugo Tarchetti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-manifesti-del-futurismo-by-Marinetti",
+      "title": "I manifesti del futurismo",
+      "author": "Filippo Tommaso Marinetti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Racconti-umoristici-by-Iginio-Ugo-Tarchetti",
+      "title": "Racconti umoristici In cerca di morte re per ventiquattrore",
+      "author": "Iginio Ugo Tarchetti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Libro-proibito-by-Antonio-Ghislanzoni",
+      "title": "Libro proibito",
+      "author": "Antonio Ghislanzoni",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Delitto-ideale-by-Luigi-Capuana",
+      "title": "Delitto ideale",
+      "author": "Luigi Capuana",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Enrico-IV-by-Luigi-Pirandello",
+      "title": "Enrico IV",
+      "author": "Luigi Pirandello",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Le-Amanti-by-Matilde-Serao",
+      "title": "Le Amanti",
+      "author": "Matilde Serao",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-favorita-del-Mahdi-by-Emilio-Salgari",
+      "title": "La favorita del Mahdi",
+      "author": "Emilio Salgari",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Passeggiate-per-l'Italia-vol-1-by-Gregorovius",
+      "title": "Passeggiate per l'Italia, vol. 1",
+      "author": "Ferdinand Gregorovius",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-Mille-by-Giuseppe-Garibaldi",
+      "title": "I Mille",
+      "author": "Giuseppe Garibaldi",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "First-Italian-Readings",
+      "title": "First Italian Readings",
+      "author": "Various",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Costituzione-della-Repubblica-Italiana-e-Statuti-C",
+      "title": "Costituzione della Repubblica Italiana e Statuti Costituzionali del Regno d'Italia",
+      "author": "Anonymous",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Igiene-dei-piaceri-secondo-le-età-i-temperamenti",
+      "title": "Igiene dei piaceri secondo le età, i temperamenti e le stagioni",
+      "author": "A. (Auguste) Debay",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-misteri-del-castello-dUdolfo-vol-1",
+      "title": "I misteri del castello d'Udolfo, vol. 1",
+      "author": "Ann Ward Radcliffe",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Ricordi-di-Londra-by-De-Amicis-and-Simonin",
+      "title": "Ricordi di Londra",
+      "author": "Edmondo De Amicis",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Le-rive-della-Bormida-nel-1794-by-Abba",
+      "title": "Le rive della Bormida nel 1794",
+      "author": "Giuseppe Cesare Abba",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "LInnocente-by-Gabriele-DAnnunzio",
+      "title": "L'Innocente",
+      "author": "Gabriele D'Annunzio",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Venere-ed-Imene-al-tribunale-della-penitenza-manu",
+      "title": "Venere ed Imene al tribunale della penitenza: manuale dei confessori",
+      "author": "J. B. (Jean Baptiste) Bouvier",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Della-storia-dItalia-v-1-2-by-Balbo",
+      "title": "Della storia d'Italia, v. 1-2 dalle origini fino ai nostri giorni - Sommario",
+      "author": "Cesare Balbo",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Le-Laude-by-da-Todi-Jacopone",
+      "title": "Le Laude secondo la stampa fiorentina del 1490",
+      "author": "da Todi Jacopone",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Le-monete-di-Venezia-descritte-ed-illustrate-da-Ni",
+      "title": "Le monete di Venezia descritte ed illustrate da Nicolò Papadopoli Aldobrandini, v. 1 Con disegni di C. Kunz",
+      "author": "Nicolò Papadopoli Aldobrandini",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Abissinia-by-Giuseppe-Vigoni",
+      "title": "Abissinia Giornale di un viaggio",
+      "author": "Giuseppe Vigoni",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-Gioconda-by-Gabriele-DAnnunzio",
+      "title": "La Gioconda",
+      "author": "Gabriele D'Annunzio",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Bollettino-del-Club-Alpino-Italiano-1895-96",
+      "title": "Bollettino del Club Alpino Italiano 1895-96 Vol. 29 Num. 62",
+      "author": "Various",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Le-monete-dei-possedimenti-veneziani-di-oltremare",
+      "title": "Le monete dei possedimenti veneziani di oltremare e di terraferma descritte ed illustrate da Vincenzo Lazari",
+      "author": "Vincenzo Lazari",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-strega-by-Giovan-Francesco-Pico-della-Mirandola",
+      "title": "La strega ovvero degli inganni de' demoni",
+      "author": "Giovan Francesco Pico della Mirandola",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Cappidazzu-paga-tuttu-by-Martoglio-and-Pirandello",
+      "title": "Cappidazzu paga tuttu Teatro dialettale siciliano volume settimo",
+      "author": "Luigi Pirandello",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Isaotta-Guttadàuro-ed-altre-poesie-by-DAnnunzio",
+      "title": "Isaotta Guttadàuro ed altre poesie",
+      "author": "Gabriele D'Annunzio",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Gli-avvenimenti-di-Sicila-e-le-loro-cause",
+      "title": "Gli avvenimenti di Sicila e le loro cause",
+      "author": "Napoleone Colajanni",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Marocco-by-Edmondo-De-Amicis",
+      "title": "Marocco",
+      "author": "Edmondo De Amicis",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Scritti-di-Giuseppe-Mazzini-Politica-ed-Economia",
+      "title": "Scritti di Giuseppe Mazzini, Politica ed Economia, Vol. I",
+      "author": "Giuseppe Mazzini",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Spagna-by-Edmondo-De-Amicis",
+      "title": "Spagna",
+      "author": "Edmondo De Amicis",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "L'infedele-by-Matilde-Serao",
+      "title": "L'infedele",
+      "author": "Matilde Serao",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Libro-della-divina-dottrina-by-Catherine",
+      "title": "Libro della divina dottrina Dialogo della divina provvidenza",
+      "author": "of Siena Catherine",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Il-fallo-duna-donna-onesta-by-Enrico-Castelnuovo",
+      "title": "Il fallo d'una donna onesta",
+      "author": "Enrico Castelnuovo",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Le-maccheronee-by-Teofilo-Folengo",
+      "title": "Le maccheronee Zanitonella - Baldus - Moscheide - Epigrammata",
+      "author": "Teofilo Folengo",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Olanda-by-Edmondo-De-Amicis",
+      "title": "Olanda",
+      "author": "Edmondo De Amicis",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Olocausto-by-Alfredo-Oriani",
+      "title": "Olocausto",
+      "author": "Alfredo Oriani",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Cabiria-by-Gabriele-DAnnunzio",
+      "title": "Cabiria Visione storica del terzo secolo A. C.",
+      "author": "Gabriele D'Annunzio",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "L'Argentina-vista-come-è-by-Luigi-Barzini",
+      "title": "L'Argentina vista come è",
+      "author": "Luigi Barzini",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "L'aeroplano-del-papa-by-Filippo-Tommaso-Marinetti",
+      "title": "L'aeroplano del papa Romanzo profetico in versi liberi",
+      "author": "Filippo Tommaso Marinetti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-Vita-Sul-Pianeta-Marte-by-G-V-Schiaparelli",
+      "title": "La Vita Sul Pianeta Marte",
+      "author": "G. V. (Giovanni Virginio) Schiaparelli",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-misteri-del-castello-dUdolfo-vol-2",
+      "title": "I misteri del castello d'Udolfo, vol. 2",
+      "author": "Ann Ward Radcliffe",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Scritti-di-Giuseppe-Mazzini-by-Giuseppe-Mazzini",
+      "title": "Scritti di Giuseppe Mazzini Politica ed economia, volume secondo",
+      "author": "Giuseppe Mazzini",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Fior-di-passione-by-Matilde-Serao",
+      "title": "Fior di passione",
+      "author": "Matilde Serao",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Tra-cielo-e-terra-by-Anton-Giulio-Barrili",
+      "title": "Tra cielo e terra",
+      "author": "Anton Giulio Barrili",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Il-dolore-nell'arte-by-Antonio-Fogazzaro",
+      "title": "Il dolore nell'arte",
+      "author": "Antonio Fogazzaro",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-rivoluzione-di-Milano-dell'Aprile-1814",
+      "title": "La rivoluzione di Milano dell'Aprile 1814",
+      "author": "Leopoldo Armaroli",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Romanzo-duna-signorina-per-bene-by-Vertua-Gentile",
+      "title": "Romanzo d'una signorina per bene",
+      "author": "Anna Vertua Gentile",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-pazzi-by-Roberto-Bracco",
+      "title": "I pazzi",
+      "author": "Roberto Bracco",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Speranze-e-glorie-Le-tre-capitali-Torino-Firenz",
+      "title": "Speranze e glorie; Le tre capitali: Torino, Firenze, Roma",
+      "author": "Edmondo De Amicis",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Chiose-alla-cantica-dell'Inferno-di-Dante-Alighier",
+      "title": "Chiose alla cantica dell'Inferno di Dante Alighieri pubblicate per la prima volta in corretta lezione con riscontri e fac-simili di codici, e precedute da una indagine critica",
+      "author": "Jacopo Alighieri",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-misteri-del-castello-dUdolfo-vol-3",
+      "title": "I misteri del castello d'Udolfo, vol. 3",
+      "author": "Ann Ward Radcliffe",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Compendio-di-Chimica-Fisiologica-by-Cominelli",
+      "title": "Compendio di Chimica Fisiologica",
+      "author": "Alfredo Cominelli",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Lalcòva-dacciaio-by-Filippo-Tommaso-Marinetti",
+      "title": "L'alcòva d'acciaio Romanzo vissuto",
+      "author": "Filippo Tommaso Marinetti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Dialogo-sopra-la-generatione-de-venti-baleni-tuo",
+      "title": "Dialogo sopra la generatione de venti, baleni, tuoni, fulgori, fiumi, laghi, valli et montagne",
+      "author": "Camillo Agrippa",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-guerra-del-Vespro-Siciliano-vol-1-by-Amari",
+      "title": "La guerra del Vespro Siciliano vol. 1 Un periodo delle storie Siciliane del secolo XIII",
+      "author": "Michele Amari",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Il-processo-e-l'assoluzione-di-Mafarka-il-Futuris",
+      "title": "Il processo e l'assoluzione di \"Mafarka il Futurista\"",
+      "author": "Salvatore Barzilai",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "A-vilanza-by-Nino-Martoglio-and-Luigi-Pirandello",
+      "title": "'A vilanza Teatro dialettale siciliano, volume settimo",
+      "author": "Luigi Pirandello",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Poesie-scelte-by-Silvio-Pellico",
+      "title": "Poesie scelte",
+      "author": "Silvio Pellico",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Abrakadabra-by-Antonio-Ghislanzoni",
+      "title": "Abrakadabra Storia dell'avvenire",
+      "author": "Antonio Ghislanzoni",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-misteri-del-castello-dUdolfo-vol-4",
+      "title": "I misteri del castello d'Udolfo, vol. 4",
+      "author": "Ann Ward Radcliffe",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Lucifero-by-Mario-Rapisardi",
+      "title": "Lucifero",
+      "author": "Mario Rapisardi",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Sonetti-by-Cesare-Pascarella",
+      "title": "Sonetti",
+      "author": "Cesare Pascarella",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "I-divoratori-by-Annie-Vivanti",
+      "title": "I divoratori",
+      "author": "Annie Vivanti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Tre-racconti-sentimentali-by-Paolo-Bettoni",
+      "title": "Tre racconti sentimentali",
+      "author": "Paolo Bettoni",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Ugo-Scene-del-secolo-X-by-Ambrogio-Bazzero",
+      "title": "Ugo: Scene del secolo X",
+      "author": "Ambrogio Bazzero",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Vecchie-Storie-by-Emilio-De-Marchi",
+      "title": "Vecchie Storie",
+      "author": "Emilio De Marchi",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Il-colore-del-tempo-by-Federico-De-Roberto",
+      "title": "Il colore del tempo",
+      "author": "Federico De Roberto",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "L'Immorale-by-Enrico-Annibale-Butti",
+      "title": "L'Immorale Racconto",
+      "author": "Enrico Annibale Butti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Distruzione-by-Filippo-Tommaso-Marinetti",
+      "title": "Distruzione Poema Futurista",
+      "author": "Filippo Tommaso Marinetti",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Novelle-lombarde-by-Avancinio-Avancini",
+      "title": "Novelle lombarde",
+      "author": "Avancinio Avancini",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Assunta-Spina-by-Salvatore-Di-Giacomo",
+      "title": "Assunta Spina In due atti",
+      "author": "Salvatore Di Giacomo",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "Gli-amanti-by-Matilde-Serao",
+      "title": "Gli amanti pastelli",
+      "author": "Matilde Serao",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "La-pergamena-distrutta-by-Virginia-Mulazzi",
+      "title": "La pergamena distrutta Romanzo del secolo XVI",
+      "author": "Virginia Mulazzi",
+      "language": "it",
+      "cover": null
+    },
+    {
+      "slug": "die-leiden-des-jungen-werthers-by-johann-wolfgang-von-goethe",
+      "title": "Die Leiden des jungen Werther",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Leiden-des-jungen-Werther.jpg"
+    },
+    {
+      "slug": "effi-briest-by-theodor-fontane",
+      "title": "Effi Briest",
+      "author": "Theodor Fontane",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Effi-Briest.jpg"
+    },
+    {
+      "slug": "Alices-Abenteuer-im-Wunderland",
+      "title": "Alice's Abenteuer im Wunderland",
+      "author": "Lewis Carroll",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Alices-Abenteuer-im-Wunderland.jpg"
+    },
+    {
+      "slug": "briefe-aus-dem-gefangnis-by-rosa-luxemburg",
+      "title": "Briefe aus dem Gefängnis",
+      "author": "Rosa Luxemburg",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/briefe_luxemburg.jpg"
+    },
+    {
+      "slug": "woyzeck_by_georg_buechner",
+      "title": "Woyzeck",
+      "author": "Georg Büchner",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Woyzeck-by-georg-buechner.jpg"
+    },
+    {
+      "slug": "gotzendammerung-by-friedrich-nietzsche",
+      "title": "Götzendämmerung",
+      "author": "Friedrich Nietzsche",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/gotzendammerung-by-friedrich-nietzsche.jpg"
+    },
+    {
+      "slug": "das-nibelungenlied-by-karl-joseph-simrock",
+      "title": "Das Nibelungenlied",
+      "author": "Karl Joseph Simrock",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/nibelungenlied.jpg"
+    },
+    {
+      "slug": "max-und-moritz-by-wilhelm-busch",
+      "title": "Max und Moritz",
+      "author": "Wilhelm Busch",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Max-und-Moritz-Wilhelm-Busch.jpg"
+    },
+    {
+      "slug": "die-verwandlung-von-franz-kafka",
+      "title": "Die Verwandlung",
+      "author": "Franz Kafka",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/die-verwandlung-von-franz-kafka.jpg"
+    },
+    {
+      "slug": "romische-geschichte-buch-1-by-theodor-mommsen",
+      "title": "Römische Geschichte Buch 1",
+      "author": "Theodor Mommsen",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Romische-Geschichte-Buch-1.jpg"
+    },
+    {
+      "slug": "deutschland-ein-wintermaerchen-by-heinrich-heine",
+      "title": "Deutschland. Ein Wintermärchen",
+      "author": "Heinrich Heine",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Deutschland-Ein-Wintermarchen.jpg"
+    },
+    {
+      "slug": "heidis-lehr-und-wanderjahre-von-johanna-spyri",
+      "title": "Heidis Lehr- und Wanderjahre",
+      "author": "Johanna Spyri",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Heidis-Lehr-und-Wanderjahre.jpg"
+    },
+    {
+      "slug": "Die-Abenteuer-Tom-Sawyers-by-Mark-Twain",
+      "title": "Die Abenteuer Tom Sawyers",
+      "author": "Mark Twain",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Die-Abenteuer-Tom-Sawyers.jpg"
+    },
+    {
+      "slug": "der-struwwelpeter-von-heinrich-hoffman",
+      "title": "Der Struwwelpeter",
+      "author": "Heinrich Hoffmann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Struwwelpeter-Heinrich-Hoffmann.jpg"
+    },
+    {
+      "slug": "nachtstuecke-by-eta-hoffmann",
+      "title": "Nachtstücke",
+      "author": "E. T. A. Hoffmann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Nachtstucke-Hoffmann.jpg"
+    },
+    {
+      "slug": "Kabale-und-Liebe-by-Friedrich-Schiller",
+      "title": "Kabale und Liebe - Ein bürgerliches Trauerspiel",
+      "author": "Friedrich Schiller",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Kabale-und-Liebe-Ein-burgerliches-Trauerspiel.jpg"
+    },
+    {
+      "slug": "die-wahlverwandtschaften-by-johann-wolfgang-von-goethe",
+      "title": "Die Wahlverwandtschaften",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/wahlverwandtschaften.jpg"
+    },
+    {
+      "slug": "marchen-almanach-auf-das-jahr-1826-by-wilhelm-hauff",
+      "title": "Märchen-Almanach auf das Jahr 1826",
+      "author": "Wilhelm Hauff",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/marchen1826.jpg"
+    },
+    {
+      "slug": "in-der-strafkolonie-by-franz-kafka",
+      "title": "In der Strafkolonie",
+      "author": "Franz Kafka",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/in-der-strafkolonie-by-franz-kafka.jpg"
+    },
+    {
+      "slug": "heidi-kann-brauchen-was-es-gelernt-hat-by-johanna-spyri",
+      "title": "Heidi kann brauchen, was es gelernt hat",
+      "author": "Johanna Spyri",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/heidi_2.jpg"
+    },
+    {
+      "slug": "Über-Psychoanalyse-by-Sigmund-Freud",
+      "title": "Über Psychoanalyse",
+      "author": "Sigmund Freud",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Psychoanalyse.jpg"
+    },
+    {
+      "slug": "reise-durch-england-by-johanna-schopenhauer",
+      "title": "Reise durch England und Schottland",
+      "author": "Johanna Schopenhauer",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Reise-durch-England-und-Schottland.jpg"
+    },
+    {
+      "slug": "ein-landarzt-by-franz-kafka",
+      "title": "Ein Landarzt. Kleine Erzählungen",
+      "author": "Franz Kafka",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ein-Landarzt-Kleine-Erzahlungen.jpg"
+    },
+    {
+      "slug": "casanovas-heimfahrt-by-arthur-schnitzler",
+      "title": "Casanovas Heimfahrt",
+      "author": "Arthur Schnitzler",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/casanovas-heimfahrt-by-arthur-schnitzler.jpg"
+    },
+    {
+      "slug": "wilhelm-meisters-lehrjahre-by-johann-wolfgang-von-goethe",
+      "title": "Wilhelm Meisters Lehrjahre",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Wilhelm-Meisters-Lehrjahre.jpg"
+    },
+    {
+      "slug": "reineke-fuchs-by-johann-wolfgang-von-goethe",
+      "title": "Reineke Fuchs",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Reineke-Fuchs.jpg"
+    },
+    {
+      "slug": "bulemanns-haus-by-theodor-storm",
+      "title": "Bulemanns Haus",
+      "author": "Theodor Storm",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Bulemanns-Haus.jpg"
+    },
+    {
+      "slug": "Weihnachtsabend-Eine-Geistergeschichte",
+      "title": "Der Weihnachtsabend - Eine Geistergeschichte",
+      "author": "Charles Dickens",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Weihnachtsabend-Eine-Geistergeschichte.jpg"
+    },
+    {
+      "slug": "das-maerchen-von-dem-myrtenfraeulein-by-clemens-brentano",
+      "title": "Das Märchen von dem Myrtenfräulein",
+      "author": "Clemens Brentano",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Marchen-von-dem-Myrtenfraulein.jpg"
+    },
+    {
+      "slug": "aquis-submersus-by-theodor-storm",
+      "title": "Aquis submersus",
+      "author": "Theodor Storm",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Aquis-submersus.jpg"
+    },
+    {
+      "slug": "Buch-der-Lieder",
+      "title": "Buch der Lieder",
+      "author": "Heinrich Heine",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Buch-der-Lieder.jpg"
+    },
+    {
+      "slug": "novelle-by-johann-wolfgang-von-goethe",
+      "title": "Novelle",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/novelle-by-johann-wolfgang-von-goethe.jpg"
+    },
+    {
+      "slug": "Wilhelm-Meisters-Wanderjahre-Band-1-by-Goethe",
+      "title": "Wilhelm Meisters Wanderjahre oder die Entsagenden",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Wilhelm-Meisters-Wanderjahre-oder-die-Entsagenden.jpg"
+    },
+    {
+      "slug": "unterhaltungen-deutscher-ausgewanderten-by-goethe",
+      "title": "Unterhaltungen deutscher Ausgewanderten",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Unterhaltungen-deutscher-Ausgewanderten.jpg"
+    },
+    {
+      "slug": "Jungfrau-von-Orleans",
+      "title": "Die Jungfrau von Orleans",
+      "author": "Friedrich Schiller",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Jungfrau-von-Orleans.jpg"
+    },
+    {
+      "slug": "roemische-geschichte-buch-8-by-theodor-mommsen",
+      "title": "Roemische Geschichte Buch 8",
+      "author": "Theodor Mommsen",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Roemische-Geschichte-Buch-8.jpg"
+    },
+    {
+      "slug": "Mann-im-Mond-oder-Der-Zug-des-Herzens",
+      "title": "Der Mann im Mond oder Der Zug des Herzens ist des Schicksals Stimme",
+      "author": "Wilhelm Hauff",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Mann-im-Mond-oder-Der-Zug-des-Herzens.jpg"
+    },
+    {
+      "slug": "Auswahl-aus-Die-Leute-von-Seldwyla",
+      "title": "Auswahl aus 'Die Leute von Seldwyla'",
+      "author": "Gottfried Keller",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Auswahl-aus-Die-Leute-von-Seldwyla.jpg"
+    },
+    {
+      "slug": "der-spiegel-des-cyprianus-by-theodor-storm",
+      "title": "Der Spiegel des Cyprianus",
+      "author": "Theodor Storm",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Spiegel-des-Cyprianus.jpg"
+    },
+    {
+      "slug": "Unterm-Birnbaum",
+      "title": "Unterm Birnbaum",
+      "author": "Theodor Fontane",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Unterm-Birnbaum.jpg"
+    },
+    {
+      "slug": "Hermann-und-Dorothea",
+      "title": "Hermann und Dorothea",
+      "author": "Johann Wolfgang von Goethe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Hermann-und-Dorothea.jpg"
+    },
+    {
+      "slug": "Othello-Harry-Harrison",
+      "title": "Othello",
+      "author": "Wilhelm Hauff",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Othello-Harry-Harrison.jpg"
+    },
+    {
+      "slug": "Familie-Pfaffling",
+      "title": "Die Familie Pfäffling",
+      "author": "Agnes Sapper",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Familie-Pfaffling.jpg"
+    },
+    {
+      "slug": "menschen-der-ehe-by-john-henry-mackay",
+      "title": "Menschen der Ehe",
+      "author": "John Henry Mackay",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/menschen-der-ehe-by-john-henry-mackay.jpg"
+    },
+    {
+      "slug": "Bhagavadgita-Des-Erhabenen-Sang-by-Schroeder",
+      "title": "Bhagavadgita - des Erhabenen Sang",
+      "author": "Leopold von Schroeder",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Bhagavadgita-des-Erhabenen-Sang.jpg"
+    },
+    {
+      "slug": "Caspar-Hauser-by-Jakob-Wassermann",
+      "title": "Caspar Hauser oder die Traegheit des Herzens",
+      "author": "Jakob Wassermann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Caspar-Hauser-oder-die-Traegheit-des-Herzens.jpg"
+    },
+    {
+      "slug": "Der-Bär-by-Anton-Pavlovich-Chekhov",
+      "title": "Der Bär",
+      "author": "Anton Tschechow",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Der-Baer.jpg"
+    },
+    {
+      "slug": "In-Stahlgewittern-by-Ernst-Jünger",
+      "title": "In Stahlgewittern Aus dem Tagebuch eines Stoßtruppführers",
+      "author": "Ernst Jünger",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/In-Stahlgewittern-by-Ernst-Junger.jpg"
+    },
+    {
+      "slug": "Der-arme-Spielmann-by-Franz-Grillparzer",
+      "title": "Der Arme Spielmann",
+      "author": "Franz Grillparzer",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Der-Arme-Spielmann.jpg"
+    },
+    {
+      "slug": "Der-Mann-im-Nebel-by-Gustav-Falke",
+      "title": "Der Mann im Nebel",
+      "author": "Gustav Falke",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Der-Mann-im-Nebel.jpg"
+    },
+    {
+      "slug": "Das-Urteil-by-Franz-Kafka",
+      "title": "Das Urteil Eine Geschichte",
+      "author": "Franz Kafka",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Das-Urteil-by-Franz-Kafka.jpg"
+    },
+    {
+      "slug": "Die-schönsten-Geschichten-der-Lagerlöf",
+      "title": "Das Mädchen vom Moorhof",
+      "author": "Selma Lagerlöf",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Das-Maedchen-vom-Moorhof.jpg"
+    },
+    {
+      "slug": "Huldigung-der-Kunste",
+      "title": "Die Huldigung der Künste",
+      "author": "Friedrich Schiller",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Huldigung-der-Kunste.jpg"
+    },
+    {
+      "slug": "Grundgedanken-über-Krieg-und-Kriegführung",
+      "title": "Grundgedanken über Krieg und Kriegführung",
+      "author": "Karl von Clausewitz",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Grundgedanken-uber-Krieg-und-Kriegfuhrung.jpg"
+    },
+    {
+      "slug": "Aus-dem-Leben-eines-Taugenichts-by-Eichendorff",
+      "title": "Aus dem Leben eines Taugenichts Novelle",
+      "author": "Joseph von Eichendorff",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Aus-dem-Leben-eines-Taugenichts-by-Eichendorff.jpg"
+    },
+    {
+      "slug": "Professor-Unrat-oder-Das-Ende-eines-Tyrannen",
+      "title": "Professor Unrat oder Das Ende eines Tyrannen",
+      "author": "Heinrich Mann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Professor-Unrat-oder-Das-Ende-eines-Tyrannen.jpg"
+    },
+    {
+      "slug": "Arme-Leute-by-Fjodor-M-Dostojewski",
+      "title": "Arme Leute",
+      "author": "Fjodor M. Dostojewski",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Arme-Leute-by-Fjodor-M-Dostojewski.jpg"
+    },
+    {
+      "slug": "Führer-für-Pilzfreunde-by-Edmund-Michael",
+      "title": "Führer für Pilzfreunde",
+      "author": "Edmund Michael",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Fuhrer-fur-Pilzfreunde-by-Edmund-Michael.jpg"
+    },
+    {
+      "slug": "Heimatlos-by-Johanna-Spyri",
+      "title": "Heimatlos - Geschichten für Kinder und auch für solche, welche die Kinder lieb haben",
+      "author": "Johanna Spyri",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Heimatlos-Geschichten.jpg"
+    },
+    {
+      "slug": "Drei-Meister-by-Stefan-Zweig",
+      "title": "Drei Meister Balzac. Dickens. Dostojewski",
+      "author": "Stefan Zweig",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Drei-Meister-by-Stefan-Zweig.jpg"
+    },
+    {
+      "slug": "Der-kleine-Herr-Friedemann-by-Thomas-Mann",
+      "title": "Der kleine Herr Friedemann Novellen",
+      "author": "Thomas Mann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Der-kleine-Herr-Friedemann-by-Thomas-Mann.jpg"
+    },
+    {
+      "slug": "Königliche-Hoheit-by-Thomas-Mann",
+      "title": "Königliche Hoheit Roman",
+      "author": "Thomas Mann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Konigliche-Hoheit-by-Thomas-Mann.jpg"
+    },
+    {
+      "slug": "Reigen-by-Arthur-Schnitzler",
+      "title": "Reigen Zehn Dialoge",
+      "author": "Arthur Schnitzler",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Reigen-by-Arthur-Schnitzler.jpg"
+    },
+    {
+      "slug": "Kasperle-auf-Reisen-by-Josephine-Siebe",
+      "title": "Kasperle auf Reisen",
+      "author": "Josephine Siebe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Kasperle-auf-Reisen.jpg"
+    },
+    {
+      "slug": "Totem-und-Tabu-by-Sigmund-Freud",
+      "title": "Totem und Tabu Einige Übereinstimmungen im Seelenleben der Wilden und der Neurotiker",
+      "author": "Sigmund Freud",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Totem-und-Tabu-by-Sigmund-Freud.jpg"
+    },
+    {
+      "slug": "Galgenlieder-nebst-dem-Gingganz-by-Morgenstern",
+      "title": "Galgenlieder nebst dem 'Gingganz'",
+      "author": "Christian Morgenstern",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Galgenlieder-nebst-dem-Gingganz-by-Morgenstern.jpg"
+    },
+    {
+      "slug": "Gedichte-und-Sprüche-in-Auswahl-by-Vogelweide",
+      "title": "Gedichte und Sprüche in Auswahl",
+      "author": "Walther von der Vogelweide",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Gedichte-und-Spruche-in-Auswahl-by-Vogelweide.jpg"
+    },
+    {
+      "slug": "Märchen-und-Erzählungen-für-Anfänger-Erster-T",
+      "title": "Märchen und Erzählungen für Anfänger. Erster Teil",
+      "author": "Hélène A. Guerber",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Marchen-und-Erzahlungen-fur-Anfanger-Erster-T.jpg"
+    },
+    {
+      "slug": "Die-Stadt-ohne-Juden-by-Hugo-Bettauer",
+      "title": "Stadt ohne Juden",
+      "author": "Hugo Bettauer",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Die-Stadt-ohne-Juden-by-Hugo-Bettauer.jpg"
+    },
+    {
+      "slug": "Macbeth-by-William-Shakespeare-5",
+      "title": "Macbeth (Deutsch)",
+      "author": "William Shakespeare",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Tragedy-of-Macbeth-William-Shakespeare.jpg"
+    },
+    {
+      "slug": "Narzißmus-als-Doppelrichtung-by-Andreas-Salomé",
+      "title": "Narzißmus als Doppelrichtung",
+      "author": "Lou Andreas-Salomé",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Narzissmus-als-Doppelrichtung-by-Andreas-Salome.jpg"
+    },
+    {
+      "slug": "König-Nußknacker-und-der-arme-Reinhold",
+      "title": "König Nußknacker und der arme Reinhold Ein Kindermährchen in Bildern",
+      "author": "Heinrich Hoffmann",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Konig-Nussknacker-und-der-arme-Reinhold.jpg"
+    },
+    {
+      "slug": "Über-die-Schönheit-häßlicher-Bilder-by-Brod",
+      "title": "Über die Schönheit häßlicher Bilder Ein Vademecum für Romantiker unserer Zeit",
+      "author": "Max Brod",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Uber-die-Schonheit-hasslicher-Bilder-by-Brod.jpg"
+    },
+    {
+      "slug": "Wallensteins-Lager-by-Friedrich-Schiller",
+      "title": "Wallensteins Lager",
+      "author": "Friedrich Schiller",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Wallensteins-Lager-by-Friedrich-Schiller.jpg"
+    },
+    {
+      "slug": "Schach-von-Wuthenow-by-Theodor-Fontane",
+      "title": "Schach von Wuthenow Erzählung aus der Zeit des Regiments Gensdarmes",
+      "author": "Theodor Fontane",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Schach-von-Wuthenow-by-Theodor-Fontane.jpg"
+    },
+    {
+      "slug": "Buch-von-der-Deutschen-Poeterey-by-Martin-Opitz",
+      "title": "Buch von der Deutschen Poeterey",
+      "author": "Martin Opitz",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Buch-von-der-Deutschen-Poeterey-by-Martin-Opitz.jpg"
+    },
+    {
+      "slug": "Das-Trottelbuch-by-Franz-Jung",
+      "title": "Das Trottelbuch",
+      "author": "Franz Jung",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Das-Trottelbuch-by-Franz-Jung.jpg"
+    },
+    {
+      "slug": "Kasperle-auf-Burg-Himmelhoch-by-Josephine-Siebe",
+      "title": "Kasperle auf Burg Himmelhoch",
+      "author": "Josephine Siebe",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Kasperle-auf-Burg-Himmelhoch-by-Josephine-Siebe.jpg"
+    },
+    {
+      "slug": "Kant-und-Goethe-by-Georg-Simmel",
+      "title": "Kant und Goethe",
+      "author": "Georg Simmel",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Kant-und-Goethe-by-Georg-Simmel.jpg"
+    },
+    {
+      "slug": "Sekunde-durch-Hirn-by-Melchior-Vischer",
+      "title": "Sekunde durch Hirn Ein unglaublich schnell rotierender Roman",
+      "author": "Melchior Vischer",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Sekunde-durch-Hirn-by-Melchior-Vischer.jpg"
+    },
+    {
+      "slug": "Visionen-und-andere-phantastische-Erzählungen",
+      "title": "Visionen und andere phantastische Erzählungen",
+      "author": "Iwan Turgenjew",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Visionen-und-andere-phantastische-Erzahlungen.jpg"
+    },
+    {
+      "slug": "Geschwister-Tanner-by-Robert-Walser",
+      "title": "Geschwister Tanner",
+      "author": "Robert Walser",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Geschwister-Tanner-by-Robert-Walser.jpg"
+    },
+    {
+      "slug": "Kleine-Dichtungen-by-Robert-Walser",
+      "title": "Kleine Dichtungen",
+      "author": "Robert Walser",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Kleine-Dichtungen-by-Robert-Walser.jpg"
+    },
+    {
+      "slug": "Prosastücke-by-Robert-Walser",
+      "title": "Prosastücke",
+      "author": "Robert Walser",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Prosastucke-by-Robert-Walser.jpg"
+    },
+    {
+      "slug": "Jüdische-Geschichten-by-Jizchok-Lejb-Perez",
+      "title": "Jüdische Geschichten",
+      "author": "Jizchok Lejb Perez",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Judische-Geschichten-by-Jizchok-Lejb-Perez.jpg"
+    },
+    {
+      "slug": "Gesänge-und-Inschriften-by-Walt-Whitman",
+      "title": "Gesänge und Inschriften",
+      "author": "Walt Whitman",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Gesange-und-Inschriften-by-Walt-Whitman.jpg"
+    },
+    {
+      "slug": "Arnold-Beer-by-Max-Brod",
+      "title": "Arnold Beer Das Schicksal eines Juden",
+      "author": "Max Brod",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Arnold-Beer-by-Max-Brod.jpg"
+    },
+    {
+      "slug": "Der-Schuß-von-der-Kanzel-by-Meyer",
+      "title": "Der Schuß von der Kanzel",
+      "author": "Conrad Ferdinand Meyer",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Der-Schuss-von-der-Kanzel.jpg"
+    },
+    {
+      "slug": "Der-Wahn-und-die-Träume-in-W-Jensens-Gradiva",
+      "title": "Der Wahn und die Träume in W. Jensens »Gradiva«",
+      "author": "Sigmund Freud",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Der-Wahn-und-die-Traume-in-W-Jensens-Gradiva.jpg"
+    },
+    {
+      "slug": "Herr-Adam-und-Frau-Eva-by-Alexander-Engel",
+      "title": "Herr Adam und Frau Eva",
+      "author": "Alexander Engel",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Herr-Adam-und-Frau-Eva-by-Alexander-Engel.jpg"
+    },
+    {
+      "slug": "Rosmersholm-by-Henrik-Ibsen-3",
+      "title": "Rosmersholm Schauspiel in vier Aufzügen",
+      "author": "Henrik Ibsen",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Rosmersholm-by-Henrik-Ibsen-3.jpg"
+    },
+    {
+      "slug": "Nixchen-Ein-Beitrag-zur-Psychologie-der-höheren",
+      "title": "Nixchen. Ein Beitrag zur Psychologie der höheren Tochter",
+      "author": "Hans von Kahlenberg",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Nixchen-Ein-Beitrag-zur-Psychologie-der-hoheren.jpg"
+    },
+    {
+      "slug": "Gradiva-by-Wilhelm-Jensen",
+      "title": "Gradiva Ein pompejanisches Phantasiestück",
+      "author": "Wilhelm Jensen",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Gradiva-by-Wilhelm-Jensen.jpg"
+    },
+    {
+      "slug": "Ein-fröhlicher-Bursch-by-Bjørnstjerne-Bjørnson",
+      "title": "Ein fröhlicher Bursch Eine Erzählung",
+      "author": "Bjørnstjerne Bjørnson",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Ein-frohlicher-Bursch-by-Bjornstjerne-Bjornson.jpg"
+    },
+    {
+      "slug": "Beobachtungen-über-Oesterreichs-Aufklärung-und-L",
+      "title": "Beobachtungen über Oesterreichs Aufklärung und Litteratur",
+      "author": "Aloys Blumauer",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Beobachtungen-uber-Oesterreichs-Aufklarung-und-L.jpg"
+    },
+    {
+      "slug": "Manor-by-Karl-Heinrich-Ulrichs",
+      "title": "Manor",
+      "author": "Karl Heinrich Ulrichs",
+      "language": "de",
+      "cover": "https://www.loyalbooks.com/image/layout2/Manor-by-Karl-Heinrich-Ulrichs.jpg"
+    },
+    {
+      "slug": "Josefine-Mutzenbacher-by-Felix-Salten",
+      "title": "Josefine Mutzenbacher oder Die Geschichte einer Wienerischen Dirne von ihr selbst erzählt",
+      "author": "Felix Salten",
+      "language": "de",
+      "cover": null
+    },
+    {
+      "slug": "Aufzeichnungen-des-Malte-Laurids-Brigge",
+      "title": "Die Aufzeichnungen des Malte Laurids Brigge",
+      "author": "Rainer Maria Rilke",
+      "language": "de",
+      "cover": null
+    },
+    {
+      "slug": "Tractatus-Logico-Philosophicus-by-Wittgenstein",
+      "title": "Tractatus Logico-Philosophicus (Deutsch)",
+      "author": "Ludwig Wittgenstein",
+      "language": "de",
+      "cover": null
+    },
+    {
+      "slug": "os-lusiadas-by-luis-vaz-de-camoes",
+      "title": "Os Lusíadas",
+      "author": "Luís Vaz de Camões",
+      "language": "pt",
+      "cover": "https://www.loyalbooks.com/image/layout2/os-lusiadas-by-luis-vaz-de-camoes.jpg"
+    },
+    {
+      "slug": "Saudades-Historia-de-Menina",
+      "title": "Saudades: História de Menina e Moça",
+      "author": "Bernardim Ribeiro",
+      "language": "pt",
+      "cover": "https://www.loyalbooks.com/image/layout2/Saudades-Historia-de-Menina.jpg"
+    },
+    {
+      "slug": "Os-sonetos-completos-de-Anthero-de-Quental",
+      "title": "Os Sonetos Completos",
+      "author": "Antero de Quental",
+      "language": "pt",
+      "cover": "https://www.loyalbooks.com/image/layout2/Os-Sonetos-Completos.jpg"
+    },
+    {
+      "slug": "Noites-de-insomnia-offerecidas-a-quem-não-póde-1",
+      "title": "Noites de insomnia, offerecidas a quem não póde dormir, volume 1",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": "https://www.loyalbooks.com/image/layout2/Noites-insomnia-Vol1.jpg"
+    },
+    {
+      "slug": "Pranto-de-Maria-Parda-by-Gil-Vicente",
+      "title": "Pranto de Maria Parda Porque vio as ruas de Lisboa com tão poucos ramos nas tavernas, e o vinho tão caro e ella não podia passar sem elle",
+      "author": "Gil Vicente",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Contos-Paraenses-by-João-Marques-de-Carvalho",
+      "title": "Contos Paraenses",
+      "author": "João Marques de Carvalho",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Novo-dicionário-da-língua-portuguesa",
+      "title": "Novo dicionário da língua portuguesa",
+      "author": "Cândido de Figueiredo",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Da-terra-à-lua-by-Jules-Verne",
+      "title": "Da terra à lua viagem directa em 97 horas e 20 minutos",
+      "author": "Jules Verne",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Um-club-da-Má-Lingua-by-Fyodor-Dostoyevsky",
+      "title": "Um club da má língua",
+      "author": "Fyodor Dostoyevsky",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-crime-do-padre-Amaro-by-Queirós",
+      "title": "O crime do padre Amaro scenas da vida devota",
+      "author": "José Maria Eça de Queirós",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Hamlet-Drama-em-cinco-Actos-by-Shakespeare",
+      "title": "Hamlet: Drama em cinco Actos",
+      "author": "William Shakespeare",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Amor-de-Perdição-by-Castelo-Branco",
+      "title": "Amor de Perdição Memorias d'uma familia",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Cidade-e-as-Serras-by-Queirós",
+      "title": "A Cidade e as Serras",
+      "author": "José Maria Eça de Queirós",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Contos-para-a-infância-by-Junqueiro",
+      "title": "Contos para a infância Escolhidos dos melhores auctores por Guerra Junqueiro",
+      "author": "Abílio Manuel Guerra Junqueiro",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "King-Solomons-mines-Portuguese-by-Haggard",
+      "title": "As Minas de Salomão",
+      "author": "Henry Rider Haggard",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-que-fazem-mulheres-by-Castelo-Branco",
+      "title": "O que fazem mulheres Romance philosophico",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Revolução-Portugueza-O-5-de-Outubro-Lisboa-1",
+      "title": "A Revolução Portugueza: O 5 de Outubro (Lisboa 1910)",
+      "author": "Francisco Jorge de Abreu",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Album-chulo-gaiato-ou-collecção-de-receitas-para",
+      "title": "Album chulo-gaiato ou collecção de receitas para fazer rir",
+      "author": "Anonymous",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Obras-Completas-de-Luis-de-Camões-Tomo-II",
+      "title": "Obras Completas de Luis de Camões, Tomo II",
+      "author": "Luís Vaz de Camões",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Descobrimento-do-Brazil-by-Redondo",
+      "title": "O Descobrimento do Brazil Prioridade dos Portugueses no Descobrimento da America",
+      "author": "Manuel Ferreira Garcia Redondo",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "correspondência-de-Fradique-Mendes-by-Queirós",
+      "title": "A correspondência de Fradique Mendes memórias e notas",
+      "author": "José Maria Eça de Queirós",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Mandarim-by-José-Maria-Eça-de-Queirós",
+      "title": "O Mandarim",
+      "author": "José Maria Eça de Queirós",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Paisagens-da-China-e-do-Japão-by-Morais",
+      "title": "Paisagens da China e do Japão",
+      "author": "Wenceslau José de Sousa de Morais",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Amor-de-Salvação-by-Castelo-Branco",
+      "title": "Amor de Salvação",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Queda-dum-Anjo-by-Castelo-Branco",
+      "title": "A Queda d'um Anjo Romance",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Revolução-Portugueza-O-31-de-Janeiro-Porto-1",
+      "title": "A Revolução Portugueza: O 31 de Janeiro (Porto 1891)",
+      "author": "Francisco Jorge de Abreu",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Relíquia-by-José-Maria-Eça-de-Queirós",
+      "title": "Relíquia",
+      "author": "José Maria de Eça de Queirós",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Poesias-by-Alexandre-Herculano",
+      "title": "Poesias",
+      "author": "Alexandre Herculano",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Agulha-em-Palheiro-by-Castelo-Branco",
+      "title": "Agulha em Palheiro Quinta edição",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Mysterio-da-Estrada-de-Cintra-by-Ortigão",
+      "title": "O Mysterio da Estrada de Cintra Cartas ao Diário de Noticias",
+      "author": "José Duarte Ramalho Ortigão",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Historia-Antiga",
+      "title": "Historia Antiga",
+      "author": "Unknown",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Livro-de-Máguas-by-Espanca",
+      "title": "Livro de Máguas",
+      "author": "Florbela de Alma da Conceição Espanca",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Improvisos-de-Bocage-by-Bocage",
+      "title": "Improvisos de Bocage Na Sua Mui Perigosa Enfermidade Dedicados a Seus Bons Amigos",
+      "author": "Manuel Maria Barbosa du Bocage",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Nas-trevas-by-Castelo-Branco",
+      "title": "Nas trevas Sonetos sentimentaes e humoristicos",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Illustre-Casa-de-Ramires-by-Queirós",
+      "title": "A Illustre Casa de Ramires",
+      "author": "José Maria Eça de Queirós",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Orpheu-Nº2-by-Álvaro-de-Campos",
+      "title": "Orpheu Nº2 Revista Trimestral de Literatura",
+      "author": "Raul de Oliveira Sousa Leal",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Como-eu-atravessei-Àfrica-do-Atlantico-ao-mar-Ind-1",
+      "title": "Como eu atravessei Àfrica do Atlantico ao mar Indico, volume primeiro",
+      "author": "Alexandre Alberto da Rocha de Serpa Pinto",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Bases-para-a-unificação-da-ortografia-que-deve-s",
+      "title": "Bases para a unificação da ortografia que deve ser adoptada nas escolas e publicações oficiais",
+      "author": "Anonymous",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Noções-elementares-de-archeologia-by-Silva",
+      "title": "Noções elementares de archeologia",
+      "author": "Joaquim Possidónio Narciso da Silva",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Flores-do-Campo-by-João-de-Deus",
+      "title": "Flores do Campo",
+      "author": "João de Deus",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Historia-de-Portugal-Tomo-I-by-Oliveira-Martins",
+      "title": "Historia de Portugal: Tomo I",
+      "author": "J. P. (Joaquim Pedro) Oliveira Martins",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Despedidas-1895-1899-by-António-Pereira-Nobre",
+      "title": "Despedidas: 1895-1899",
+      "author": "António Pereira Nobre",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Arrependimento-by-Castelo-Branco",
+      "title": "O Arrependimento",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Biblia-da-Humanidade-by-Quental",
+      "title": "A Biblia da Humanidade",
+      "author": "Antero Tarquínio de Quental",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Galleria-dos-Vice-reis-e-Governadores-da-India-Por",
+      "title": "Galleria dos Vice-reis e Governadores da India Portugueza",
+      "author": "José Maria Delorme Colaço",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Suicida-by-Camilo-Ferreira-Botelho-Castelo-Branco",
+      "title": "Suicida",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Viagens-na-Minha-Terra-by-Almeida-Garrett-2",
+      "title": "Viagens na Minha Terra (Completo)",
+      "author": "João Batista da Silva Leitão de Almeida Garrett",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Annos-de-Prosa-by-Castelo-Branco",
+      "title": "Annos de Prosa",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-descobrimento-do-Brasil-por-Pedro-Alvares-Cabral",
+      "title": "O descobrimento do Brasil por Pedro Alvares Cabral",
+      "author": "Antonio Artur Baldaque da Silva",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Isabel-dAragão-a-Rainha-Santa",
+      "title": "Isabel d'Aragão a Rainha Santa Historia sucinta da sua vida, morte e excelsas virtudes",
+      "author": "Anonymous",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Os-meus-amores-by-José-Francisco-Trindade-Coelho",
+      "title": "Os meus amores contos e balladas",
+      "author": "José Francisco Trindade Coelho",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Dispersão-by-Mário-de-Sá-Carneiro",
+      "title": "Dispersão 12 poesias por Mario de Sá-Carneiro",
+      "author": "Mário de Sá-Carneiro",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Lendas-do-sul-by-João-Simões-Lopes-Neto",
+      "title": "Lendas do sul",
+      "author": "João Simões Lopes Neto",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Bases-da-ortografia-portuguesa-by-Abreu-and-Viana",
+      "title": "Bases da ortografia portuguesa",
+      "author": "Guilherme Augusto de Vasconcelos Abreu",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Aves-Migradoras-by-Almeida",
+      "title": "Aves Migradoras",
+      "author": "José Valentim Fialho de Almeida",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Gratidão-by-Castelo-Branco",
+      "title": "A Gratidão",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Assassino-de-Macario-by-Castelo-Branco",
+      "title": "O Assassino de Macario Comedia em tres actos",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Historia-da-Grecia-by-José-Fernandes-Costa",
+      "title": "Historia da Grecia",
+      "author": "José Fernandes Costa",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Amor-Crioulo-by-Abel-Acácio-de-Almeida-Botelho",
+      "title": "Amor Crioulo vida argentina",
+      "author": "Abel Acácio de Almeida Botelho",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Trovas-do-Bandarra-by-Gonçalo-Anes-Bandarra",
+      "title": "Trovas do Bandarra natural da Villa de Trancoso, apuradas e impressas por ordem de um grande senhor de Portugal",
+      "author": "Gonçalo Anes Bandarra",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Lenda-da-Meia-Noite-by-Manuel-Pinheiro-Chagas",
+      "title": "A Lenda da Meia-Noite",
+      "author": "Manuel Pinheiro Chagas",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Lendas-e-Narrativas-Tomo-I-by-Herculano",
+      "title": "Lendas e Narrativas (Tomo I)",
+      "author": "Alexandre Herculano",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Carlota-Angela-by-Castelo-Branco",
+      "title": "Carlota Angela",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Contos-e-Lendas-by-Luiz-Augusto-Rebello-da-Silva",
+      "title": "Contos e Lendas",
+      "author": "Luiz Augusto Rebello da Silva",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Enfer-Portuguese-by-Auguste-Callet",
+      "title": "O Inferno",
+      "author": "Auguste Callet",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Memorias-de-um-pobre-diabo-by-Almeida-Seabra",
+      "title": "Memorias de um pobre diabo",
+      "author": "Bruno Henriques de Almeida Seabra",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-vinho-do-Porto-processo-de-uma-bestialidade-ing",
+      "title": "O vinho do Porto: processo de uma bestialidade ingleza exposição a Thomaz Ribeiro",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Algumas-lições-de-psicologia-e-pedologia",
+      "title": "Algumas lições de psicologia e pedologia",
+      "author": "António Aurélio da Costa Ferreira",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Indice-chronologico-dos-factos-mais-notaveis-da-Hi",
+      "title": "Indice chronologico dos factos mais notaveis da Historia do Brasil desde seu descobrimento em 1500 até 1849",
+      "author": "Agostinho Marques Perdigão Malheiro",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Lagrimas-Abençoadas-by-Castelo-Branco",
+      "title": "Lagrimas Abençoadas",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Olho-de-Vidro-by-Castelo-Branco",
+      "title": "O Olho de Vidro",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Vasco-da-Gama",
+      "title": "Vasco da Gama Livro de Leitura para familias e escolas",
+      "author": "David [Editor] Corazzi",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Frei-Luiz-de-Sousa-by-Almeida-Garrett",
+      "title": "Frei Luiz de Sousa",
+      "author": "João Batista da Silva Leitão de Almeida Garrett",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Descobrimentos-dos-Portuguezes-nos-Seculos-XV-e-XV",
+      "title": "Descobrimentos dos Portuguezes nos Seculos XV e XVI",
+      "author": "A. F. Marx de Sori",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "architectura-religiosa-na-Edade-Média",
+      "title": "A architectura religiosa na Edade Média",
+      "author": "Augusto Fuschini",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Os-Pobres-by-Raul-Germano-Brandão",
+      "title": "Os Pobres Precedido de uma Carta-Prefacio de Guerra Junqueiro",
+      "author": "Raul Germano Brandão",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Historia-alegre-de-Portugal-by-Chagas",
+      "title": "Historia alegre de Portugal leitura para o povo e para as escolas",
+      "author": "Manuel Pinheiro Chagas",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "O-Regicida-by-Castelo-Branco",
+      "title": "O Regicida",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Bom-senso-e-bom-gosto-by-Quental",
+      "title": "Bom-senso e bom-gosto carta ao excelentissimo senhor Antonio Feliciano de Castilho",
+      "author": "Antero Tarquínio de Quental",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Breves-palavras-sobre-a-cultura-da-Oliveira",
+      "title": "Breves palavras sobre a cultura da Oliveira",
+      "author": "Avelino Nunes de Almeida",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Velhice-do-Padre-Eterno-by-Junqueiro",
+      "title": "A Velhice do Padre Eterno",
+      "author": "Abílio Manuel Guerra Junqueiro",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Fanny-estudo-by-Ernest-Feydeau",
+      "title": "Fanny: estudo",
+      "author": "Ernest Feydeau",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Casa-do-Saltimbanco-by-Mme-de-Stolz",
+      "title": "A Casa do Saltimbanco",
+      "author": "Mme. de Stolz",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Obras-Completas-de-Luis-de-Camões-Tomo-III",
+      "title": "Obras Completas de Luis de Camões, Tomo III",
+      "author": "Luís Vaz de Camões",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Sá-de-Miranda-e-a-sua-Obra-by-Décio-Carneiro",
+      "title": "Sá de Miranda e a sua Obra",
+      "author": "Décio Carneiro",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "espada-de-Alexandre-by-Castelo-Branco",
+      "title": "A espada de Alexandre Corte profundo da questão do Homem-Mulher e Mulher-Homem",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Christovam-Colombo-e-o-descobrimento-da-America",
+      "title": "Christovam Colombo e o descobrimento da America",
+      "author": "João Manuel Pereira da Silva",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Filha-do-Arcediago-by-Castelo-Branco",
+      "title": "A Filha do Arcediago Terceira Edição",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Os-Filhos-do-Padre-Anselmo-by-Albergaria",
+      "title": "Os Filhos do Padre Anselmo",
+      "author": "António José da Costa Couto Sá de Albergaria",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Morte-de-D-Ignez-de-Castro-by-Bocage",
+      "title": "A Morte de D. Ignez de Castro Cantata por Manoel Maria Barbosa du Bucage; A Que Se Ajunta o Episódio, Ao Mesmo Assumpto, do Immortal Luiz de Camões",
+      "author": "Luís Vaz de Camões",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Chave-do-Enigma-by-Castilho",
+      "title": "A Chave do Enigma",
+      "author": "António Feliciano de Castilho",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Os-Simples-by-Abílio-Manuel-Guerra-Junqueiro",
+      "title": "Os Simples",
+      "author": "Abílio Manuel Guerra Junqueiro",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Memórias-by-Raul-Germano-Brandão",
+      "title": "Memórias",
+      "author": "Raul Germano Brandão",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Livro-de-Consolação-by-Castelo-Branco",
+      "title": "Livro de Consolação",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Descobrimento-das-Filippinas-pelo-navegador-portug",
+      "title": "Descobrimento das Filippinas pelo navegador portuguez Fernão de Magalhães",
+      "author": "Caetano Alberto da Silva",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Morgadinha-dos-Cannaviaes-by-Júlio-Dinis",
+      "title": "A Morgadinha dos Cannaviaes",
+      "author": "Júlio Dinis",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "D-Antonio-Alves-Martins-bispo-de-Vizeu-esboço",
+      "title": "D. Antonio Alves Martins: bispo de Vizeu: esboço biographico",
+      "author": "Camilo Ferreira Botelho Castelo Branco",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Tractado-da-terra-do-Brasil-by-Gandavo",
+      "title": "Tractado da terra do Brasil no qual se contem a informação das cousas que ha nestas partes feito por P.º de Magalhaes",
+      "author": "Pero de Magalhães Gandavo",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Effeitos-do-Hypnotismo-by-A-Armando",
+      "title": "Effeitos do Hypnotismo",
+      "author": "A. Armando",
+      "language": "pt",
+      "cover": null
+    },
+    {
+      "slug": "Portugal-e-Brazil-emigração-e-colonisação",
+      "title": "Portugal e Brazil: emigração e colonisação",
+      "author": "D. A. Gomes Pércheiro",
+      "language": "pt",
+      "cover": null
+    }
+  ]
+}

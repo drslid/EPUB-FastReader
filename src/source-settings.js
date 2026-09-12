@@ -4,6 +4,14 @@ import { configuredSourceRelay, relayAvailable } from "./sources/relay-config.js
 
 let cachedStatus;
 const CACHE_TTL = 5 * 60_000;
+const RELAY_SOURCES = ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"];
+const RESTRICTION_REASONS = {
+  SOURCE_DAILY_LIMIT: "La limite de téléchargement de cette source est atteinte. Réessayez plus tard.",
+  SOURCE_LOGIN_REQUIRED: "Cette source demande une connexion sur son site pour télécharger ce livre.",
+  SOURCE_BUSY: "La source demande de patienter. Réessayez plus tard.",
+};
+
+export function invalidateSourceAvailability() { cachedStatus = undefined; }
 
 /** Checks catalogue access without downloading books or accessing personal data. */
 export async function checkSourceAvailability({ signal, onUpdate = () => {}, force = false } = {}) {
@@ -20,7 +28,9 @@ export async function checkSourceAvailability({ signal, onUpdate = () => {}, for
     "ebooks-gratuits": { status: "checking" },
     fadedpage: { status: "checking" },
     epubbooks: { status: "checking" },
-    "z-library": { status: "unavailable", reason: "L’accès automatisé à la recherche et aux EPUB n’a pas pu être vérifié." },
+    ebookzy: { status: "checking" },
+    atramenta: { status: "checking" },
+    loyalbooks: { status: "checking" },
   };
   const publish = () => { if (!signal?.aborted) onUpdate(structuredClone(sources)); };
   publish();
@@ -43,12 +53,15 @@ export async function checkSourceAvailability({ signal, onUpdate = () => {}, for
         if (!response.ok) throw new Error("status");
         const result = await response.json();
         const entries = Array.isArray(result.sources) ? result.sources : [];
-        for (const id of ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks"]) {
+        for (const id of RELAY_SOURCES) {
           const entry = entries.find((source) => source?.providerId === id);
           sources[id] = { status: entry?.available === true ? "available" : "unavailable" };
+          if (typeof entry?.code === "string" && Object.hasOwn(RESTRICTION_REASONS, entry.code)) {
+            sources[id] = { status: "unavailable", reason: RESTRICTION_REASONS[entry.code] };
+          }
         }
       } catch {
-        for (const id of ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks"]) sources[id] = { status: "unavailable" };
+        for (const id of RELAY_SOURCES) sources[id] = { status: "unavailable" };
       }
       publish();
     })(),
@@ -73,7 +86,9 @@ export function openSourceSettings({ icon, escape, beforeOpen = () => {} }) {
     ["ebooks-gratuits", "Ebooks libres et gratuits", "https://www.ebooksgratuits.com/ebooks.php", "Livres en français"],
     ["fadedpage", "Faded Page", "https://www.fadedpage.com/", "Livres en anglais"],
     ["epubbooks", "epubBooks", "https://www.epubbooks.com/", "Livres en anglais"],
-    ["z-library", "Z-Library", "https://z-library.sk/", "Accès direct non intégré"],
+    ["ebookzy", "Ebookzy", "https://ebookzy.com/", "Livres en anglais"],
+    ["atramenta", "Atramenta", "https://www.atramenta.net/", "Livres en français · téléchargements quotidiens limités"],
+    ["loyalbooks", "Loyal Books", "https://www.loyalbooks.com/", "Sélection multilingue indexée"],
   ];
   const copy = (source) => `<span data-copy="${escape(source)}">${escape(t(source))}</span>`;
   dialog.innerHTML = `<div class="dialog-heading"><h2 id="source-settings-title">${copy("Paramètres")}</h2><button class="round-button" data-close aria-label="${escape(t("Fermer"))}">${icon("close")}</button></div><h3>${copy("Sources de livres")}</h3><p>${copy("La pastille indique si la source est accessible depuis FastReader. La disponibilité d’un livre peut varier.")}</p><ul class="source-status-list" aria-label="${escape(t("Disponibilité des sources"))}">${definitions.map(([id, name, url]) => `<li data-source="${id}"><span class="source-status-dot is-checking" aria-hidden="true"></span><div>${url ? `<a href="${url}" target="_blank" rel="noopener noreferrer"><span>${escape(name)}</span> ${icon("external")}</a>` : `<strong>${copy(name)}</strong>`}<small data-detail></small></div><span class="source-status-label"></span></li>`).join("")}</ul><p class="source-checked" role="status"></p><button class="button secondary" data-check>${icon("compass")} ${copy("Vérifier à nouveau")}</button><p class="source-privacy">${copy("Vos livres, notes et repères restent sur cet appareil. Les recherches externes sont transmises aux catalogues concernés et, si nécessaire, à notre service de connexion.")}</p><p class="rights-note">${copy("Les droits varient selon votre pays. Téléchargez uniquement des livres du domaine public ou pour lesquels vous avez l’autorisation requise.")}</p><p class="source-external"><a href="https://open-slum.org/" target="_blank" rel="noopener noreferrer">Open SLUM ${icon("external")}</a><span>${copy("Annuaire externe de disponibilité de bibliothèques. Vérifiez les droits de chaque fichier avant de l’importer.")}</span></p>`;

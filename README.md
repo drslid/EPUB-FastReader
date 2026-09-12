@@ -68,7 +68,20 @@ Phone and computer libraries are separate until you transfer a backup. Keep one 
 
 Discover brings supported catalogues into one search, with the title, author, cover when available, and source shown for each result. Tap **Read** to open an available EPUB; there is no separate download-and-import step.
 
-Supported catalogues include **Project Gutenberg**, **Standard Ebooks**, **Ebooks libres et gratuits**, **Faded Page** and **epubBooks**. Each catalogue has its own selection and availability.
+| Book source | Book languages | What you can explore |
+| --- | --- | --- |
+| [Project Gutenberg](https://www.gutenberg.org/) | Multiple languages | A broad catalogue of classic literature. |
+| [Standard Ebooks](https://standardebooks.org/ebooks) | English | Carefully edited classics with illustrated covers. |
+| [Ebooks libres et gratuits](https://www.ebooksgratuits.com/ebooks.php) | French | Free French EPUB editions, searchable by title. |
+| [Faded Page](https://www.fadedpage.com/) | English | Books made available under Canadian copyright rules. |
+| [epubBooks](https://www.epubbooks.com/) | English | Classic books with covers and direct EPUB reading. |
+| [Ebookzy](https://ebookzy.com/) | English | Search by title or author and open an available EPUB. |
+| [Atramenta](https://www.atramenta.net/) | French | Free-reading works with EPUB downloads; paid books are excluded. Currently unavailable through the public app’s catalogue service; its status is shown in Settings. |
+| [Loyal Books](https://www.loyalbooks.com/) | French, Spanish, Italian, German, Portuguese | A dated selection of 499 EPUBs. FastReader shows its size and update date; the full catalogue and English titles are not yet included. |
+
+Choosing a source keeps **All languages** selected unless you choose a language yourself. Covers are retained when you add a book to your library, including for offline reading when its artwork is available.
+
+[BDEbooks](https://bdebooks.com/en/ebooks/) was also evaluated, but its access protection currently prevents us from verifying direct reading in FastReader. It is not included in the connected catalogues. You can still import an EPUB you have obtained from that site.
 
 Open **Settings → Book sources** to check which catalogues are responding. A slow or unavailable source does not prevent you from using your library or the other results. Some providers apply shared download limits; if one is reached, FastReader explains it and you can use another source or import an EPUB you already have.
 

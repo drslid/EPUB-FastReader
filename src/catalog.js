@@ -16,7 +16,7 @@ export const providers = Object.freeze(
 /** Count is the provider total; entries with unusable metadata are omitted locally. */
 export async function searchBooks({
   query = "",
-  language = "fr",
+  language = "",
   page = 1,
   provider = "all",
   signal,

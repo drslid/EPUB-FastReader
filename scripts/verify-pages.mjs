@@ -1,5 +1,6 @@
 // End-to-end acceptance check for the static GitHub Pages build, without an API.
-// By default serve dist-pages under the real project subpath. Set an HTTPS
+// By default serve dist-pages under the real project subpath; use
+// FASTREADER_PAGES_DIR for an isolated build directory. Set an HTTPS
 // FASTREADER_PAGES_URL to check the published site in an isolated browser profile.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -30,7 +31,7 @@ const types = {
 };
 
 async function staticServer() {
-  const directory = await realpath(fileURLToPath(new URL("../dist-pages/", import.meta.url)));
+  const directory = await realpath(process.env.FASTREADER_PAGES_DIR || fileURLToPath(new URL("../dist-pages/", import.meta.url)));
   await readFile(path.join(directory, "index.html"));
   const server = createServer(async (request, response) => {
     try {
@@ -215,6 +216,9 @@ try {
   await context.route(/\/api\/sources\/ebooks-gratuits\/search(?:\?|$)/u, (route) => route.fulfill({ status: 200, contentType: "application/atom+xml", headers: { "access-control-allow-origin": baseURL.origin }, body: emptyEbooksGratuitsSearch }));
   await context.route(/\/api\/sources\/fadedpage\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "application/json", headers: { "access-control-allow-origin": baseURL.origin }, body: '{"nrows":0,"rows":[]}' }));
   await context.route(/\/api\/sources\/epubbooks\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>' }));
+  await context.route(/\/api\/sources\/ebookzy\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<!doctype html><html><body><div id="content"><h1 class="page-title">Search results for: absent</h1><section class="no-results"></section></div></body></html>' }));
+  await context.route(/\/api\/sources\/atramenta\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<!doctype html><html><body><form action="/search/"></form><main id="main_content_wrapper"><h1>Recherche</h1><p>Aucun résultat</p></main></body></html>' }));
+  await context.route(`${baseURL}catalog/loyalbooks.json`, (route) => route.fulfill({ json: { version: 1, updatedAt: "2026-09-12T00:00:00.000Z", coverage: "selection", languages: { en: { indexed: 0, total: 0, pages: 1, complete: true } }, books: [] } }));
   if (configuredRelay) {
     const fixture = await makeEpub({ title: "Germinal — fixture de vérification", author: "Émile Zola", paragraphs: ["Ce fichier de test vérifie le téléchargement, la bibliothèque locale et la lecture. Il ne contient pas le texte du roman."] });
     await context.route(`${configuredRelay}/api/books/gutenberg/5711.epub`, (route) => route.fulfill({ status: 200, contentType: "application/epub+zip", headers: { "access-control-allow-origin": baseURL.origin }, body: fixture }));

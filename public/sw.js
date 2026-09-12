@@ -78,7 +78,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Only known, hashed catalogue shards can enter the on-demand cache. No remote service is cached.
+  // Only catalogue files listed in this build can enter the on-demand cache. No remote service is cached.
   if (!ASSET_URLS.has(url.href)) return;
   event.respondWith(
     (async () => {

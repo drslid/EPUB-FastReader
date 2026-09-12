@@ -1,15 +1,20 @@
 import { captureCatalogPresentation } from "./covers.js";
 import { downloadEpubbooksCover } from "./sources/epubbooks.js";
+import { downloadEbookzyCover } from "./sources/ebookzy.js";
+import { downloadLoyalbooksCover } from "./sources/loyalbooks.js";
 
-/** epubBooks' catalogue artwork differs from the EPUB's embedded cover.
+const coverDownloaders = { epubbooks: downloadEpubbooksCover, ebookzy: downloadEbookzyCover, loyalbooks: downloadLoyalbooksCover };
+
+/** Some sources' catalogue artwork differs from the EPUB's embedded cover.
  * Cache that exact image during import; an unavailable image must never stop
  * the book from opening. Other sources embed their catalogue artwork already.
  */
 export async function captureOfflinePresentation(book, { signal } = {}) {
   const presentation = captureCatalogPresentation(book);
-  if (book.providerId !== "epubbooks" || !presentation.image) return presentation;
+  const download = coverDownloaders[book.providerId];
+  if (!download || !presentation.image) return presentation;
   try {
-    const blob = await downloadEpubbooksCover(book, { signal });
+    const blob = await download(book, { signal });
     signal?.throwIfAborted();
     const image = await new Promise((resolve, reject) => {
       const reader = new FileReader();

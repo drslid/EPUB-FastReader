@@ -93,19 +93,35 @@ export async function request(
       referrerPolicy: "no-referrer",
       headers: { Accept: download ? EPUB_TYPE : "application/json" },
     });
-    if (!response.ok) {
-      await cancelBody(response.body);
-      throw catalogError(
-        "HTTP",
-        t("La source est indisponible (HTTP {status}). Réessayez plus tard ou ouvrez son site.", { status: response.status }),
-      );
-    }
     if (response.url && !validateUrl(response.url)) {
       await cancelBody(response.body);
       throw catalogError(
         "INVALID_RESPONSE",
         "La source a redirigé vers une adresse non autorisée. Ouvrez sa fiche pour continuer.",
       );
+    }
+    if (!response.ok) {
+      // Keep only known error codes from bounded JSON responses. Provider HTML
+      // and arbitrary messages must never be interpreted as an EPUB or UI copy.
+      let code;
+      if ((response.headers.get("content-type") || "").includes("application/json")) {
+        try {
+          const body = await readLimited(response, 8192, controller.signal);
+          code = JSON.parse(await body.text())?.error?.code;
+        } catch { controller.signal.throwIfAborted(); }
+      } else await cancelBody(response.body);
+      const messages = {
+        SOURCE_DAILY_LIMIT: "La limite de téléchargement de cette source est atteinte. Réessayez plus tard.",
+        SOURCE_LOGIN_REQUIRED: "Cette source demande une connexion sur son site pour télécharger ce livre.",
+        SOURCE_BUSY: "La source demande de patienter. Réessayez plus tard.",
+      };
+      if (!Object.hasOwn(messages, code) && response.status === 429) code = "SOURCE_BUSY";
+      const error = Object.hasOwn(messages, code)
+        ? catalogError(code, messages[code])
+        : catalogError("HTTP", t("La source est indisponible (HTTP {status}). Réessayez plus tard ou ouvrez son site.", { status: response.status }));
+      const retryAfter = response.headers.get("retry-after");
+      if (/^\d+$/u.test(retryAfter || "") && Number.isSafeInteger(Number(retryAfter))) error.retryAfter = Number(retryAfter);
+      throw error;
     }
     return await readLimited(response, maxBytes, controller.signal);
   } catch (error) {

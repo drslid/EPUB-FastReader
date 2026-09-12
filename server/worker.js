@@ -3,11 +3,15 @@ import { createEbooksGratuitsHandler, EbooksGratuitsError } from "./ebooks-gratu
 import { createSourceStatusHandler } from "./source-status.js";
 import { createFadedpageHandler } from "./fadedpage-source.js";
 import { createEpubbooksHandler } from "./epubbooks-source.js";
+import { createEbookzyHandler } from "./ebookzy-source.js";
+import { createAtramentaHandler, AtramentaError, ATRAMENTA_LIMITS } from "./atramenta-source.js";
+import { createLoyalbooksHandler } from "./loyalbooks-source.js";
 
 const DEFAULT_ORIGIN = "https://drslid.github.io";
 
-/** One shared object: ELG limits survive restarts and are never multiplied by
- * worker region, reader, browser or deployment. Only quota timestamps persist.
+/** One shared object: source limits survive restarts and are never multiplied
+ * by region, reader, browser or deployment. Atramenta also retains its anonymous
+ * source-issued session and access restrictions; no personal library is stored.
  */
 export class FastReaderSources {
   constructor(state, env) {
@@ -28,9 +32,48 @@ export class FastReaderSources {
         await state.storage.put("elg-download-timestamps", [...timestamps, now]);
       },
     });
-    this.status = createSourceStatusHandler(options);
+    this.status = createSourceStatusHandler({
+      ...options,
+      getRestrictions: async () => {
+        try {
+          const [saved, storedTimestamps] = await Promise.all([
+            state.storage.get("atramenta-download-block"),
+            state.storage.get("atramenta-download-timestamps"),
+          ]);
+          const now = Date.now();
+          const records = saved?.version === 1 ? [saved.source, saved.downloads] : [saved];
+          const restrictions = records.filter((record) => record && Number.isSafeInteger(record.until) && record.until > now && ["source", "downloads"].includes(record.scope) && [403, 429, 503].includes(record.status) && ["SOURCE_BUSY", "SOURCE_DAILY_LIMIT", "SOURCE_LOGIN_REQUIRED"].includes(record.code) && typeof record.message === "string" && record.message.length <= 500);
+          const timestamps = (Array.isArray(storedTimestamps) ? storedTimestamps : []).filter((time) => Number.isSafeInteger(time) && time > now - 86_400_000);
+          if (timestamps.length >= ATRAMENTA_LIMITS.maxDailyDownloads) restrictions.push({ until: Math.min(...timestamps) + 86_400_000, code: "SOURCE_DAILY_LIMIT" });
+          const restriction = restrictions.sort((left, right) => right.until - left.until)[0];
+          return restriction ? { atramenta: { code: restriction.code, retryAfter: Math.ceil((restriction.until - now) / 1000) } } : {};
+        } catch {
+          // If durable restrictions cannot be read, do not report a green
+          // source or contact it without knowing whether access is suspended.
+          return { atramenta: { code: "SOURCE_UNAVAILABLE", retryAfter: 30 } };
+        }
+      },
+    });
     this.epubbooks = createEpubbooksHandler({ ...options, cacheMaxBytes: 2 * 1024 * 1024, maxCachedSearches: 2 });
     this.fadedpage = createFadedpageHandler({ ...options, cacheMaxBytes: 4 * 1024 * 1024, maxCachedSearches: 2 });
+    this.ebookzy = createEbookzyHandler(options);
+    this.loyalbooks = createLoyalbooksHandler(options);
+    this.atramenta = createAtramentaHandler({
+      ...options,
+      cacheMaxBytes: 2 * 1024 * 1024, searchCacheMaxBytes: 512 * 1024, maxCachedSearches: 2,
+      loadSession: () => state.storage.get("atramenta-anonymous-session"),
+      saveSession: (session) => state.storage.put("atramenta-anonymous-session", session),
+      loadDownloadBlock: () => state.storage.get("atramenta-download-block"),
+      saveDownloadBlock: (block) => state.storage.put("atramenta-download-block", block),
+      reserveDownload: async ({ signal, now, limits }) => {
+        signal.throwIfAborted();
+        const timestamps = (await state.storage.get("atramenta-download-timestamps") || []).filter((time) => Number.isSafeInteger(time) && time > now - 86_400_000);
+        if (timestamps.length >= limits.maxDailyDownloads) throw new AtramentaError(429, "SOURCE_DAILY_LIMIT", "La limite quotidienne de cette source est atteinte. Réessayez demain.", Math.ceil((timestamps[0] + 86_400_000 - now) / 1000));
+        // Count attempts before contacting the source. The stable anonymous
+        // session and rolling quota survive Worker restarts and deployments.
+        await state.storage.put("atramenta-download-timestamps", [...timestamps, now]);
+      },
+    });
     this.downloadTail = Promise.resolve();
     this.queuedDownloads = 0;
   }
@@ -38,7 +81,7 @@ export class FastReaderSources {
   async dispatch(request) {
     const pathname = new URL(request.url).pathname;
     if (pathname === "/api/sources/status") return this.status(request);
-    return await this.gutenberg(request) || await this.ebooksGratuits(request) || await this.fadedpage(request) || await this.epubbooks(request)
+    return await this.gutenberg(request) || await this.ebooksGratuits(request) || await this.fadedpage(request) || await this.epubbooks(request) || await this.ebookzy(request) || await this.atramenta(request) || await this.loyalbooks(request)
       || new Response('{"error":{"code":"NOT_FOUND"}}', { status: 404, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
   }
 

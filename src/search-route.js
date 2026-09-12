@@ -1,5 +1,5 @@
 const languages = new Set(["fr", "en", "es", "it", "de", "pt", ""]);
-const providers = new Set(["selection", "all", "gutenberg", "standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks"]);
+const providers = new Set(["selection", "all", "gutenberg", "standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks", "ebookzy", "atramenta", "loyalbooks"]);
 const views = new Set(["library", "discover", "search"]);
 
 function normalizeRoute(view, values = {}) {
