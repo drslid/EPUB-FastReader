@@ -935,6 +935,11 @@ progress::-moz-progress-bar {
   display: none;
   padding: 0;
 }
+.site-credit {
+  flex-basis: 100%;
+  font-size: 11px;
+  text-align: center;
+}
 .library-intro {
   display: flex;
   align-items: center;
