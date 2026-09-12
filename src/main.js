@@ -454,7 +454,7 @@ function captureReaderPosition() {
 }
 
 function savePreferences() {
-  void writeSettings(state.settings).catch(() =>
+  return writeSettings(state.settings).catch(() =>
     toast(
       t("Ce réglage reste actif, mais sa sauvegarde sur cet appareil a échoué."),
     ),
@@ -1315,13 +1315,21 @@ app.addEventListener("click", async (event) => {
   const action = button.dataset.action;
   try {
     if (action === "global-theme") {
-      state.settings.theme = nextTheme().theme;
-      savePreferences();
-      applySettings();
-      const next = nextTheme();
-      button.setAttribute("aria-label", next.label);
-      button.title = next.label;
-      button.innerHTML = icon(next.icon);
+      const hadFocus = document.activeElement === button;
+      button.disabled = true;
+      try {
+        state.settings.theme = nextTheme().theme;
+        await savePreferences();
+        applySettings();
+        const next = nextTheme();
+        button.setAttribute("aria-label", next.label);
+        button.title = next.label;
+        button.innerHTML = icon(next.icon);
+      } finally {
+        button.disabled = false;
+        if (hadFocus && button.isConnected && document.activeElement === document.body)
+          button.focus({ preventScroll: true });
+      }
     }
     if (action === "clear-search") {
       state.searchDraft = "";

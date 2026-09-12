@@ -129,6 +129,14 @@ test("le thème sombre est global par défaut et le choix clair ou sépia persis
   await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
   await page.reload();
   await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
+  await page.getByRole("button", { name: "Passer au thème sépia", exact: true }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
+  await page.reload();
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
+  await page.getByRole("button", { name: "Passer au thème sombre", exact: true }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
+  await page.getByRole("button", { name: "Passer au thème clair", exact: true }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "paper");
   await page.goto("/#home");
   await page
     .getByRole("button", { name: "Essayer le lecteur", exact: true })
