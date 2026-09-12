@@ -12,6 +12,7 @@ La version Node/Docker conserve le téléchargement automatique des autres EPUB 
 
 ## Utilisation
 
+- **Langues** : français, anglais, espagnol, italien, allemand et portugais, avec drapeaux et noms de langues. Le choix d’interface est mémorisé ; le texte des livres garde sa langue originale. Les six pages publiques disposent de métadonnées traduites et d’un sitemap. [Langues et référencement](docs/MULTILINGUAL-SEO.md).
 - **Accueil** : trois suggestions renouvelables, démonstration et aide facultative sur les trois modes.
 - **Ma bibliothèque** : uniquement les livres enregistrés, reprise de la dernière lecture, import, suppression et exports EPUB Classique/Focus.
 - **Recherche commune** : une seule barre reste en haut de la bibliothèque et de Découvrir. Elle cherche par titre/auteur dans vos livres et les sources en parallèle. Vos livres apparaissent d’abord, avec ouverture directe et progression ; les éditions déjà enregistrées ne sont pas répétées dans les résultats des catalogues. La langue et les sources filtrent uniquement les catalogues.
@@ -22,7 +23,7 @@ La version Node/Docker conserve le téléchargement automatique des autres EPUB 
 - **Exporter** : récupérer son EPUB original inchangé, une version Classique nettoyée ou une version Focus.
 - **Sauvegarder** : exporter un ZIP de la bibliothèque et de ses repères, puis le restaurer sans compte. Limites : 500 livres et 250 Mio par sauvegarde. Le panneau affiche aussi l’espace estimé et une demande facultative de protection du stockage.
 - **Mettre à jour** : un bandeau PWA propose la nouvelle version après sauvegarde de la lecture, avec possibilité de reporter.
-- **Hors connexion** : les livres importés, la sélection et la recherche française sont disponibles après installation complète du cache. Les autres langues sont conservées dans le cache après leur première consultation.
+- **Hors connexion** : les six langues de l’interface, les livres importés, la sélection et la recherche française sont disponibles après installation complète du cache. Les catalogues des autres langues sont conservés après leur première consultation.
 
 Validez la recherche avec **Entrée** ou la loupe. Le lien de recherche conserve la requête, la langue, la source et la page pour le rechargement et le retour arrière. **Effacer la recherche** affiche tous vos livres et les catalogues dans la langue choisie. Un changement de page ou un clic sur la page active ramène en haut ; le passage enregistré dans le lecteur est conservé.
 

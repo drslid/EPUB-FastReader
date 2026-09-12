@@ -1,0 +1,19 @@
+.language-picker { position: relative; flex: 0 0 auto; font-size: 13px; }
+.language-picker > summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 76px; min-height: 44px; padding: 0 9px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; list-style: none; background: var(--surface); color: var(--text); }
+.language-picker > summary::-webkit-details-marker { display: none; }
+.language-picker .language-flag { display: block; width: 24px; height: 18px; flex: 0 0 auto; object-fit: cover; border-radius: 2px; }
+.language-chevron { opacity: .7; }
+.language-picker[open] > summary { outline: 2px solid var(--accent); outline-offset: 2px; }
+.language-picker nav { position: absolute; z-index: 100; top: calc(100% + 9px); right: 0; min-width: 184px; max-width: calc(100vw - 24px); padding: 6px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: 0 12px 40px #0005; }
+.language-picker nav a { display: flex; gap: 10px; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 8px; text-decoration: none; color: var(--text); }
+.language-picker nav a:hover, .language-picker nav a:focus-visible, .language-picker nav a[aria-current] { background: var(--surface-raised, var(--bg)); }
+.language-picker nav a > :last-child:not(:nth-child(2)) { margin-left: auto; }
+.reader-language { margin-left: auto; }
+@media (max-width: 600px) {
+  .topbar-right { gap: 6px; }
+  .topbar-right .compact { padding-inline: 10px; }
+  .topbar-right .compact span { display: none; }
+  .language-picker > summary { min-width: 65px; gap: 5px; padding-inline: 6px; }
+  .language-chevron { display: none; }
+  .reader-header { gap: 6px; }
+}

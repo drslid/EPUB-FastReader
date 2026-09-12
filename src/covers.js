@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 const text = (value) => (typeof value === "string" ? value.trim() : "");
 const record = (value) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -31,8 +32,8 @@ function presentation(book) {
       text(book.id) ||
       text(book.title) ||
       "livre",
-    title: text(book.title) || "Sans titre",
-    author: text(book.author) || "Auteur inconnu",
+    title: text(book.title) || t("Sans titre"),
+    author: text(book.author) || t("Auteur inconnu"),
     image: text(book.cover) || null,
   };
 }
@@ -68,7 +69,7 @@ export function resolveCover(value, catalog = []) {
     return {
       key: text(saved.key),
       title: text(saved.title),
-      author: text(saved.author) || "Auteur inconnu",
+      author: text(saved.author) || t("Auteur inconnu"),
       image: text(saved.image) || null,
     };
   }

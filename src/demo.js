@@ -1,3 +1,6 @@
+import { locale } from "./i18n.js";
+import editions from "./locales/demo.js";
+
 const chapters = [
   [
     "Un peu de place",
@@ -14,7 +17,9 @@ const chapters = [
 ];
 
 export function createDemo() {
-  const items = chapters.map(([title, html], index) => ({
+  const edition = editions[locale];
+  const translatedChapters = edition?.chapters.map(([title, paragraphs]) => [title, paragraphs.map((text) => `<p>${text}</p>`).join("")]) || chapters;
+  const items = translatedChapters.map(([title, html], index) => ({
     id: `chapter-${index + 1}`,
     title,
     html,
@@ -24,11 +29,11 @@ export function createDemo() {
       .split(/\s+/u).length,
   }));
   return {
-    id: "fastreader-demo-v1",
-    title: "L’art de prendre le temps",
-    author: "Une pause avec FastReader",
+    id: locale === "fr" ? "fastreader-demo-v1" : `fastreader-demo-v1-${locale}`,
+    title: edition?.title || "L’art de prendre le temps",
+    author: edition?.author || "Une pause avec FastReader",
     cover: "",
-    language: "fr",
+    language: locale,
     chapters: items,
     totalWords: items.reduce((sum, item) => sum + item.wordCount, 0),
     addedAt: Date.now(),

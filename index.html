@@ -7,10 +7,41 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <meta name="theme-color" content="#101619" />
-    <meta
-      name="description"
-      content="Votre bibliothèque, votre rythme. Importez un EPUB, découvrez des classiques et lisez sur ordinateur, tablette ou téléphone."
-    />
+    <!-- seo:head:start -->
+    <title>FastReader — Lecteur EPUB gratuit, Focus et mot à mot</title>
+    <meta name="description" content="Lisez vos EPUB gratuitement sur mobile, tablette et ordinateur : lecture classique, Focus ou mot à mot. Bibliothèque locale, sans compte, et lecture hors ligne." />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://drslid.github.io/EPUB-FastReader/" />
+    <link rel="alternate" hreflang="fr" href="https://drslid.github.io/EPUB-FastReader/" />
+    <link rel="alternate" hreflang="en" href="https://drslid.github.io/EPUB-FastReader/en.html" />
+    <link rel="alternate" hreflang="es" href="https://drslid.github.io/EPUB-FastReader/es.html" />
+    <link rel="alternate" hreflang="it" href="https://drslid.github.io/EPUB-FastReader/it.html" />
+    <link rel="alternate" hreflang="de" href="https://drslid.github.io/EPUB-FastReader/de.html" />
+    <link rel="alternate" hreflang="pt" href="https://drslid.github.io/EPUB-FastReader/pt.html" />
+    <link rel="alternate" hreflang="x-default" href="https://drslid.github.io/EPUB-FastReader/" />
+    <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FastReader" />
+    <meta property="og:title" content="FastReader — Lecteur EPUB gratuit, Focus et mot à mot" />
+    <meta property="og:description" content="Lisez vos EPUB gratuitement sur mobile, tablette et ordinateur : lecture classique, Focus ou mot à mot. Bibliothèque locale, sans compte, et lecture hors ligne." />
+    <meta property="og:url" content="https://drslid.github.io/EPUB-FastReader/" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:locale:alternate" content="en_GB" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="it_IT" />
+    <meta property="og:locale:alternate" content="de_DE" />
+    <meta property="og:locale:alternate" content="pt_PT" />
+    <meta property="og:image" content="https://drslid.github.io/EPUB-FastReader/icons/icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="FastReader" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="FastReader — Lecteur EPUB gratuit, Focus et mot à mot" />
+    <meta name="twitter:description" content="Lisez vos EPUB gratuitement sur mobile, tablette et ordinateur : lecture classique, Focus ou mot à mot. Bibliothèque locale, sans compte, et lecture hors ligne." />
+    <meta name="twitter:image" content="https://drslid.github.io/EPUB-FastReader/icons/icon-512.png" />
+    <meta name="twitter:image:alt" content="FastReader" />
+    <script id="app-schema" type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"FastReader","url":"https://drslid.github.io/EPUB-FastReader/","description":"Lisez vos EPUB gratuitement sur mobile, tablette et ordinateur : lecture classique, Focus ou mot à mot. Bibliothèque locale, sans compte, et lecture hors ligne.","inLanguage":"fr","applicationCategory":"EducationalApplication","operatingSystem":"Web","isAccessibleForFree":true,"featureList":["Trois façons de lire","Votre bibliothèque sur cet appareil","Un confort qui vous ressemble","Lire même sans connexion"]}</script>
+    <!-- seo:head:end -->
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link
       rel="apple-touch-icon"
@@ -18,17 +49,33 @@
       sizes="180x180"
     />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <title>FastReader — Votre bibliothèque, votre rythme</title>
+    <link rel="stylesheet" href="./src/seo-landing.css" />
   </head>
   <body data-theme="night">
     <a class="skip-link" href="#main">Aller au contenu</a>
-    <div id="app"></div>
+    <div id="app"><!-- seo:landing:start -->
+    <main id="main" class="seo-landing">
+      <a href="./" aria-label="FastReader">FastReader</a>
+      <nav aria-label="Langue">
+        <a href="./" lang="fr" hreflang="fr" aria-current="page"><span aria-hidden="true">🇫🇷</span> Français</a>
+        <a href="./en.html" lang="en" hreflang="en"><span aria-hidden="true">🇬🇧</span> English</a>
+        <a href="./es.html" lang="es" hreflang="es"><span aria-hidden="true">🇪🇸</span> Español</a>
+        <a href="./it.html" lang="it" hreflang="it"><span aria-hidden="true">🇮🇹</span> Italiano</a>
+        <a href="./de.html" lang="de" hreflang="de"><span aria-hidden="true">🇩🇪</span> Deutsch</a>
+        <a href="./pt.html" lang="pt" hreflang="pt"><span aria-hidden="true">🇵🇹</span> Português</a>
+      </nav>
+      <h1>Vos livres EPUB, à votre rythme</h1>
+      <p>Découvrez des classiques ou importez vos propres EPUB. Choisissez une lecture classique, Focus ou mot à mot, sur téléphone, tablette et ordinateur.</p>
+      <div class="seo-actions"><a href="#import">Importer un EPUB</a><a href="#discover">Découvrir des livres</a></div>
+      <section><h2>Trois façons de lire</h2><p>Gardez la mise en page classique, mettez le début des mots en évidence avec Focus ou affichez un mot à la fois à une cadence réglable.</p></section>
+      <section><h2>Votre bibliothèque sur cet appareil</h2><p>Retrouvez vos livres, marque-pages et notes sans créer de compte. Exportez une sauvegarde pour conserver votre bibliothèque.</p></section>
+      <section><h2>Un confort qui vous ressemble</h2><p>Ajustez le thème, la taille du texte, l’interligne et l’intensité Focus avec un aperçu immédiat.</p></section>
+      <section><h2>Lire même sans connexion</h2><p>Installez FastReader et retrouvez hors ligne les livres déjà importés. Une connexion reste nécessaire pour découvrir et télécharger de nouveaux livres.</p></section>
+    </main>
+    <!-- seo:landing:end --></div>
     <div id="reader-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-    <noscript
-      >Activez JavaScript pour ouvrir vos EPUB dans FastReader. Vos fichiers
-      sont lus sur votre appareil.</noscript
-    >
+    <noscript>Activez JavaScript pour ouvrir vos EPUB dans FastReader. Vos fichiers sont lus et conservés sur votre appareil.</noscript>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

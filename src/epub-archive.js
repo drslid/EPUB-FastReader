@@ -1,18 +1,20 @@
+import { t } from "./i18n.js";
 import { openZip, readText, readImage } from "./epub-archive-core.js";
 
 async function localReader(buffer) {
-  const zip = await openZip(buffer);
+  const translated = async (task) => { try { return await task(); } catch (error) { error.message = t(error.message); throw error; } };
+  const zip = await translated(() => openZip(buffer));
   return {
     file: (path) => zip.file(path),
     files: zip.files,
-    readText: (path) => readText(zip, path),
-    readImage: (path) => readImage(zip, path),
+    readText: (path) => translated(() => readText(zip, path)),
+    readImage: (path) => translated(() => readImage(zip, path)),
     dispose() {},
   };
 }
 
 function workerUnavailable() {
-  const error = new Error("Le traitement EPUB en arrière-plan est indisponible.");
+  const error = new Error(t("Le traitement EPUB en arrière-plan est indisponible."));
   error.code = "WORKER_UNAVAILABLE";
   return error;
 }
@@ -30,7 +32,7 @@ async function workerReader(buffer) {
   const pending = new Map();
   let sequence = 0;
   let closed = false;
-  const dispose = (error = new Error("Le traitement de l’EPUB est terminé.")) => {
+  const dispose = (error = new Error(t("Le traitement de l’EPUB est terminé."))) => {
     if (closed) return;
     closed = true;
     worker.terminate();
@@ -41,7 +43,7 @@ async function workerReader(buffer) {
     const request = pending.get(data.id);
     if (!request) return;
     pending.delete(data.id);
-    if (data.error) request.reject(new Error(data.error));
+    if (data.error) request.reject(new Error(t(data.error)));
     else request.resolve(data.result);
   });
   worker.addEventListener("error", (event) => {

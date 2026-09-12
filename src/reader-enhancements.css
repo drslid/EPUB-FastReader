@@ -60,3 +60,6 @@
 .reader-settings .mode-option small { display: none; }
 .library-backup-button { font-size: 11px; padding: 8px 10px; min-height: 44px; }
 .library-backup-button .icon { width: 16px; height: 16px; }
+.reader-commandbar > .notes-toggle { min-width: 0; white-space: normal; }
+.notes-toggle > span:not(.count-pill) { min-width: 0; overflow-wrap: anywhere; }
+.notes-toggle .icon { flex-shrink: 0; }

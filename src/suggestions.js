@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 const normalize = (value) =>
   String(value || "")
     .normalize("NFD")
@@ -182,9 +183,9 @@ export function selectSuggestions({
 export function getRecommendationReason(book, library = []) {
   const local = findLibraryBook(book, library);
   const priority = readingPriority(local);
-  if (priority === 0) return "À découvrir";
-  if (priority === 1) return "Dans votre bibliothèque · à commencer";
-  if (priority === 3) return "Déjà lu · à retrouver";
+  if (priority === 0) return t("À découvrir");
+  if (priority === 1) return t("Dans votre bibliothèque · à commencer");
+  if (priority === 3) return t("Déjà lu · à retrouver");
   const percent = Math.min(99, Math.round(progressOf(local) * 100));
-  return percent > 0 ? `Reprendre à ${percent} %` : "Reprendre la lecture";
+  return percent > 0 ? t("Reprendre à {percent} %", { percent }) : t("Reprendre la lecture");
 }

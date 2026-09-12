@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, expect } from "@playwright/test";
 import JSZip from "jszip";
+import { languageUrl, SEO_LANGUAGES } from "../src/seo-data.js";
 
 const projectPath = "/EPUB-FastReader/";
 const types = {
@@ -21,6 +22,7 @@ const types = {
   ".json": "application/json",
   ".epub": "application/epub+zip",
   ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
 };
 
 async function staticServer() {
@@ -165,11 +167,39 @@ try {
   assert.equal(new URL(manifest.scope, baseURL).pathname, baseURL.pathname);
   assert.equal(new URL(manifest.start_url, baseURL).pathname, baseURL.pathname);
   await Promise.all(manifest.icons.map((icon) => fetchAsset(baseURL, icon.src, /image\//)));
+  await Promise.all(["fr", "gb", "es", "it", "de", "pt"].map((code) => fetchAsset(baseURL, `flags/${code}.svg`, /image\/svg\+xml/)));
   const serviceWorker = (await fetchAsset(baseURL, "sw.js", /javascript/)).toString();
   assert.doesNotMatch(serviceWorker, /__BUILD_VERSION__|__PRECACHE_MANIFEST__/);
   passed("Static subpath, manifest, icons and nine original EPUB archives");
 
   browser = await chromium.launch();
+  const seoContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+  try {
+    const seoPage = await seoContext.newPage();
+    for (const [language, copy] of Object.entries(SEO_LANGUAGES)) {
+      const response = await seoPage.goto(new URL(language === "fr" ? "./" : copy.file, baseURL).href);
+      assert.equal(response.status(), 200);
+      await expect(seoPage.locator("html")).toHaveAttribute("lang", language);
+      await expect(seoPage).toHaveTitle(copy.title);
+      await expect(seoPage.getByRole("heading", { level: 1 })).toHaveText(copy.heading);
+      await expect(seoPage.locator('meta[name="description"]')).toHaveAttribute("content", copy.description);
+      await expect(seoPage.locator('link[rel="canonical"]')).toHaveAttribute("href", languageUrl(language));
+      await expect(seoPage.locator('head link[rel="alternate"]')).toHaveCount(7);
+      await expect(seoPage.locator("#app nav a")).toHaveCount(6);
+      const localizedManifest = JSON.parse(await fetchAsset(baseURL, language === "fr" ? "manifest.webmanifest" : `manifest-${language}.webmanifest`, /json/));
+      assert.equal(localizedManifest.lang, language);
+      assert.equal(new URL(localizedManifest.scope, baseURL).pathname, baseURL.pathname);
+      assert.equal(new URL(localizedManifest.id, baseURL).pathname, baseURL.pathname);
+      assert.equal(new URL(localizedManifest.start_url, baseURL).pathname, new URL(language === "fr" ? "./" : copy.file, baseURL).pathname);
+    }
+    const sitemap = (await fetchAsset(baseURL, "sitemap.xml", /xml/)).toString();
+    assert.equal((sitemap.match(/<loc>/g) || []).length, 6);
+    for (const language of Object.keys(SEO_LANGUAGES)) assert.ok(sitemap.includes(`<loc>${languageUrl(language)}</loc>`));
+    assert.doesNotMatch(sitemap, /#|library|reader|import|book=|search=/);
+    passed("Six translated static landing pages, canonical URLs, language links and public sitemap");
+  } finally {
+    await seoContext.close();
+  }
   context = await browser.newContext({
     viewport: { width: 390, height: 844 },
     serviceWorkers: "allow",
@@ -214,6 +244,10 @@ try {
   assert.equal(offlineCache.scope, baseURL.href);
   assert.equal(offlineCache.names.length, 1);
   assert.ok(offlineCache.files.every((file) => file.startsWith(baseURL.href)));
+  for (const [language, copy] of Object.entries(SEO_LANGUAGES)) {
+    assert.ok(offlineCache.files.includes(new URL(copy.file, baseURL).href));
+    assert.ok(offlineCache.files.includes(new URL(language === "fr" ? "manifest.webmanifest" : `manifest-${language}.webmanifest`, baseURL).href));
+  }
   for (const book of provenance.books) {
     assert.ok(offlineCache.files.includes(new URL(`books/${book.file}`, baseURL).href));
   }

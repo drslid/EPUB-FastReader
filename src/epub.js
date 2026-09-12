@@ -1,3 +1,4 @@
+import { t, formatNumber } from "./i18n.js";
 import JSZip from "jszip";
 import DOMPurify from "dompurify";
 
@@ -105,7 +106,7 @@ const RASTER_DATA =
   /^data:image\/(?:png|jpeg|gif|webp);base64,[a-zA-Z0-9+/=]+$/;
 
 function invalid(message) {
-  return new Error(message);
+  return new Error(t(message));
 }
 
 function elements(node, name) {
@@ -115,10 +116,10 @@ function elements(node, name) {
 function parseXml(source, label) {
   // External entities are unnecessary for EPUB metadata and must never be resolved.
   if (/<!ENTITY\s/i.test(source))
-    throw invalid(`${label} contient des entités XML non prises en charge.`);
+    throw invalid(t("{label} contient des entités XML non prises en charge.", { label: t(label) }));
   const doc = new DOMParser().parseFromString(source, "application/xml");
   if (elements(doc, "parsererror").length)
-    throw invalid(`${label} est invalide ou illisible.`);
+    throw invalid(t("{label} est invalide ou illisible.", { label: t(label) }));
   return doc;
 }
 
@@ -504,7 +505,7 @@ export async function importEpub(file, { onProgress } = {}) {
     throw invalid("Choisissez un fichier EPUB de moins de 30 Mo.");
   const report = (phase, completed, total, percent, message) => {
     if (typeof onProgress === "function")
-      onProgress({ phase, completed, total, percent, message });
+      onProgress({ phase, completed, total, percent, message: t(message) });
   };
   report("opening", 0, 0, 0, "Ouverture de l’EPUB…");
   await yieldToBrowser();
@@ -517,7 +518,7 @@ export async function importEpub(file, { onProgress } = {}) {
     const chapters = [];
     report(
       "chapters", 0, spine.length, 5,
-      `Préparation des ${spine.length} chapitres…`,
+      t("Préparation des {count} chapitres…", { count: formatNumber(spine.length) }),
     );
     for (const item of spine) {
       await yieldToBrowser();
@@ -549,7 +550,7 @@ export async function importEpub(file, { onProgress } = {}) {
       report(
         "chapters", chapters.length, spine.length,
         Math.round(5 + (chapters.length / spine.length) * 90),
-        `Chapitre ${chapters.length} sur ${spine.length}`,
+        t("Chapitre {current} sur {total}", { current: formatNumber(chapters.length), total: formatNumber(spine.length) }),
       );
     }
     const coverId = elements(opf, "meta")
@@ -652,7 +653,7 @@ async function exportConvertedEpub(book, enabled, options = {}) {
     else
       output.file(
         entry.name,
-        replacements.get(entry.name) ?? (await readBytes(entry)),
+        replacements.get(entry.name) ?? (await readBytes(entry).catch((error) => { error.message = t(error.message); throw error; })),
         { createFolders: false, compression: "DEFLATE" },
       );
   }

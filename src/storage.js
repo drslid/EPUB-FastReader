@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import { normalizePosition } from "./reading-state.js";
 
 const DATABASE = "fastreader";
@@ -19,13 +20,13 @@ function openDatabase() {
         abandoned = true;
         reject(
           request.error ||
-            new Error("Impossible d’ouvrir le stockage des livres."),
+            new Error(t("Impossible d’ouvrir le stockage des livres.")),
         );
       };
       request.onblocked = () => {
         abandoned = true;
         reject(
-          new Error("Fermez les autres onglets FastReader puis réessayez."),
+          new Error(t("Fermez les autres onglets FastReader puis réessayez.")),
         );
       };
       request.onsuccess = () => {
@@ -65,7 +66,7 @@ async function transaction(stores, mode, callback) {
       requestError = event.target?.error;
     };
     tx.onabort = () =>
-      reject(tx.error || requestError || new Error("Sauvegarde interrompue."));
+      reject(tx.error || requestError || new Error(t("Sauvegarde interrompue.")));
     try {
       request = callback(tx);
     } catch (error) {
@@ -152,10 +153,10 @@ export async function listBooks() {
       reject(
         tx.error ||
           event.target?.error ||
-          new Error("Lecture de la bibliothèque interrompue."),
+          new Error(t("Lecture de la bibliothèque interrompue.")),
       );
     tx.onabort = () =>
-      reject(tx.error || new Error("Lecture de la bibliothèque interrompue."));
+      reject(tx.error || new Error(t("Lecture de la bibliothèque interrompue.")));
   });
 }
 
@@ -166,6 +167,7 @@ export const deleteBook = (id) =>
   });
 
 export const defaultSettings = Object.freeze({
+  locale: "fr",
   theme: "night",
   fontSize: 20,
   font: "serif",
@@ -184,6 +186,7 @@ export function normalizeSettings(value) {
   const source =
     value && typeof value === "object" && !Array.isArray(value) ? value : {};
   return {
+    locale: ["fr", "en", "es", "it", "de", "pt"].includes(source.locale) ? source.locale : "fr",
     theme: ["paper", "sepia", "night"].includes(source.theme)
       ? source.theme
       : defaultSettings.theme,
@@ -292,7 +295,7 @@ export async function readLibrarySnapshot() {
     tx.oncomplete = () => resolve(Object.fromEntries(
       Object.entries(requests).map(([name, request]) => [name, request.result]),
     ));
-    tx.onabort = () => reject(tx.error || new Error("Lecture de la sauvegarde interrompue."));
+    tx.onabort = () => reject(tx.error || new Error(t("Lecture de la sauvegarde interrompue.")));
     tx.onerror = () => {};
   });
 }
@@ -329,7 +332,7 @@ export async function mergeLibrarySnapshot(snapshot, { restorePreferences = fals
     };
     tx.oncomplete = () => resolve(result);
     tx.onerror = (event) => { failure ||= event.target?.error; };
-    tx.onabort = () => reject(failure || tx.error || new Error("Restauration interrompue. Vos données sont inchangées."));
+    tx.onabort = () => reject(failure || tx.error || new Error(t("Restauration interrompue. Vos données sont inchangées.")));
     try {
       for (const book of snapshot.books) {
         const request = books.get(book.id);
@@ -385,9 +388,9 @@ export async function assessImportStorage(byteLength) {
   const estimatedRequired = Math.max(0, Number(byteLength) || 0) * 4;
   const tight = status.available !== null && status.available < estimatedRequired;
   const warning = tight
-    ? "L’espace disponible semble faible pour ce livre. Exportez une sauvegarde et libérez de la place si l’import échoue."
+    ? t("L’espace disponible semble faible pour ce livre. Exportez une sauvegarde et libérez de la place si l’import échoue.")
     : status.quota !== null && status.usage / status.quota > 0.85
-      ? "Le stockage de ce site est presque plein. Pensez à exporter une sauvegarde."
+      ? t("Le stockage de ce site est presque plein. Pensez à exporter une sauvegarde.")
       : "";
   return { ...status, estimatedRequired, warning };
 }

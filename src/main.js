@@ -1,3 +1,6 @@
+import { t, locale, setLocale, localeFromPath, localeHref, isLocale, languageSelector, formatNumber } from "./i18n.js";
+import { updateSeo } from "./seo.js";
+import "./i18n.css";
 import "./styles.css";
 import "./suggestions.css";
 import "./discover.css";
@@ -141,9 +144,9 @@ const wakeLock = createReadingWakeLock({ onChange: (active) => {
 } });
 const backups = createBackupController({
   beforeExport: async () => {
-    if (state.busy) throw new Error("Attendez la fin de l’ouverture du livre.");
+    if (state.busy) throw new Error(t("Attendez la fin de l’ouverture du livre."));
     pause();
-    if (await persistPosition() === false) throw new Error("La position n’a pas pu être sauvegardée. Réessayez avant de créer la sauvegarde.");
+    if (await persistPosition() === false) throw new Error(t("La position n’a pas pu être sauvegardée. Réessayez avant de créer la sauvegarde."));
     await writeSettings(state.settings);
   },
   afterRestore: async () => {
@@ -156,6 +159,9 @@ const backups = createBackupController({
     state.book = null;
     state.position = null;
     state.settings = await readSettings();
+    setLocale(state.settings.locale);
+    history.replaceState(null, "", localeHref(locale));
+    window.dispatchEvent(new Event("languagechange"));
     await refreshLibrary();
     if (currentId) await openBook(currentId, false);
     else renderShell();
@@ -165,7 +171,7 @@ const backups = createBackupController({
 function toast(message, persistent = false) {
   const element = document.querySelector("#toast");
   clearTimeout(toastTimer);
-  element.textContent = message;
+  element.textContent = t(message);
   element.hidden = false;
   if (!persistent)
     toastTimer = setTimeout(() => {
@@ -177,7 +183,7 @@ function storageError() {
   if (!warnedStorage) {
     warnedStorage = true;
     toast(
-      "Le stockage de cet appareil est indisponible ou plein. Votre lecture reste possible dans cet onglet, mais ne sera pas conservée.",
+      t("Le stockage de cet appareil est indisponible ou plein. Votre lecture reste possible dans cet onglet, mais ne sera pas conservée."),
       true,
     );
   }
@@ -199,10 +205,10 @@ function ensureImportInput() {
   document.body.append(input);
 }
 function importButton(extra = "") {
-  return `<button class="button primary ${extra}" data-action="import" aria-label="Importer un EPUB" ${state.busy ? "disabled" : ""}>${icon("plus")}<span>${state.busy ? "Ouverture…" : "Importer un EPUB"}</span></button>`;
+  return `<button class="button primary ${extra}" data-action="import" aria-label="${escape(t("Importer un EPUB"))}" ${state.busy ? "disabled" : ""}>${icon("plus")}<span>${state.busy ? t("Ouverture…") : t("Importer un EPUB")}</span></button>`;
 }
 function brand() {
-  return `<a class="brand" href="#home" aria-label="FastReader, accueil"><span class="brand-mark">${icon("book")}</span><span>fast<span class="brand-light">reader</span><span class="brand-dot">.</span></span></a>`;
+  return `<a class="brand" href="#home" aria-label="${escape(t("FastReader, accueil"))}"><span class="brand-mark">${icon("book")}</span><span>fast<span class="brand-light">reader</span><span class="brand-dot">.</span></span></a>`;
 }
 function cover(book) {
   const visual = resolveCover(book, [
@@ -212,31 +218,32 @@ function cover(book) {
   const palette =
     Array.from(visual.key).reduce((sum, char) => sum + char.charCodeAt(0), 0) %
     5;
-  return `<div class="cover cover-${palette}" style="--cover-title-scale:${visual.title.length > 130 ? 0.72 : visual.title.length > 65 ? 0.85 : 1}"><div class="cover-design" aria-hidden="true"><span class="cover-kicker">${book.demo ? "LES PETITES PAUSES" : "LA BIBLIOTHÈQUE"}</span><span class="cover-title">${escape(visual.title)}</span><span class="cover-rule"></span><span class="cover-author">${escape(visual.author)}</span></div>${visual.image ? `<img src="${escape(visual.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}<span class="cover-open">${icon("book")} Lire</span></div>`;
+  return `<div class="cover cover-${palette}" style="--cover-title-scale:${visual.title.length > 130 ? 0.72 : visual.title.length > 65 ? 0.85 : 1}"><div class="cover-design" aria-hidden="true"><span class="cover-kicker">${book.demo ? t("LES PETITES PAUSES") : t("LA BIBLIOTHÈQUE")}</span><span class="cover-title">${escape(visual.title)}</span><span class="cover-rule"></span><span class="cover-author">${escape(visual.author)}</span></div>${visual.image ? `<img src="${escape(visual.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" />` : ""}<span class="cover-open">${icon("book")} ${t("Lire")}</span></div>`;
 }
 
 function themeButton() {
   const nextIsLight = state.settings.theme === "night";
   const label = nextIsLight
-    ? "Passer au thème clair"
-    : "Passer au thème sombre";
+    ? t("Passer au thème clair")
+    : t("Passer au thème sombre");
   return `<button class="round-button theme-toggle" data-action="global-theme" aria-label="${label}" title="${label}">${icon(nextIsLight ? "sun" : "moon")}</button>`;
 }
 
 function renderShell({ resetScroll = false } = {}) {
+  syncInterfaceLanguage();
   ensureImportInput();
   const focusedField = ["search-query", "search-language"].includes(document.activeElement?.id) ? document.activeElement.id : null;
   const selection = focusedField === "search-query" ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
   const scrollY = resetScroll ? 0 : window.scrollY;
-  const pageTitle = state.view === "home" ? "Accueil" : state.view === "library" ? "Ma bibliothèque" : state.view === "search" ? "Recherche" : "Découvrir";
+  const pageTitle = state.view === "home" ? t("Accueil") : state.view === "library" ? t("Ma bibliothèque") : state.view === "search" ? t("Recherche") : t("Découvrir");
   applySettings();
   document.body.classList.remove("reading");
   app.innerHTML = `<div class="app-shell">
-    <aside class="sidebar">${brand()}<p class="nav-label">VOTRE ESPACE DE LECTURE</p>
-      <nav aria-label="Navigation principale"><a href="#home" class="nav-item ${state.view === "home" ? "active" : ""}" ${state.view === "home" ? 'aria-current="page"' : ""}>${icon("book")}<span>Accueil</span></a><a href="#library" class="nav-item ${state.view === "library" ? "active" : ""}" ${state.view === "library" ? 'aria-current="page"' : ""}>${icon("grid")}<span>Ma bibliothèque</span><span class="nav-count">${state.books.length}</span></a><a href="#discover" class="nav-item ${state.view === "discover" ? "active" : ""}" ${state.view === "discover" ? 'aria-current="page"' : ""}>${icon("compass")}<span>Découvrir</span></a><button class="nav-item mobile-import" data-action="import">${icon("plus")}<span>Importer</span></button></nav>
-      <div class="sidebar-bottom"><button class="install-link" data-action="backup">${icon("download")} Sauvegarde et stockage</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("download")} Installer l’application</button><div class="local-note">${icon("shield")} Enregistré sur cet appareil</div></div>
+    <aside class="sidebar">${brand()}<p class="nav-label">${t("VOTRE ESPACE DE LECTURE")}</p>
+      <nav aria-label="${escape(t("Navigation principale"))}"><a href="#home" class="nav-item ${state.view === "home" ? "active" : ""}" ${state.view === "home" ? 'aria-current="page"' : ""}>${icon("book")}<span>${t("Accueil")}</span></a><a href="#library" class="nav-item ${state.view === "library" ? "active" : ""}" ${state.view === "library" ? 'aria-current="page"' : ""}>${icon("grid")}<span>${t("Ma bibliothèque")}</span><span class="nav-count">${state.books.length}</span></a><a href="#discover" class="nav-item ${state.view === "discover" ? "active" : ""}" ${state.view === "discover" ? 'aria-current="page"' : ""}>${icon("compass")}<span>${t("Découvrir")}</span></a><button class="nav-item mobile-import" data-action="import">${icon("plus")}<span>${t("Importer")}</span></button></nav>
+      <div class="sidebar-bottom"><button class="install-link" data-action="backup">${icon("download")} ${t("Sauvegarde et stockage")}</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("download")} ${t("Installer l’application")}</button><div class="local-note">${icon("shield")} ${t("Enregistré sur cet appareil")}</div></div>
     </aside>
-    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} Hors connexion · Vos livres enregistrés restent disponibles.</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="backup">Sauvegarde et stockage</button><span>Vos livres et vos repères, sur cet appareil.</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("download")} Installer l’application</button></footer></div>
+    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="backup">${t("Sauvegarde et stockage")}</button><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("download")} ${t("Installer l’application")}</button></footer></div>
     </div>`;
   bindImages();
   window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
@@ -250,7 +257,7 @@ function renderShell({ resetScroll = false } = {}) {
 function discoverView() {
   if (state.view !== "search") return discoverMarkup(state, { icon, escape, cover, providers });
   const { localBooks, remoteBooks, alreadyOwnedCount } = partitionSearchResults({ books: state.books, catalog: state.catalog, query: state.query });
-  return `<section class="search-intro"><span class="eyebrow">UNE RECHERCHE, TOUS VOS LIVRES</span><h1>${state.query ? `Résultats pour « ${escape(state.query)} »` : "Tous les livres"}</h1><p>Vos livres d’abord, puis de nouvelles lectures à découvrir.</p></section>${localSearchResultsMarkup({ ...state, localSearchResults: localBooks }, { icon, escape, cover })}${discoverMarkup({ ...state, catalog: remoteBooks, alreadyOwnedCount }, { icon, escape, cover, providers })}`;
+  return `<section class="search-intro"><span class="eyebrow">${t("UNE RECHERCHE, TOUS VOS LIVRES")}</span><h1>${state.query ? t("Résultats pour « {query} »", { query: escape(state.query) }) : t("Tous les livres")}</h1><p>${t("Vos livres d’abord, puis de nouvelles lectures à découvrir.")}</p></section>${localSearchResultsMarkup({ ...state, localSearchResults: localBooks }, { icon, escape, cover })}${discoverMarkup({ ...state, catalog: remoteBooks, alreadyOwnedCount }, { icon, escape, cover, providers })}`;
 }
 
 function bindImages() {
@@ -319,6 +326,7 @@ function restoreReaderPosition() {
 }
 
 function renderReader() {
+  syncInterfaceLanguage();
   const previousPanelFocus = document.activeElement?.closest("#reader-settings, #reader-notes") ? document.activeElement.id : null;
   ensureImportInput();
   pause();
@@ -329,7 +337,7 @@ function renderReader() {
   document.body.classList.add("reading");
   app.innerHTML = readerView();
   const announcement = document.getElementById("reader-announcement");
-  if (announcement) announcement.textContent = `Chapitre ${state.position.chapterIndex + 1} sur ${state.book.chapters.length} : ${state.book.chapters[state.position.chapterIndex].title}`;
+  if (announcement) announcement.textContent = t("Chapitre {current} sur {total} : {title}", { current: state.position.chapterIndex + 1, total: state.book.chapters.length, title: state.book.chapters[state.position.chapterIndex].title });
   applySettings();
   const root = document.querySelector("#chapter-content");
   const scroll = document.querySelector("#chapter-scroll");
@@ -440,7 +448,7 @@ function captureReaderPosition() {
 function savePreferences() {
   void writeSettings(state.settings).catch(() =>
     toast(
-      "Ce réglage reste actif, mais sa sauvegarde sur cet appareil a échoué.",
+      t("Ce réglage reste actif, mais sa sauvegarde sur cet appareil a échoué."),
     ),
   );
 }
@@ -467,6 +475,32 @@ function applySettings() {
   );
 }
 
+function syncInterfaceLanguage() {
+  updateSeo(locale, { privatePage: state.view !== "home" });
+  if (state.book) document.title = `${state.book.title} — FastReader`;
+  document.querySelector(".skip-link").textContent = t("Aller au contenu");
+  document.body.dataset.dropLabel = t("Déposez votre EPUB pour commencer à lire");
+}
+
+async function changeInterfaceLanguage(language, { updateHistory = true } = {}) {
+  if (!isLocale(language) || state.busy) return;
+  pause();
+  await persistPosition();
+  setLocale(language);
+  state.settings.locale = language;
+  if (updateHistory) history.pushState(null, "", localeHref(language));
+  savePreferences();
+  // Only editorial presentation changes. Imported EPUB content stays intact.
+  const selectedIds = state.suggestions.map((book) => book.id);
+  state.suggestionCatalog = (await searchBooks({ provider: "selection", language: "fr" })).books;
+  state.suggestions = selectedIds.map((id) => state.suggestionCatalog.find((book) => book.id === id)).filter(Boolean);
+  if (state.book) renderReader();
+  else if (["discover", "search"].includes(state.view)) await runSearch(state.page);
+  else renderShell();
+  window.dispatchEvent(new Event("languagechange"));
+  app.querySelector(".language-picker > summary")?.focus({ preventScroll: true });
+}
+
 function updateReadingPreferences(patch) {
   pause();
   ensureReaderPosition();
@@ -486,11 +520,11 @@ function updateReadingPreferences(patch) {
       if (note.chapterIndex === state.position.chapterIndex) applyLocatorHighlight(root, note.locator, { className: "reader-highlight", id: note.id });
     }
   }
-  for (const [id, key, unit] of [["font-size", "fontSize", " px"], ["line-height", "lineHeight", ""], ["column-width", "columnWidth", " caractères"], ["focus-intensity", "focusIntensity", " %"], ["font-family", "font", ""], ["reading-profile", "profile", ""]]) {
+  for (const [id, key, unit] of [["font-size", "fontSize", " px"], ["line-height", "lineHeight", ""], ["column-width", "columnWidth", t(" caractères")], ["focus-intensity", "focusIntensity", " %"], ["font-family", "font", ""], ["reading-profile", "profile", ""]]) {
     const input = document.getElementById(id);
     if (input) input.value = state.settings[key];
     const output = document.getElementById(`${id}-value`);
-    if (output) output.textContent = `${state.settings[key]}${unit}`;
+    if (output) output.textContent = `${typeof state.settings[key] === "number" ? formatNumber(state.settings[key]) : state.settings[key]}${unit}`;
   }
   const skip = document.getElementById("skip-short-words");
   if (skip) skip.checked = state.settings.skipShortWords;
@@ -504,7 +538,7 @@ function syncReaderPanels() {
     const element = document.querySelector(selector);
     if (element) element.inert = Boolean(active);
   }
-  for (const [id, title] of [["reader-settings", "Réglages de lecture"], ["reader-notes", "Mes repères"]]) {
+  for (const [id, title] of [["reader-settings", t("Réglages de lecture")], ["reader-notes", t("Mes repères")]]) {
     const panel = document.getElementById(id);
     if (!panel) continue;
     panel.setAttribute("role", "dialog");
@@ -517,8 +551,8 @@ function showInstallHelp() {
   const trigger = document.activeElement;
   const dialog = document.createElement("dialog");
   dialog.className = "toc-dialog";
-  dialog.setAttribute("aria-label", "Installer FastReader");
-  dialog.innerHTML = `<div class="dialog-heading"><h2>Installer FastReader</h2><button class="round-button" aria-label="Fermer l’aide à l’installation">${icon("close")}</button></div><p>Retrouvez le lecteur depuis votre écran d’accueil.</p><ul><li><strong>iPhone / iPad :</strong> dans Safari, ouvrez Partager puis « Sur l’écran d’accueil ».</li><li><strong>Android :</strong> dans le menu du navigateur, choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».</li><li><strong>Ordinateur :</strong> cherchez l’icône d’installation dans la barre d’adresse ou le menu du navigateur, si cette option est proposée.</li></ul><p>Ouvrez l’application avec une connexion une première fois. Les livres ajoutés à votre bibliothèque restent ensuite lisibles hors ligne.</p><button class="button ink">Compris</button>`;
+  dialog.setAttribute("aria-label", t("Installer FastReader"));
+  dialog.innerHTML = `<div class="dialog-heading"><h2>${t("Installer FastReader")}</h2><button class="round-button" aria-label="${escape(t("Fermer l’aide à l’installation"))}">${icon("close")}</button></div><p>${t("Retrouvez le lecteur depuis votre écran d’accueil.")}</p><ul><li><strong>${t("iPhone / iPad :")}</strong> ${t("dans Safari, ouvrez Partager puis « Sur l’écran d’accueil ».")}</li><li><strong>${t("Android :")}</strong> ${t("dans le menu du navigateur, choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».")}</li><li><strong>${t("Ordinateur :")}</strong> ${t("cherchez l’icône d’installation dans la barre d’adresse ou le menu du navigateur, si cette option est proposée.")}</li></ul><p>${t("Ouvrez l’application avec une connexion une première fois. Les livres ajoutés à votre bibliothèque restent ensuite lisibles hors ligne.")}</p><button class="button ink">${t("Compris")}</button>`;
   document.body.append(dialog);
   for (const button of dialog.querySelectorAll("button")) button.onclick = () => dialog.close();
   dialog.addEventListener("close", () => { dialog.remove(); trigger?.focus(); }, { once: true });
@@ -531,8 +565,8 @@ function showTableOfContents() {
   const trigger = document.querySelector('[data-action="toc"]');
   const dialog = document.createElement("dialog");
   dialog.className = "toc-dialog";
-  dialog.setAttribute("aria-label", "Sommaire");
-  dialog.innerHTML = `<div class="dialog-heading"><h2>Sommaire</h2><button class="round-button" aria-label="Fermer le sommaire">${icon("close")}</button></div><nav aria-label="Chapitres du livre"><ol>${state.book.chapters.map((chapter, index) => `<li><button data-chapter="${index}" ${index === state.position.chapterIndex ? 'aria-current="location"' : ""}>${index + 1}. ${escape(chapter.title)}</button></li>`).join("")}</ol></nav>`;
+  dialog.setAttribute("aria-label", t("Sommaire"));
+  dialog.innerHTML = `<div class="dialog-heading"><h2>${t("Sommaire")}</h2><button class="round-button" aria-label="${escape(t("Fermer le sommaire"))}">${icon("close")}</button></div><nav aria-label="${escape(t("Chapitres du livre"))}"><ol>${state.book.chapters.map((chapter, index) => `<li><button data-chapter="${index}" ${index === state.position.chapterIndex ? 'aria-current="location"' : ""}>${index + 1}. ${escape(chapter.title)}</button></li>`).join("")}</ol></nav>`;
   document.body.append(dialog);
   dialog.querySelector(".round-button").onclick = () => dialog.close();
   dialog.addEventListener("click", async (event) => {
@@ -580,17 +614,17 @@ function updateProgress() {
       pages,
       1 + Math.floor(scroll.scrollTop / Math.max(1, scroll.clientHeight)),
     );
-    screen.textContent = `Écran ${current} / ${pages}`;
+    screen.textContent = t("Écran {current} / {total}", { current, total: pages });
   }
   document.querySelector("#progress-label").textContent =
-    `${Math.round(state.position.progress * 100)} % parcouru`;
+    t("{percent} % parcouru", { percent: Math.round(state.position.progress * 100) });
   const remaining = Math.ceil(
     (state.book.totalWords * (1 - state.position.progress)) /
       state.settings.speed,
   );
   document.querySelector("#remaining-label").textContent = remaining
-    ? `≈ ${remaining} min restantes`
-    : "Lecture terminée";
+    ? t("≈ {minutes} min restantes", { minutes: remaining })
+    : t("Lecture terminée");
 }
 
 function onReadScroll() {
@@ -626,7 +660,7 @@ async function persistPosition() {
     await savePosition(book.id, position);
     const status = document.querySelector("#save-status");
     if (status && state.book?.id === book.id)
-      status.textContent = "Position enregistrée ici";
+      status.textContent = t("Position enregistrée ici");
     return true;
   } catch {
     storageError();
@@ -652,7 +686,7 @@ async function openBook(id, setHash = true) {
   position ||= book?.position;
   if (!book) {
     toast(
-      "Ce livre n’est pas présent sur cet appareil. Importez son EPUB pour le lire.",
+      t("Ce livre n’est pas présent sur cet appareil. Importez son EPUB pour le lire."),
     );
     location.hash = "library";
     return;
@@ -700,6 +734,15 @@ async function openBook(id, setHash = true) {
 }
 
 async function navigate() {
+  // Handle path and hash together on browser Back/Forward. A separate async
+  // language handler could otherwise reopen a stale book while routing.
+  const routeLocale = localeFromPath();
+  if (routeLocale !== locale) {
+    setLocale(routeLocale);
+    state.settings.locale = routeLocale;
+    savePreferences();
+    window.dispatchEvent(new Event("languagechange"));
+  }
   catalogDownloadController?.abort();
   searchController?.abort();
   const route = location.hash.slice(1);
@@ -729,7 +772,7 @@ async function navigate() {
   state.searched = false;
   state.searching = ["search", "discover"].includes(state.view);
   if (route === "account") history.replaceState(null, "", "#library");
-  document.title = `${state.view === "home" ? "Accueil" : state.view === "library" ? "Ma bibliothèque" : state.view === "search" ? "Recherche" : "Découvrir"} — FastReader`;
+  document.title = `${state.view === "home" ? t("Accueil") : state.view === "library" ? t("Ma bibliothèque") : state.view === "search" ? t("Recherche") : t("Découvrir")} — FastReader`;
   renderShell({ resetScroll: true });
   const localTask = (async () => {
     await savedPosition;
@@ -753,7 +796,7 @@ function navigateSearch(values) {
 async function importFile(file, source, { signal } = {}) {
   if (!file || state.busy) return;
   state.busy = true;
-  toast(`Ouverture de ${file.name}…`, true);
+  toast(t("Ouverture de {title}…", { title: file.name }), true);
   app
     .querySelectorAll('[data-action="import"], [data-action="catalog-read"]')
     .forEach((button) => {
@@ -792,11 +835,11 @@ async function importFile(file, source, { signal } = {}) {
     if (!warnedStorage)
       toast(
         existing
-          ? "Votre livre est prêt. Bonne lecture !"
-          : "Ajouté à votre bibliothèque. Bonne lecture !",
+          ? t("Votre livre est prêt. Bonne lecture !")
+          : t("Ajouté à votre bibliothèque. Bonne lecture !"),
       );
   } catch (error) {
-    toast(error.message || "Impossible d’ouvrir ce fichier EPUB.");
+    toast(error.message || t("Impossible d’ouvrir ce fichier EPUB."));
   } finally {
     state.busy = false;
     app
@@ -834,7 +877,7 @@ async function runSearch(page = 1) {
   } catch (error) {
     if (controller.signal.aborted) return;
     state.catalogError =
-      error.message || "Vérifiez votre connexion puis réessayez.";
+      error.message || t("Vérifiez votre connexion puis réessayez.");
     state.hasNext = false;
   } finally {
     if (!controller.signal.aborted) {
@@ -849,8 +892,8 @@ function showDownloadFallback(book, error) {
   const manualImport = book.downloadMode === "manual";
   const dialog = document.createElement("dialog");
   dialog.className = "fallback-dialog";
-  dialog.setAttribute("aria-label", manualImport ? `Obtenir ${book.title}` : `Ouvrir ${book.title}`);
-  dialog.innerHTML = `<div class="dialog-heading"><span class="eyebrow">VOTRE PROCHAINE LECTURE</span><button class="round-button" aria-label="Fermer">${icon("close")}</button></div><h2>${escape(book.title)}</h2>${manualImport ? "" : `<button class="button ink dialog-retry">${icon("download")} Réessayer</button>`}<p>${escape(error.message || "La source ne permet pas l’ouverture directe dans ce navigateur.")}</p><ol><li>Ouvrez la fiche du livre et vérifiez ses droits dans votre pays.</li><li>Téléchargez le format EPUB.</li><li>Revenez ici et importez le fichier.</li></ol><a class="button ink" href="${escape(book.sourceUrl)}" target="_blank" rel="noopener noreferrer">${manualImport ? "Télécharger sur Gutenberg" : "Ouvrir la fiche source"} ${icon("external")}</a><button class="button secondary dialog-import">Importer mon EPUB ${icon("plus")}</button>`;
+  dialog.setAttribute("aria-label", manualImport ? t("Obtenir {title}", { title: book.title }) : t("Ouvrir {title}", { title: book.title }));
+  dialog.innerHTML = `<div class="dialog-heading"><span class="eyebrow">${t("VOTRE PROCHAINE LECTURE")}</span><button class="round-button" aria-label="${escape(t("Fermer"))}">${icon("close")}</button></div><h2>${escape(book.title)}</h2>${manualImport ? "" : `<button class="button ink dialog-retry">${icon("download")} ${t("Réessayer")}</button>`}<p>${escape(error.message || t("La source ne permet pas l’ouverture directe dans ce navigateur."))}</p><ol><li>${t("Ouvrez la fiche du livre et vérifiez ses droits dans votre pays.")}</li><li>${t("Téléchargez le format EPUB.")}</li><li>${t("Revenez ici et importez le fichier.")}</li></ol><a class="button ink" href="${escape(book.sourceUrl)}" target="_blank" rel="noopener noreferrer">${manualImport ? t("Télécharger sur Gutenberg") : t("Ouvrir la fiche source")} ${icon("external")}</a><button class="button secondary dialog-import">${t("Importer mon EPUB")} ${icon("plus")}</button>`;
   document.body.append(dialog);
   dialog.querySelector(".round-button").onclick = () => dialog.close();
   dialog.querySelector(".dialog-retry")?.addEventListener("click", () => {
@@ -886,12 +929,12 @@ async function readCatalogBook(id) {
     }
     if (book.downloadMode === "manual") {
       showDownloadFallback(book, {
-        message: "Ce titre est disponible sur Project Gutenberg. Téléchargez son EPUB, puis importez-le ici : il rejoindra vos livres et gardera votre progression.",
+        message: t("Ce titre est disponible sur Project Gutenberg. Téléchargez son EPUB, puis importez-le ici : il rejoindra vos livres et gardera votre progression."),
       });
       return;
     }
     renderShell();
-    toast(`Ouverture de ${book.title}…`, true);
+    toast(t("Ouverture de {title}…", { title: book.title }), true);
     const file = await downloadBook(book, { signal: controller.signal });
     controller.signal.throwIfAborted();
     state.busy = false;
@@ -951,7 +994,7 @@ function pause() {
   clearTimeout(playTimer);
   playing = false;
   const button = document.querySelector("#play-button");
-  if (button) button.innerHTML = `${icon("play")} Reprendre`;
+  if (button) button.innerHTML = `${icon("play")} ${t("Reprendre")}`;
 }
 
 function fitRsvpWord() {
@@ -984,7 +1027,7 @@ function fitRsvpWord() {
 function updateRsvp() {
   const element = document.querySelector("#rsvp-word");
   if (!element) return;
-  element.textContent = words[state.position.wordIndex] || "Fin du chapitre";
+  element.textContent = words[state.position.wordIndex] || t("Fin du chapitre");
   fitRsvpWord();
   const context = document.querySelector("#rsvp-context-text");
   if (context)
@@ -995,7 +1038,7 @@ function updateRsvp() {
       )
       .join(" ");
   document.querySelector("#rsvp-count").textContent =
-    `${Math.min(state.position.wordIndex + 1, words.length)} / ${words.length} mots · ${state.settings.speed} mots/min`;
+    t("{current} / {total} mots · {speed} mots/min", { current: formatNumber(Math.min(state.position.wordIndex + 1, words.length)), total: formatNumber(words.length), speed: state.settings.speed });
 }
 
 function advanceWord(offset) {
@@ -1026,7 +1069,7 @@ function play() {
   if (state.position.wordIndex >= words.length - 1) advanceWord(-words.length);
   playing = true;
   void wakeLock.setActive(state.settings.wakeLock);
-  document.querySelector("#play-button").innerHTML = `${icon("pause")} Pause`;
+  document.querySelector("#play-button").innerHTML = `${icon("pause")} ${t("Pause")}`;
   const tick = () => {
     if (!playing) return;
     if (state.position.wordIndex >= words.length - 1) {
@@ -1114,7 +1157,7 @@ function showNoteDialog(index) {
   const bookId = state.book.id;
   const dialog = document.createElement("dialog");
   dialog.className = "fallback-dialog note-dialog";
-  dialog.innerHTML = `<form method="dialog"><div class="dialog-heading"><span class="eyebrow">UN PASSAGE À GARDER</span><button class="round-button" value="cancel" aria-label="Annuler la note">${icon("close")}</button></div><h2>Votre note</h2><blockquote>${escape(locator.exact)}</blockquote><label for="annotation-note">Ce que vous voulez retenir</label><textarea id="annotation-note" maxlength="4000" rows="5" placeholder="Une idée, une question, une réflexion…">${escape(annotation?.note || "")}</textarea><div class="dialog-actions"><button class="button secondary" value="cancel">Annuler</button><button class="button ink" value="save">Enregistrer la note</button></div></form>`;
+  dialog.innerHTML = `<form method="dialog"><div class="dialog-heading"><span class="eyebrow">${t("UN PASSAGE À GARDER")}</span><button class="round-button" value="cancel" aria-label="${escape(t("Annuler la note"))}">${icon("close")}</button></div><h2>${t("Votre note")}</h2><blockquote>${escape(locator.exact)}</blockquote><label for="annotation-note">${t("Ce que vous voulez retenir")}</label><textarea id="annotation-note" maxlength="4000" rows="5" placeholder="${escape(t("Une idée, une question, une réflexion…"))}">${escape(annotation?.note || "")}</textarea><div class="dialog-actions"><button class="button secondary" value="cancel">${t("Annuler")}</button><button class="button ink" value="save">${t("Enregistrer la note")}</button></div></form>`;
   document.body.append(dialog);
   dialog.addEventListener("close", async () => {
     const note = dialog.querySelector("textarea").value;
@@ -1141,15 +1184,15 @@ function exportNotes() {
   const blocks = [
     `# ${book.title}`,
     book.author,
-    "## Pages marquées",
+    t("## Pages marquées"),
     ...state.position.bookmarks.map(
       (mark) =>
-        `### ${book.chapters[mark.chapterIndex]?.title || "Chapitre"}\n\n> ${(mark.locator?.exact || "").replace(/\n/g, "\n> ")}`,
+        `### ${book.chapters[mark.chapterIndex]?.title || t("Chapitre")}\n\n> ${(mark.locator?.exact || "").replace(/\n/g, "\n> ")}`,
     ),
-    "## Passages et notes",
+    t("## Passages et notes"),
     ...state.position.annotations.map(
       (note) =>
-        `### ${book.chapters[note.chapterIndex]?.title || "Chapitre"}\n\n> ${note.quote.replace(/\n/g, "\n> ")}\n\n${note.note || ""}`,
+        `### ${book.chapters[note.chapterIndex]?.title || t("Chapitre")}\n\n> ${note.quote.replace(/\n/g, "\n> ")}\n\n${note.note || ""}`,
     ),
   ];
   downloadText(blocks.join("\n\n"), "mes-reperes.md");
@@ -1186,17 +1229,17 @@ async function exportBook(format = "focus", id = state.book?.id) {
   state.busy = true;
   const buttons = [...app.querySelectorAll('[data-action="export"], [data-action="export-classic"], [data-action="library-export"]')];
   buttons.forEach((button) => { button.disabled = true; });
-  const label = format === "classic" ? "Classique" : "Focus";
+  const label = format === "classic" ? t("Classique") : t("Focus");
   try {
     pause();
     const book = state.book?.id === id ? state.book : await getBook(id) || state.memory.get(id);
-    if (!book?.original) throw new Error("L’EPUB original de ce livre n’est pas disponible.");
-    toast(`Préparation de l’EPUB ${label}…`, true);
+    if (!book?.original) throw new Error(t("L’EPUB original de ce livre n’est pas disponible."));
+    toast(t("Préparation de l’EPUB {mode}…", { mode: label }), true);
     const blob = format === "classic" ? await exportClassicEpub(book) : await exportFocusedEpub(book, focusOptions(state.settings));
     downloadText(blob, `${format}_${book.fileName || "livre.epub"}`, "application/epub+zip");
-    toast(`Votre EPUB ${label} est prêt à être téléchargé.`);
+    toast(t("Votre EPUB {mode} est prêt à être téléchargé.", { mode: label }));
   } catch (error) {
-    toast(error.message || "L’export a échoué.");
+    toast(error.message || t("L’export a échoué."));
   } finally {
     state.busy = false;
     buttons.forEach((button) => { if (button.isConnected) button.disabled = false; });
@@ -1223,11 +1266,17 @@ async function downloadCatalogOriginal(id) {
     const file = await downloadBook(book);
     downloadText(file, file.name || "livre.epub", "application/epub+zip");
     toast("L’EPUB est prêt à être téléchargé.");
-  } catch (error) { toast(error.message || "Le téléchargement n’a pas abouti."); }
+  } catch (error) { toast(error.message || t("Le téléchargement n’a pas abouti.")); }
   finally { state.busy = false; if (!state.book) renderShell(); }
 }
 
 app.addEventListener("click", async (event) => {
+  const languageLink = event.target.closest("a[data-locale]");
+  if (languageLink && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault();
+    await changeInterfaceLanguage(languageLink.dataset.locale);
+    return;
+  }
   const pageLink = event.target.closest('a[href="#home"], a[href="#library"], a[href="#discover"]');
   if (pageLink && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
     event.preventDefault();
@@ -1305,7 +1354,7 @@ app.addEventListener("click", async (event) => {
       const summary = state.books.find((book) => book.id === button.dataset.id);
       if (
         confirm(
-          `Supprimer « ${summary.title} » et sa progression de cet appareil ?`,
+          t("Supprimer « {title} » et sa progression de cet appareil ?", { title: summary.title }),
         )
       ) {
         try {
@@ -1371,7 +1420,7 @@ app.addEventListener("click", async (event) => {
       savePreferences();
       document.querySelector("#reading-speed").value = state.settings.speed;
       document.querySelector("#speed-value").textContent =
-        `${state.settings.speed} mots/min`;
+        t("{speed} mots/min", { speed: state.settings.speed });
       document.querySelector("#quick-speed").textContent = state.settings.speed;
       updateRsvp();
       updateProgress();
@@ -1483,7 +1532,7 @@ app.addEventListener("click", async (event) => {
       });
     }
   } catch (error) {
-    toast(error.message || "Cette action n’a pas pu aboutir. Réessayez.");
+    toast(error.message || t("Cette action n’a pas pu aboutir. Réessayez."));
   }
 });
 
@@ -1513,7 +1562,7 @@ app.addEventListener("change", (event) => {
   if (target.id === "search-language") {
     state.searchLanguageDraft = target.value;
     const code = document.querySelector(".unified-language-code");
-    if (code) code.firstChild.textContent = target.value ? target.value.toUpperCase() : "Tous";
+    if (code) code.firstChild.textContent = target.value ? target.value.toUpperCase() : t("Tous");
   }
   if (target.id === "chapter-select") void changeChapter(Number(target.value)).then(() => {
     if (state.settingsOpen) document.getElementById("chapter-select")?.focus({ preventScroll: true });
@@ -1544,7 +1593,7 @@ app.addEventListener("input", (event) => {
   if (target.id === "reading-speed") {
     state.settings.speed = clamp(target.value, 100, 800);
     document.querySelector("#speed-value").textContent =
-      `${state.settings.speed} mots/min`;
+      t("{speed} mots/min", { speed: state.settings.speed });
     savePreferences();
     const quick = document.querySelector("#quick-speed");
     if (quick) quick.textContent = state.settings.speed;
@@ -1575,12 +1624,29 @@ document.addEventListener("drop", (event) => {
   if (!state.busy) importFile(event.dataTransfer?.files[0]);
 });
 history.scrollRestoration = "manual";
-window.addEventListener("hashchange", navigate);
+let routeTimer;
+const scheduleNavigation = () => {
+  clearTimeout(routeTimer);
+  routeTimer = setTimeout(() => { void navigate(); }, 0);
+};
+window.addEventListener("hashchange", scheduleNavigation);
+window.addEventListener("popstate", scheduleNavigation);
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".language-picker"))
+    document.querySelectorAll(".language-picker[open]").forEach((picker) => { picker.open = false; });
+});
 document.querySelector(".skip-link").addEventListener("click", (event) => {
   event.preventDefault();
   document.querySelector("#main")?.focus();
 });
 window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && event.target.closest(".language-picker[open]")) {
+    const picker = event.target.closest(".language-picker");
+    event.preventDefault();
+    picker.open = false;
+    picker.querySelector("summary").focus();
+    return;
+  }
   if (event.key === "Tab" && state.book && (state.settingsOpen || state.notesOpen) && !event.target.closest("dialog")) {
     const panel = document.getElementById(state.settingsOpen ? "reader-settings" : "reader-notes");
     const items = [...panel.querySelectorAll('button:not(:disabled), input, select, summary, textarea, a[href], [tabindex]:not([tabindex="-1"])')].filter((item) => item.getClientRects().length && !item.closest('[hidden]'));
@@ -1661,9 +1727,9 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   void registerReaderServiceWorker({
     url: `${import.meta.env.BASE_URL}sw.js`,
     beforeUpdate: async () => {
-      if (state.busy) throw new Error("Attendez la fin de l’ouverture du livre avant de mettre à jour.");
+      if (state.busy) throw new Error(t("Attendez la fin de l’ouverture du livre avant de mettre à jour."));
       pause();
-      if (await persistPosition() === false) throw new Error("La position n’a pas pu être enregistrée. La mise à jour attendra.");
+      if (await persistPosition() === false) throw new Error(t("La position n’a pas pu être enregistrée. La mise à jour attendra."));
       await writeSettings(state.settings);
     },
     onError: (message) => toast(message, true),
@@ -1675,6 +1741,19 @@ try {
 } catch {
   storageError();
 }
+// An explicit localized URL wins. The root remembers the reader's last choice.
+const requestedLanguage = localeFromPath();
+const explicitFrench = new URLSearchParams(location.search).get("lang") === "fr";
+setLocale(requestedLanguage !== "fr" ? requestedLanguage : explicitFrench ? "fr" : state.settings.locale);
+state.settings.locale = locale;
+if (requestedLanguage !== locale) history.replaceState(null, "", localeHref(locale));
+if (explicitFrench) {
+  const cleanUrl = new URL(location.href);
+  cleanUrl.searchParams.delete("lang");
+  history.replaceState(null, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+}
+savePreferences();
+syncInterfaceLanguage();
 // Suggestions are local catalog metadata; only opening a book imports its EPUB.
 state.suggestionCatalog = (
   await searchBooks({ provider: "selection", language: "fr" })
@@ -1691,6 +1770,6 @@ await navigate();
 
 if (new URLSearchParams(location.search).has("legacy"))
   toast(
-    "Le lecteur a évolué. Importez à nouveau votre EPUB original pour profiter de la bibliothèque et de la reprise de lecture.",
+    t("Le lecteur a évolué. Importez à nouveau votre EPUB original pour profiter de la bibliothèque et de la reprise de lecture."),
     true,
   );

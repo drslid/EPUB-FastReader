@@ -1,3 +1,4 @@
+import { t } from "../i18n.js";
 import { defineSource } from "./source.js";
 import { catalogError, request, MAX_BOOK_BYTES } from "./transport.js";
 import { normalizeCatalogQuery } from "./query.js";
@@ -160,19 +161,22 @@ function publicBook(entry) {
     providerId: "selection",
     title: entry.title,
     author: entry.author,
-    description: entry.description,
+    description: t(entry.description),
+    // Raw editorial keys let cached cards follow later interface-language changes.
+    descriptionKey: entry.description,
     readingStart: entry.readingStart,
-    genre: entry.genre,
+    genre: t(entry.genre),
+    genreKey: entry.genre,
     cover: null,
     language: "fr",
-    source: "Project Gutenberg · sélection disponible ici",
+    source: t("Project Gutenberg · sélection disponible ici"),
     sourceUrl: `https://www.gutenberg.org/ebooks/${entry.gutenbergId}`,
     downloadUrl: assetUrl(entry.filename),
     actualDownloadUrl: assetUrl(entry.filename),
     downloadMode: "bundled",
     bytes: entry.bytes,
     rights:
-      "Textes anciens du domaine public en France ; éditions déclarées libres aux États-Unis. Autres pays : vérifiez les droits locaux.",
+      t("Textes anciens du domaine public en France ; éditions déclarées libres aux États-Unis. Autres pays : vérifiez les droits locaux."),
     rightsUrl: assetUrl("NOTICE.html"),
   };
 }

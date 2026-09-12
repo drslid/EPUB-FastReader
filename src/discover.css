@@ -52,6 +52,9 @@
   margin-top: 4px;
 }
 .catalog-book-actions .button {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
   min-height: 44px;
   flex: 1 1 110px;
   width: auto;

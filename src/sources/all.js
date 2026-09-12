@@ -1,3 +1,4 @@
+import { t } from "../i18n.js";
 import { defineSource } from "./source.js";
 import selection from "./selection.js";
 import gutenberg from "./gutenberg.js";
@@ -23,7 +24,7 @@ async function search(options) {
           providerId: "gutenberg",
           code: error?.code || "NETWORK",
           message:
-            "Le catalogue complet n’a pas pu être chargé. Les livres disponibles ici restent accessibles. Rechargez l’application puis réessayez.",
+            t("Le catalogue complet n’a pas pu être chargé. Les livres disponibles ici restent accessibles. Rechargez l’application puis réessayez."),
         },
       ],
     };

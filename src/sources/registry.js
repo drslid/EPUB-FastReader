@@ -1,3 +1,4 @@
+import { t } from "../i18n.js";
 import gutenberg from "./gutenberg.js";
 import selection from "./selection.js";
 import publicDomainLibrary from "./public-domain-library.js";
@@ -9,7 +10,7 @@ const registry = new Map();
 for (const source of sources) {
   if (registry.has(source.manifest.id)) {
     throw new TypeError(
-      `Identifiant de source dupliqué : ${source.manifest.id}`,
+      t("Identifiant de source dupliqué : {id}", { id: source.manifest.id }),
     );
   }
   registry.set(source.manifest.id, source);

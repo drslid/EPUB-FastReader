@@ -41,12 +41,12 @@ test("la sauvegarde ZIP restaure le livre original, ses repères et sa position 
   await openBackup(page);
   await page.locator("#backup-file").setInputFiles(filePath);
   await page.locator("#backup-restore").click();
-  await expect(page.locator("#backup-status")).toContainText("Restauration terminée : 1 livre ajouté");
+  await expect(page.locator("#backup-status")).toContainText("Restauration terminée. Livres ajoutés : 1");
   expect((await storedRows(page, "positions"))[0].locator).toEqual(position.locator);
   expect((await storedRows(page, "positions"))[0].bookmarks).toHaveLength(1);
   await page.locator("#backup-file").setInputFiles(filePath);
   await page.locator("#backup-restore").click();
-  await expect(page.locator("#backup-status")).toContainText("0 livre ajouté, 1 déjà présent");
+  await expect(page.locator("#backup-status")).toContainText("Livres ajoutés : 0 ; déjà présents : 1");
   expect(await storedRows(page, "books")).toHaveLength(1);
   await page.locator("#backup-close").click();
   await page.getByRole("button", { name: "Lire Une bibliothèque à garder", exact: true }).click();

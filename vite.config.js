@@ -2,8 +2,10 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { gutenbergRelay } from "./server/vite-relay.js";
+import { localizedSeoPlugin, writeLocalizedPages } from "./scripts/localized-pages.mjs";
+import { DEFAULT_SITE_URL, normalizeSiteUrl } from "./src/seo-data.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,16 +22,25 @@ async function listFiles(directory, prefix = "") {
   return files.flat().sort();
 }
 
-// Precache the reader, French catalogue and selected EPUBs; other languages load on demand.
-function offlineShell() {
+// Precache every UI language, the French catalogue and selected EPUBs;
+// other catalogue languages load on demand.
+function offlineShell(siteUrl) {
   let outputDirectory;
+  let buildFailed = false;
   return {
     name: "fastreader-offline-shell",
     apply: "build",
     configResolved(config) {
       outputDirectory = path.resolve(config.root, config.build.outDir);
     },
+    buildEnd(error) {
+      buildFailed = Boolean(error);
+    },
     async closeBundle() {
+      if (buildFailed) return;
+      // Generate real language documents before hashing so every locale works
+      // offline and shares the same service-worker version as its JS and CSS.
+      await writeLocalizedPages(outputDirectory, siteUrl);
       const files = (await listFiles(outputDirectory)).filter(
         (file) =>
           file !== "sw.js" &&
@@ -57,12 +68,25 @@ function offlineShell() {
   };
 }
 
-export default defineConfig({
-  // Relative URLs work at /EPUB-FastReader/ and on a custom domain.
-  base: "./",
-  input: {
-    main: path.join(root, "index.html"),
-    viewer: path.join(root, "viewer.html"),
-  },
-  plugins: [gutenbergRelay(), offlineShell()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, root, "VITE_");
+  const siteUrl = normalizeSiteUrl(env.VITE_SITE_URL || DEFAULT_SITE_URL);
+  return {
+    // Relative URLs work at /EPUB-FastReader/ and on a custom domain.
+    base: "./",
+    input: {
+      main: path.join(root, "index.html"),
+      viewer: path.join(root, "viewer.html"),
+    },
+    build: {
+      rolldownOptions: {
+        output: {
+          // A separately cached translation bundle keeps reader-code changes
+          // from invalidating the six offline dictionaries and demo editions.
+          codeSplitting: { groups: [{ name: "translations", test: /[\\/]src[\\/]locales[\\/]/ }] },
+        },
+      },
+    },
+    plugins: [gutenbergRelay(), localizedSeoPlugin(siteUrl), offlineShell(siteUrl)],
+  };
 });

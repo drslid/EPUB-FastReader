@@ -1,9 +1,10 @@
+import { t } from "../i18n.js";
 export const EPUB_TYPE = "application/epub+zip";
 export const MAX_BOOK_BYTES = 30 * 1024 * 1024;
 export const MAX_CATALOG_BYTES = 2 * 1024 * 1024;
 
 export function catalogError(code, message, cause) {
-  return Object.assign(new Error(message, cause ? { cause } : undefined), {
+  return Object.assign(new Error(t(message), cause ? { cause } : undefined), {
     code,
   });
 }
@@ -76,7 +77,7 @@ export async function request(
   url,
   { signal, timeout, maxBytes, download = false, validateUrl },
 ) {
-  if (signal?.aborted) throw new DOMException("Requête annulée.", "AbortError");
+  if (signal?.aborted) throw new DOMException(t("Requête annulée."), "AbortError");
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
@@ -96,7 +97,7 @@ export async function request(
       await cancelBody(response.body);
       throw catalogError(
         "HTTP",
-        `La source est indisponible (HTTP ${response.status}). Réessayez plus tard ou ouvrez son site.`,
+        t("La source est indisponible (HTTP {status}). Réessayez plus tard ou ouvrez son site.", { status: response.status }),
       );
     }
     if (response.url && !validateUrl(response.url)) {
@@ -109,7 +110,7 @@ export async function request(
     return await readLimited(response, maxBytes, controller.signal);
   } catch (error) {
     if (signal?.aborted)
-      throw new DOMException("Requête annulée.", "AbortError");
+      throw new DOMException(t("Requête annulée."), "AbortError");
     if (timedOut)
       throw catalogError(
         "TIMEOUT",

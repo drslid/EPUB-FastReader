@@ -1,3 +1,4 @@
+import { t } from "../i18n.js";
 import {
   catalogError,
   plainText,
@@ -164,7 +165,7 @@ function publicBook(row, language) {
     language: row.languages.includes(language) ? language : row.languages[0],
     source: "Project Gutenberg",
     sourceUrl: `https://www.gutenberg.org/ebooks/${row.number}`,
-    rights: RIGHTS,
+    rights: t(RIGHTS),
     rightsUrl: "https://www.gutenberg.org/policy/license",
   };
 }

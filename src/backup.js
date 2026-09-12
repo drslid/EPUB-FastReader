@@ -1,3 +1,4 @@
+import { t, formatNumber } from "./i18n.js";
 import JSZip from "jszip";
 import { applyFocus, importEpub } from "./epub.js";
 import { isReadingPosition, normalizePosition } from "./reading-state.js";
@@ -8,7 +9,7 @@ const FORMAT = "fastreader-backup";
 const record = (value) => value && typeof value === "object" && !Array.isArray(value);
 const string = (value, limit = 2000) => typeof value === "string" ? value.slice(0, limit) : "";
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9._:-]{1,160}$/u.test(value);
-const error = (message = "Cette archive n’est pas une sauvegarde FastReader valide.") => new Error(message);
+const error = (message = "Cette archive n’est pas une sauvegarde FastReader valide.") => Object.assign(new Error(t(message)), { code: "INVALID_BACKUP" });
 const bytesOf = async (value) => {
   if (typeof value?.arrayBuffer === "function") return value.arrayBuffer();
   if (Object.prototype.toString.call(value) === "[object ArrayBuffer]") return new Uint8Array(value).slice().buffer;
@@ -172,12 +173,12 @@ export async function exportBackup({ onProgress } = {}) {
     zip.file(path, bytes, { createFolders: false, compression: "STORE" });
     manifest.books.push({ id: book.id, kind, path, fileName: string(book.fileName, 240), addedAt: book.addedAt, source: sourceMetadata(book.source) });
     if (positions.has(book.id)) manifest.positions.push({ ...normalizePosition(positions.get(book.id), book), id: book.id });
-    onProgress?.({ completed: index + 1, total: snapshot.books.length, message: `Préparation : ${index + 1} / ${snapshot.books.length} livres` });
+    onProgress?.({ completed: index + 1, total: snapshot.books.length, message: t("Préparation : {current} / {total} livres", { current: formatNumber(index + 1), total: formatNumber(snapshot.books.length) }) });
   }
   const metadata = textBytes(manifest);
   if (metadata.length > BACKUP_LIMITS.manifest) throw error("Les notes et métadonnées dépassent la taille autorisée pour une sauvegarde.");
   zip.file("manifest.json", metadata, { compression: "DEFLATE" });
-  const bytes = await zip.generateAsync({ type: "uint8array" }, ({ percent }) => onProgress?.({ percent, message: `Création du ZIP : ${Math.round(percent)} %` }));
+  const bytes = await zip.generateAsync({ type: "uint8array" }, ({ percent }) => onProgress?.({ percent, message: t("Création du ZIP : {percent} %", { percent: formatNumber(Math.round(percent)) }) }));
   if (bytes.length > BACKUP_LIMITS.archive) throw error("La sauvegarde dépasse la limite de 250 Mo.");
   return { blob: new Blob([bytes], { type: "application/zip" }), fileName: `fastreader-sauvegarde-${manifest.createdAt.slice(0, 10)}.zip`, bookCount: snapshot.books.length };
 }
@@ -191,7 +192,7 @@ export async function restoreBackup(file, { restorePreferences = false, onProgre
   try {
     zip = await JSZip.loadAsync(buffer);
     manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await readEntry(zip, "manifest.json", entries.get("manifest.json"))));
-  } catch (cause) { throw error(cause?.message?.includes("sauvegarde") ? cause.message : undefined); }
+  } catch (cause) { throw error(cause?.code === "INVALID_BACKUP" ? cause.message : undefined); }
   if (!record(manifest) || manifest.format !== FORMAT || manifest.version !== 1 || !Array.isArray(manifest.books) || manifest.books.length > BACKUP_LIMITS.books || !Array.isArray(manifest.positions) || manifest.positions.length > manifest.books.length) throw error();
   const snapshot = { books: [], positions: [], preferences: preferencesOf(manifest.preferences) };
   const ids = new Set();
@@ -209,7 +210,7 @@ export async function restoreBackup(file, { restorePreferences = false, onProgre
   const importedIds = new Set();
   let preparedBytes = 0;
   for (const [index, item] of manifest.books.entries()) {
-    onProgress?.({ completed: index, total: manifest.books.length, message: `Vérification : ${index + 1} / ${manifest.books.length} livres` });
+    onProgress?.({ completed: index, total: manifest.books.length, message: t("Vérification : {current} / {total} livres", { current: formatNumber(index + 1), total: formatNumber(manifest.books.length) }) });
     const bytes = await readEntry(zip, item.path, entries.get(item.path));
     let book;
     if (item.kind === "epub") {
@@ -230,6 +231,6 @@ export async function restoreBackup(file, { restorePreferences = false, onProgre
     snapshot.books.push(book);
     if (positions.has(item.id)) snapshot.positions.push({ ...normalizePosition(positions.get(item.id), book), id: book.id });
   }
-  onProgress?.({ completed: manifest.books.length, total: manifest.books.length, message: "Enregistrement de la bibliothèque…" });
+  onProgress?.({ completed: manifest.books.length, total: manifest.books.length, message: t("Enregistrement de la bibliothèque…") });
   return mergeLibrarySnapshot(snapshot, { restorePreferences });
 }

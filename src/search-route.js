@@ -1,4 +1,4 @@
-const languages = new Set(["fr", "en", "es", "de", ""]);
+const languages = new Set(["fr", "en", "es", "it", "de", "pt", ""]);
 const providers = new Set(["selection", "all", "gutenberg"]);
 const views = new Set(["library", "discover", "search"]);
 
