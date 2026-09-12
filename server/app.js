@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import { createGutenbergMiddleware } from "./gutenberg-relay.js";
 import { createEbooksGratuitsMiddleware } from "./ebooks-gratuits-source.js";
 import { createSourceStatusMiddleware } from "./source-status.js";
+import { createFadedpageMiddleware } from "./fadedpage-source.js";
+import { createEpubbooksMiddleware } from "./epubbooks-source.js";
 
 const defaultRoot = fileURLToPath(new URL("../dist/", import.meta.url));
 const types = {
@@ -24,7 +26,7 @@ const types = {
   ".woff2": "font/woff2",
 };
 
-export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratuitsOptions, sourceStatusOptions } = {}) {
+export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratuitsOptions, fadedpageOptions, epubbooksOptions, sourceStatusOptions } = {}) {
   const directory = path.resolve(root);
   const relay = createGutenbergMiddleware({
     allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN,
@@ -32,6 +34,9 @@ export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratui
   });
   const ebooksGratuits = createEbooksGratuitsMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...ebooksGratuitsOptions });
   const sourceStatus = createSourceStatusMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...sourceStatusOptions });
+  const fadedpage = createFadedpageMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...fadedpageOptions });
+  const epubbooks = createEpubbooksMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...epubbooksOptions });
+  const middleware = [relay, ebooksGratuits, fadedpage, epubbooks, sourceStatus];
   return createServer((req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
@@ -107,13 +112,14 @@ export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratui
       stream.pipe(res);
     };
     try {
+      const dispatch = (index = 0) => index < middleware.length
+        ? middleware[index](req, res, () => dispatch(index + 1))
+        : staticFile().catch(() => {
+          if (!res.headersSent) fail(500, "Lecture du fichier impossible.");
+          else res.destroy();
+        });
       Promise.resolve(
-        relay(req, res, () => ebooksGratuits(req, res, () => sourceStatus(req, res, () =>
-          staticFile().catch(() => {
-            if (!res.headersSent) fail(500, "Lecture du fichier impossible.");
-            else res.destroy();
-          }),
-        ))),
+        dispatch(),
       ).catch(() => {
         if (!res.headersSent)
           fail(502, "Téléchargement temporairement indisponible.");

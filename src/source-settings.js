@@ -18,6 +18,8 @@ export async function checkSourceAvailability({ signal, onUpdate = () => {}, for
     gutenberg: { status: "checking" },
     "standard-ebooks": { status: "checking" },
     "ebooks-gratuits": { status: "checking" },
+    fadedpage: { status: "checking" },
+    epubbooks: { status: "checking" },
     "z-library": { status: "unavailable", reason: "L’accès automatisé à la recherche et aux EPUB n’a pas pu être vérifié." },
   };
   const publish = () => { if (!signal?.aborted) onUpdate(structuredClone(sources)); };
@@ -41,12 +43,12 @@ export async function checkSourceAvailability({ signal, onUpdate = () => {}, for
         if (!response.ok) throw new Error("status");
         const result = await response.json();
         const entries = Array.isArray(result.sources) ? result.sources : [];
-        for (const id of ["gutenberg", "ebooks-gratuits"]) {
+        for (const id of ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks"]) {
           const entry = entries.find((source) => source?.providerId === id);
           sources[id] = { status: entry?.available === true ? "available" : "unavailable" };
         }
       } catch {
-        for (const id of ["gutenberg", "ebooks-gratuits"]) sources[id] = { status: "unavailable" };
+        for (const id of ["gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks"]) sources[id] = { status: "unavailable" };
       }
       publish();
     })(),
@@ -69,6 +71,8 @@ export function openSourceSettings({ icon, escape, beforeOpen = () => {} }) {
     ["gutenberg", "Project Gutenberg", "https://www.gutenberg.org/", "Catalogue multilingue"],
     ["standard-ebooks", "Standard Ebooks", "https://standardebooks.org/ebooks", "Livres en anglais"],
     ["ebooks-gratuits", "Ebooks libres et gratuits", "https://www.ebooksgratuits.com/ebooks.php", "Livres en français"],
+    ["fadedpage", "Faded Page", "https://www.fadedpage.com/", "Livres en anglais"],
+    ["epubbooks", "epubBooks", "https://www.epubbooks.com/", "Livres en anglais"],
     ["z-library", "Z-Library", "https://z-library.sk/", "Accès direct non intégré"],
   ];
   const copy = (source) => `<span data-copy="${escape(source)}">${escape(t(source))}</span>`;

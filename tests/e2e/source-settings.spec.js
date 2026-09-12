@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 test.use({ serviceWorkers: "block" });
 const statusUrl = /\/api\/sources\/status$/;
 const statusBody = (available = true) => ({ checkedAt: new Date().toISOString(), sources: [
-  { providerId: "gutenberg", available }, { providerId: "ebooks-gratuits", available },
+  { providerId: "gutenberg", available }, { providerId: "ebooks-gratuits", available }, { providerId: "fadedpage", available }, { providerId: "epubbooks", available },
 ] });
 async function openSettings(page) {
   const trigger = page.locator('.page-footer [data-action="source-settings"]');
@@ -22,7 +22,7 @@ test("les sources ont des états textuels rouge/vert, se revérifient et réutil
   await openSettings(page);
   const dialog = page.locator(".source-settings-dialog");
   await expect(dialog.locator("[data-check]")).toBeEnabled();
-  for (const id of ["selection", "standard-ebooks", "gutenberg", "ebooks-gratuits"]) {
+  for (const id of ["selection", "standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks"]) {
     await expect(dialog.locator(`[data-source="${id}"] .source-status-label`)).toHaveText("Disponible");
     await expect(dialog.locator(`[data-source="${id}"] .source-status-dot`)).toHaveClass(/is-available/);
   }

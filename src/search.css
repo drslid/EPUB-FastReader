@@ -260,6 +260,9 @@
 
   .unified-search-language {
     width: 49px;
+    /* WebKit lets the invisible native option extend beyond the touch target.
+       Contain its painting while preserving the picker and outer focus ring. */
+    overflow: hidden;
   }
 
   .unified-language-code {

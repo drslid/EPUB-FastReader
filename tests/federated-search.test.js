@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const adapters = vi.hoisted(() => Object.fromEntries(["selection", "gutenberg", "standard-ebooks", "ebooks-gratuits"].map((id) => [id, {
+const adapters = vi.hoisted(() => Object.fromEntries(["selection", "gutenberg", "standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks"].map((id) => [id, {
   manifest: { id, name: id, capabilities: { search: true, download: true, bundled: id === "selection" } },
   search: vi.fn(), download: vi.fn(),
 }])));
@@ -9,6 +9,8 @@ vi.mock("../src/sources/selection.js", () => ({ default: adapters.selection }));
 vi.mock("../src/sources/gutenberg.js", () => ({ default: adapters.gutenberg }));
 vi.mock("../src/sources/standard-ebooks.js", () => ({ default: adapters["standard-ebooks"] }));
 vi.mock("../src/sources/ebooks-gratuits.js", () => ({ default: adapters["ebooks-gratuits"] }));
+vi.mock("../src/sources/fadedpage.js", () => ({ default: adapters.fadedpage }));
+vi.mock("../src/sources/epubbooks.js", () => ({ default: adapters.epubbooks }));
 import { searchBooks, providers } from "../src/catalog.js";
 import { buildSearchRoute, parseSearchRoute } from "../src/search-route.js";
 
@@ -16,6 +18,8 @@ const local = { id: "selection-horla", providerId: "selection", canonicalSourceI
 const gutenberg = { id: "gutenberg-11", providerId: "gutenberg", canonicalSourceId: "gutenberg:11", title: "Alice" };
 const standard = { id: "standardebooks-mary-shelley_frankenstein", providerId: "standard-ebooks", title: "Frankenstein" };
 const gratuit = { id: "ebooks-gratuits-23", providerId: "ebooks-gratuits", title: "Candide" };
+const faded = { id: "fadedpage-20260903", providerId: "fadedpage", title: "Jane" };
+const epubbooks = { id: "epubbooks-185", providerId: "epubbooks", title: "Frankenstein, another edition" };
 const result = (books, extra = {}) => ({ books, count: books.length, hasNext: false, countIsApproximate: false, ...extra });
 const deferred = () => {
   let resolve, reject;
@@ -29,6 +33,8 @@ beforeEach(() => {
   adapters.gutenberg.search.mockImplementation(async ({ preferredBooks, page }) => result([...(page === 1 ? preferredBooks : []), gutenberg], { snapshotDate: "2026-09-12" }));
   adapters["standard-ebooks"].search.mockResolvedValue(result([standard]));
   adapters["ebooks-gratuits"].search.mockResolvedValue(result([gratuit]));
+  adapters.fadedpage.search.mockResolvedValue(result([faded]));
+  adapters.epubbooks.search.mockResolvedValue(result([epubbooks]));
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -39,18 +45,18 @@ describe("incremental federated search", () => {
     const updates = [];
     let settled = false;
     const search = searchBooks({ query: "novel", language: "", onUpdate: (value) => updates.push(value) }).then((value) => { settled = true; return value; });
-    await vi.waitFor(() => expect(updates).toHaveLength(3));
+    await vi.waitFor(() => expect(updates).toHaveLength(5));
     expect(settled).toBe(false);
     expect(updates[0].books).toEqual([local]);
-    expect(updates[0].pendingSources).toEqual(["gutenberg", "standard-ebooks", "ebooks-gratuits"]);
-    expect(updates.at(-1).books).toEqual([local, gutenberg, standard]);
+    expect(updates[0].pendingSources).toEqual(["gutenberg", "standard-ebooks", "fadedpage", "epubbooks", "ebooks-gratuits"]);
+    expect(updates.at(-1).books).toEqual([local, gutenberg, standard, faded, epubbooks]);
     expect(updates.at(-1).pendingSources).toEqual(["ebooks-gratuits"]);
     expect(updates.at(-1).sourceStatuses["standard-ebooks"].status).toBe("available");
     slow.resolve(result([gratuit]));
     const final = await search;
-    expect(final.books).toEqual([local, gutenberg, standard, gratuit]);
+    expect(final.books).toEqual([local, gutenberg, standard, faded, epubbooks, gratuit]);
     expect(final.pendingSources).toEqual([]);
-    expect(final.count).toBe(4);
+    expect(final.count).toBe(6);
     expect(final).toEqual(updates.at(-1));
     expect(final.snapshotDate).toBe("2026-09-12");
   });
@@ -60,29 +66,32 @@ describe("incremental federated search", () => {
     adapters.gutenberg.search.mockReturnValue(slow.promise);
     const updates = [];
     const promise = searchBooks({ query: "book", language: "all", onUpdate: (value) => updates.push(value) });
-    await vi.waitFor(() => expect(updates.at(-1).books).toEqual([local, standard, gratuit]));
+    await vi.waitFor(() => expect(updates.at(-1).books).toEqual([local, standard, faded, epubbooks, gratuit]));
     expect(updates.at(-1).pendingSources).toEqual(["gutenberg"]);
     slow.resolve(result([local, gutenberg]));
-    expect((await promise).books).toEqual([local, gutenberg, standard, gratuit]);
+    expect((await promise).books).toEqual([local, gutenberg, standard, faded, epubbooks, gratuit]);
   });
 
   it.each([["fr", "ebooks-gratuits", "standard-ebooks"], ["en", "standard-ebooks", "ebooks-gratuits"]])("respects the %s language filter before contacting remote catalogues", async (language, called, skipped) => {
     await searchBooks({ query: "book", language });
     expect(adapters[called].search).toHaveBeenCalledOnce();
     expect(adapters[skipped].search).not.toHaveBeenCalled();
+    for (const id of ["fadedpage", "epubbooks"]) expect(adapters[id].search).toHaveBeenCalledTimes(language === "en" ? 1 : 0);
   });
 
   it("keeps an empty global search local without triggering remote catalogue crawls", async () => {
     await searchBooks({ query: "  ", language: "" });
     expect(adapters["standard-ebooks"].search).not.toHaveBeenCalled();
     expect(adapters["ebooks-gratuits"].search).not.toHaveBeenCalled();
+    expect(adapters.fadedpage.search).not.toHaveBeenCalled();
+    expect(adapters.epubbooks.search).not.toHaveBeenCalled();
     expect(adapters.gutenberg.search).toHaveBeenCalledOnce();
   });
 
   it("keeps successful results when another provider times out", async () => {
     adapters["ebooks-gratuits"].search.mockRejectedValue(Object.assign(new Error("La source met trop de temps à répondre."), { code: "TIMEOUT" }));
     const result = await searchBooks({ query: "book", language: "" });
-    expect(result.books).toEqual([local, gutenberg, standard]);
+    expect(result.books).toEqual([local, gutenberg, standard, faded, epubbooks]);
     expect(result.warnings).toEqual([{ providerId: "ebooks-gratuits", code: "TIMEOUT", message: "La source met trop de temps à répondre." }]);
     expect(result.sourceStatuses["ebooks-gratuits"]).toMatchObject({ status: "unavailable", code: "TIMEOUT", checkedAt: expect.any(Number) });
     expect(result.sourceStatuses.gutenberg.status).toBe("available");
@@ -108,11 +117,11 @@ describe("incremental federated search", () => {
     const updates = [];
     const final = await searchBooks({ query: "book", language: "", page: 2, onUpdate: (value) => updates.push(value) });
     expect(updates[0].books).toEqual([]);
-    expect(final.books).toEqual([gutenberg, standard, gratuit]);
+    expect(final.books).toEqual([gutenberg, standard, faded, epubbooks, gratuit]);
     expect(final.hasNext).toBe(true);
     expect(final.countIsApproximate).toBe(true);
-    expect(final.count).toBe(102);
-    for (const id of ["gutenberg", "standard-ebooks", "ebooks-gratuits"]) expect(adapters[id].search.mock.calls[0][0].page).toBe(2);
+    expect(final.count).toBe(104);
+    for (const id of ["gutenberg", "standard-ebooks", "fadedpage", "epubbooks", "ebooks-gratuits"]) expect(adapters[id].search.mock.calls[0][0].page).toBe(2);
   });
 
   it("aborts promptly and emits no stale update even if a provider ignores AbortSignal", async () => {
@@ -144,10 +153,31 @@ describe("incremental federated search", () => {
     expect(updates[0].sourceStatuses.gutenberg.status).toBe("pending");
     expect(updates.at(-1).sourceStatuses.gutenberg.status).toBe("available");
   });
+
+  it.each(["fadedpage", "epubbooks"])("a slow %s source leaves every other provider usable and then contributes its own results", async (provider) => {
+    const slow = deferred();
+    adapters[provider].search.mockReturnValue(slow.promise);
+    const updates = [];
+    const pending = searchBooks({ query: "book", language: "all", onUpdate: (value) => updates.push(value) });
+    await vi.waitFor(() => expect(updates.at(-1).pendingSources).toEqual([provider]));
+    expect(updates.at(-1).books).toEqual([local, gutenberg, standard, ...(provider === "fadedpage" ? [epubbooks] : [faded]), gratuit]);
+    slow.resolve(result([provider === "fadedpage" ? faded : epubbooks]));
+    expect((await pending).books).toEqual([local, gutenberg, standard, faded, epubbooks, gratuit]);
+  });
+
+  it.each(["fadedpage", "epubbooks"])("a %s failure is attributed to that source without clearing successful books", async (provider) => {
+    adapters[provider].search.mockRejectedValue(Object.assign(new Error("Source busy"), { code: "HTTP" }));
+    const final = await searchBooks({ query: "book", language: "all" });
+    expect(final.books).toHaveLength(5);
+    expect(final.books.some((book) => book.providerId === provider)).toBe(false);
+    expect(final.warnings).toEqual([{ providerId: provider, code: "HTTP", message: "Source busy" }]);
+    expect(final.sourceStatuses[provider].status).toBe("unavailable");
+    expect(final.sourceStatuses[provider === "fadedpage" ? "epubbooks" : "fadedpage"].status).toBe("available");
+  });
 });
 
 describe("explicit source integration", () => {
-  it.each(["standard-ebooks", "ebooks-gratuits"])("registers %s and preserves it in shareable search routes", (provider) => {
+  it.each(["standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks"])("registers %s and preserves it in shareable search routes", (provider) => {
     expect(providers.find((entry) => entry.id === provider).searchable).toBe(true);
     const route = { view: "search", provider, language: "en", query: "Austen", page: 2 };
     expect(parseSearchRoute(buildSearchRoute(route))).toEqual(route);

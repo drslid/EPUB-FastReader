@@ -1,5 +1,6 @@
 import { expect, test } from "./fixtures.js";
 import { readFile } from "node:fs/promises";
+import JSZip from "jszip";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
 test.use({ serviceWorkers: "block" });
@@ -83,10 +84,12 @@ test("les livres importés se retrouvent par la recherche commune et se supprime
   ).toBeVisible();
 });
 
-test("l’EPUB original téléchargé conserve exactement les octets importés, même après une lecture Focus", async ({
+test("le téléchargement Classique retire Focus sans modifier l’EPUB original conservé dans la bibliothèque", async ({
   page,
 }, testInfo) => {
-  const original = await makeEpub();
+  const original = await makeEpub({
+    paragraphs: ['Une <strong>histoire</strong> <strong class="focus-prefix">in</strong>oubliable à retrouver dans le livre.'],
+  });
   await page.goto("/");
   await importEpub(page, original, "original.epub");
   await expect(page.locator("#rsvp")).toBeVisible();
@@ -94,12 +97,27 @@ test("l’EPUB original téléchargé conserve exactement les octets importés, 
   await page.getByRole("button", { name: "Réglages de lecture" }).click();
   const downloadPromise = page.waitForEvent("download");
   await page
-    .getByRole("button", { name: "Télécharger l’EPUB original", exact: true })
+    .getByRole("button", { name: "Télécharger l’EPUB", exact: true })
     .click();
   const download = await downloadPromise;
-  const filename = testInfo.outputPath("original.epub");
+  const filename = testInfo.outputPath("classic.epub");
   await download.saveAs(filename);
-  expect(await readFile(filename)).toEqual(original);
+  const zip = await JSZip.loadAsync(await readFile(filename));
+  const chapter = await zip.file("chapter0.xhtml").async("string");
+  expect(chapter).not.toContain("focus-prefix");
+  expect(chapter).toMatch(/<strong(?:\s[^>]*)?>histoire<\/strong>/);
+  expect(chapter).toContain("inoubliable");
+  const savedBytes = await page.evaluate(() => new Promise((resolve, reject) => {
+    const open = indexedDB.open("fastreader");
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result;
+      const request = db.transaction("books").objectStore("books").getAll();
+      request.onsuccess = () => { db.close(); resolve(Array.from(new Uint8Array(request.result[0].original))); };
+      request.onerror = () => { db.close(); reject(request.error); };
+    };
+  }));
+  expect(Buffer.from(savedBytes)).toEqual(original);
   await page.getByRole("button", { name: "Fermer les réglages" }).click();
   await page.getByRole("link", { name: "Retour à ma bibliothèque" }).click();
   await expect(
@@ -169,32 +187,36 @@ test("le thème sépia est global par défaut et le cycle sombre, clair, sépia 
   expect(await storedRows(page, "preferences")).not.toHaveLength(0);
 });
 
-test("les exports Classique et Focus sont accessibles directement depuis un livre enregistré", async ({ page }, testInfo) => {
-  const JSZip = (await import("jszip")).default;
-  const original = await makeEpub({ title: "Livre à emporter" });
+test("un seul bouton télécharge une édition Classique réimportable depuis la bibliothèque", async ({ page }, testInfo) => {
+  const original = await makeEpub({
+    title: "Livre à emporter",
+    paragraphs: ['Un <strong>passage important</strong> et <strong class="focus-prefix">quel</strong>ques mots à conserver.'],
+  });
   await page.goto("/");
   await importEpub(page, original);
   await expect(page.locator("#rsvp")).toBeVisible();
   await page.getByRole("link", { name: "Retour à ma bibliothèque", exact: true }).click();
-  const menu = page.locator(".library-section .book-export");
-  await menu.locator("summary").click();
-  for (const format of ["Classique", "Focus"]) {
-    const pending = page.waitForEvent("download");
-    await menu.getByRole("button", { name: `Télécharger en ${format} : Livre à emporter`, exact: true }).click();
-    const download = await pending;
-    const filePath = testInfo.outputPath(`library-${format}.epub`);
-    await download.saveAs(filePath);
-    const buffer = await readFile(filePath);
-    const zip = await JSZip.loadAsync(buffer);
-    expect(await zip.file("mimetype").async("string")).toBe("application/epub+zip");
-    const chapterFiles = zip.file(/\.(?:xhtml|html)$/);
-    expect(chapterFiles.length).toBeGreaterThan(0);
-    const chapterTexts = await Promise.all(chapterFiles.map((chapter) => chapter.async("string")));
-    if (format === "Focus") expect(chapterTexts.join("\n")).toContain("focus-prefix");
-    else expect(chapterTexts.join("\n")).not.toContain("focus-prefix");
-    await expect(page).toHaveURL(/#library$/);
-    // Rendering after a completed export may close the native disclosure.
-    if ((await menu.getAttribute("open")) === null) await menu.locator("summary").click();
-  }
+  await expect(page.locator(".library-section details.book-export")).toHaveCount(0);
+  const button = page.getByRole("button", { name: "Télécharger en Classique : Livre à emporter", exact: true });
+  await expect(button).toHaveText("Télécharger l’EPUB");
+  const pending = page.waitForEvent("download");
+  await button.click();
+  const download = await pending;
+  const filePath = testInfo.outputPath("library-classic.epub");
+  await download.saveAs(filePath);
+  const buffer = await readFile(filePath);
+  const zip = await JSZip.loadAsync(buffer);
+  expect(await zip.file("mimetype").async("string")).toBe("application/epub+zip");
+  const chapterFiles = zip.file(/\.(?:xhtml|html)$/);
+  expect(chapterFiles.length).toBeGreaterThan(0);
+  const chapterTexts = await Promise.all(chapterFiles.map((chapter) => chapter.async("string")));
+  expect(chapterTexts.join("\n")).not.toContain("focus-prefix");
+  expect(chapterTexts.join("\n")).toMatch(/<strong(?:\s[^>]*)?>passage important<\/strong>/);
+  await expect(page).toHaveURL(/#library$/);
   expect(await storedRows(page, "books")).toHaveLength(1);
+  await importEpub(page, buffer, "classic-reimport.epub");
+  await expect(page.locator(".reader-title strong")).toHaveText("Livre à emporter");
+  await page.getByRole("button", { name: "Classique", exact: true }).click();
+  await expect(page.locator("#chapter-content")).toContainText("Un passage important et quelques mots à conserver.");
+  await expect(page.locator("#chapter-content .focus-prefix")).toHaveCount(0);
 });

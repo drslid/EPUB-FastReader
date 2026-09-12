@@ -21,8 +21,8 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
         ? t("Connexion requise")
         : "";
     return `<article class="book-card ${inLibrary ? "is-in-library" : ""}" data-provider="${escape(book.providerId)}" data-language="${escape(book.language || "")}"><button class="book-open" data-action="catalog-read" data-id="${escape(book.id)}" aria-label="${t("Lire {title}", { title: escape(book.title) })}" ${state.busy ? "disabled" : ""}>${cover(inLibrary ? { ...book, downloadMode: "local" } : book, index)}<h3>${escape(book.title)}</h3><p>${escape(book.author)}</p></button>
-      ${genre ? `<span class="genre-label">${escape(genre)}</span>` : ""}
-      ${description ? `<p class="book-description">${escape(description)}</p>` : ""}
+      ${genre && !unified ? `<span class="genre-label">${escape(genre)}</span>` : ""}
+      ${description && !unified ? `<p class="book-description">${escape(description)}</p>` : ""}
       <div class="book-card-meta">${availability ? `<span class="availability is-ready">${icon(needsConnection && state.offline ? "download" : "check")} ${availability}</span>` : ""}<a href="${escape(book.sourceUrl)}" target="_blank" rel="noopener noreferrer" aria-label="${t("Source et droits : {title}", { title: escape(book.title) })}">${escape(book.source || book.providerId)} ${icon("external")}</a></div>
       <div class="catalog-book-actions"><button class="button secondary catalog-download-button" data-action="catalog-download" data-id="${escape(book.id)}" aria-label="${t("Obtenir l’EPUB : {title}", { title: escape(book.title) })}" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Obtenir l’EPUB")}</button><button class="button ink start-book-button" data-action="catalog-read" data-id="${escape(book.id)}" ${state.busy ? "disabled" : ""}>${inLibrary ? t("Reprendre") : t("Lire")} ${icon("play")}</button></div></article>`;
   };
@@ -38,7 +38,8 @@ export function discoverMarkup(state, { icon, escape, cover, providers }) {
     ${(state.catalogWarnings || []).map((warning) => `<p class="source-warning" data-provider="${escape(warning.providerId)}" role="status">${escape(providers.find((source) => source.id === warning.providerId)?.name || warning.providerId)} : ${escape(warning.message)} ${t("Les livres intégrés restent accessibles.")}</p>`).join("")}
     ${!state.searching && state.alreadyOwnedCount && !state.catalog.length ? `<p class="local-results-empty">${t("Les résultats de cette page sont déjà dans vos livres, juste au-dessus.")}</p>` : ""}
     ${!state.searching && state.searched && !state.catalog.length && !state.alreadyOwnedCount && !state.catalogError ? `<div class="empty-state">${icon("search")}<h3>${state.catalogWarnings?.length ? t("Aucun résultat dans les sources accessibles") : t("Aucun livre trouvé")}</h3><p>${t("Essayez un nom d’auteur, moins de mots ou une autre langue.")}</p><button class="button secondary" data-action="provider" data-provider="selection">${t("Explorer les livres prêts à lire")}</button></div>` : ""}
-    <div class="book-grid catalog-grid ${selection ? "featured-grid" : ""}">${state.catalog.map(renderBook).join("")}</div>
+    ${unified && state.catalog.length ? `<div class="book-list-heading" aria-hidden="true"><span>${t("Titre ou auteur")}</span><span>${t("Source")}</span><span>${t("Lire")}</span></div>` : ""}
+    <div class="book-grid catalog-grid ${unified ? "book-list" : selection ? "featured-grid" : ""}">${state.catalog.map(renderBook).join("")}</div>
 
     ${state.searching && !state.catalog.length ? `<div class="loading-state"><span class="spinner"></span>${t("Recherche des livres…")}</div>` : ""}
     ${state.searched && !selection ? `<div class="pagination"><button class="button secondary" data-action="previous-results" ${state.page <= 1 || state.searching ? "disabled" : ""}>${icon("back")} ${t("Précédent")}</button><span>${t("Page {number}", { number: formatNumber(state.page) })}</span><button class="button secondary" data-action="next-results" ${!state.hasNext || state.searching ? "disabled" : ""}>${t("Suivant")} ${icon("arrow")}</button></div>` : ""}</section>

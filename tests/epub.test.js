@@ -408,6 +408,23 @@ describe("Word-prefix focus", () => {
 });
 
 describe("Focused EPUB export", () => {
+  it("keeps a source-protected Classic edition byte-for-byte unchanged", async () => {
+    const file = await fixture({
+      "SOURCE-LICENSE.txt": "This edition must be distributed unchanged, including this notice.",
+      "OPS/text/first.xhtml": xhtml('<p id="bonjour">Un <strong>passage important</strong> du livre.</p>'),
+    });
+    const original = await readBlob(file);
+    const book = await importEpub(file);
+    book.source = { providerId: "ebooks-gratuits", canExportClassic: false };
+    const downloaded = await exportClassicEpub(book);
+    expect(downloaded.type).toBe("application/epub+zip");
+    expect(new Uint8Array(await readBlob(downloaded))).toEqual(new Uint8Array(original));
+    expect(new Uint8Array(book.original)).toEqual(new Uint8Array(original));
+    const reimported = await importEpub(new File([downloaded], "classic.epub"));
+    expect(reimported.title).toBe(book.title);
+    expect(reimported.totalWords).toBe(book.totalWords);
+  });
+
   it("exports the chosen Focus settings and converts back to Classic without losing author emphasis", async () => {
     const book = await importEpub(await fixture({
       "OPS/text/first.xhtml": xhtml('<p id="bonjour">Le <strong>magnifique</strong> voyage.</p><img src="../images/cover.png" alt="Couverture"/>'),

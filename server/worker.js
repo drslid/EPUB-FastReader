@@ -1,6 +1,8 @@
 import { createGutenbergHandler } from "./gutenberg-fetch.js";
 import { createEbooksGratuitsHandler, EbooksGratuitsError } from "./ebooks-gratuits-source.js";
 import { createSourceStatusHandler } from "./source-status.js";
+import { createFadedpageHandler } from "./fadedpage-source.js";
+import { createEpubbooksHandler } from "./epubbooks-source.js";
 
 const DEFAULT_ORIGIN = "https://drslid.github.io";
 
@@ -12,9 +14,9 @@ export class FastReaderSources {
     this.state = state;
     const options = { allowOrigin: env.SOURCE_ALLOWED_ORIGIN || DEFAULT_ORIGIN };
     this.allowedOrigin = options.allowOrigin;
-    this.gutenberg = createGutenbergHandler({ ...options, cacheMaxBytes: 8 * 1024 * 1024, maxConcurrent: 1 });
+    this.gutenberg = createGutenbergHandler({ ...options, cacheMaxBytes: 4 * 1024 * 1024, maxConcurrent: 1 });
     this.ebooksGratuits = createEbooksGratuitsHandler({
-      ...options, cacheMaxBytes: 8 * 1024 * 1024, maxCachedSearches: 4,
+      ...options, cacheMaxBytes: 4 * 1024 * 1024, maxCachedSearches: 2,
       reserveDownload: async ({ signal, now, limits }) => {
         signal.throwIfAborted();
         const timestamps = (await state.storage.get("elg-download-timestamps") || []).filter((time) => Number.isSafeInteger(time) && time > now - 86_400_000);
@@ -27,6 +29,8 @@ export class FastReaderSources {
       },
     });
     this.status = createSourceStatusHandler(options);
+    this.epubbooks = createEpubbooksHandler({ ...options, cacheMaxBytes: 2 * 1024 * 1024, maxCachedSearches: 2 });
+    this.fadedpage = createFadedpageHandler({ ...options, cacheMaxBytes: 4 * 1024 * 1024, maxCachedSearches: 2 });
     this.downloadTail = Promise.resolve();
     this.queuedDownloads = 0;
   }
@@ -34,7 +38,7 @@ export class FastReaderSources {
   async dispatch(request) {
     const pathname = new URL(request.url).pathname;
     if (pathname === "/api/sources/status") return this.status(request);
-    return await this.gutenberg(request) || await this.ebooksGratuits(request)
+    return await this.gutenberg(request) || await this.ebooksGratuits(request) || await this.fadedpage(request) || await this.epubbooks(request)
       || new Response('{"error":{"code":"NOT_FOUND"}}', { status: 404, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
   }
 

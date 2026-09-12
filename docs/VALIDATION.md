@@ -1,3 +1,17 @@
+## Lecture rapide, liste de recherche et sources anglaises — 12 septembre 2026
+
+- **561 tests unitaires / 36 fichiers** réussis : parsers, sécurité des relais, CORS, cookies anonymes, cache borné, annulation isolée, recherche fédérée, EPUB Classique et traductions.
+- Suite complète navigateur : **309 tests**, dont 305 réussis au premier passage. Quatre contrôles WebKit à 320 px ont révélé le débordement du texte natif invisible du filtre « Toutes les langues ». Son conteneur mobile contient désormais cette peinture sans supprimer le sélecteur natif ni son indicateur de focus. Les **60 tests des quatre fichiers concernés**, sur les trois profils, repassent après correction.
+- Contrôle visuel du tableau sur ordinateur : suppression d’une base flex héritée qui donnait 110 px de haut aux boutons. La régression vérifie maintenant une hauteur comprise entre 44 et 70 px.
+- **9 contrôles Pages** avec relais configuré et **6 contrôles de relais externe simulé** réussis, incluant installation et rechargement hors ligne.
+- Essais réseau réels : Faded Page *Jane* (296 961 octets, 28 chapitres), epubBooks *Frankenstein* (270 697 octets, 31 chapitres), couvertures avant ouverture, stockage IndexedDB et reprise. Les deux recherches, les deux acquisitions et la couverture epubBooks répondent aussi HTTP 200 depuis le Worker public Cloudflare.
+- Faded Page : le test de deux lecteurs recherchant le même titre prouve qu’annuler l’un ne fait pas échouer l’autre.
+- epubBooks : la couverture catalogue différente de l’image embarquée est conservée localement ; son indisponibilité ne bloque pas l’EPUB. L’export des éditions protégées contre les modifications conserve exactement les octets reçus.
+
+Les tests automatiques utilisent des réponses réseau contrôlées. Les essais réels ci-dessus sont distincts ; ils ne garantissent pas la disponibilité future de tous les titres. La publication exacte est également soumise à la suite complète GitHub Actions.
+
+---
+
 > Le bilan de la nouvelle version (361 tests unitaires, 237 scénarios navigateur, sauvegarde et relais Pages) se trouve dans [Évolution du lecteur](EVOLUTION-LECTURE.md#validation-exécutée). Le rapport ci-dessous conserve la validation de la version précédente.
 
 # Vérification de la version du 10 septembre 2026

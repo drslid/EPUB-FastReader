@@ -7,6 +7,7 @@ import "./discover.css";
 import "./search.css";
 import "./home.css";
 import "./covers.css";
+import "./book-list.css";
 import "./reader-enhancements.css";
 import "./source-settings.css";
 import { openSourceSettings } from "./source-settings.js";
@@ -20,11 +21,12 @@ import { searchBarMarkup, localSearchResultsMarkup } from "./views/search.js";
 import { partitionSearchResults } from "./search-results.js";
 import { parseSearchRoute, buildSearchRoute } from "./search-route.js";
 import { selectSuggestions, findLibraryBook } from "./suggestions.js";
-import { resolveCover, captureCatalogPresentation } from "./covers.js";
+import { resolveCover } from "./covers.js";
+import { captureOfflinePresentation } from "./catalog-cover.js";
 import { getGutenbergReadingStart } from "./reading-start.js";
 import { searchPassages } from "./passage-search.js";
 import { normalizePosition } from "./reading-state.js";
-import { importEpub, applyFocus, exportFocusedEpub, exportClassicEpub } from "./epub.js";
+import { importEpub, applyFocus, exportClassicEpub } from "./epub.js";
 import { searchBooks, downloadBook, providers } from "./catalog.js";
 import { libraryMarkup } from "./views/library.js";
 import { readerMarkup } from "./views/reader.js";
@@ -102,7 +104,7 @@ const state = {
   position: null,
   settings: { ...defaultSettings },
   searchDraft: "",
-  searchLanguageDraft: "fr",
+  searchLanguageDraft: "",
   localSearching: false,
   busy: false,
   catalog: [],
@@ -111,7 +113,7 @@ const state = {
   searched: false,
   searching: false,
   query: "",
-  language: "fr",
+  language: "",
   page: 1,
   catalogError: "",
   settingsOpen: false,
@@ -261,9 +263,9 @@ function renderShell({ resetScroll = false, preserveInteraction = false } = {}) 
   app.innerHTML = `<div class="app-shell">
     <aside class="sidebar">${brand()}<p class="nav-label">${t("VOTRE ESPACE DE LECTURE")}</p>
       <nav aria-label="${escape(t("Navigation principale"))}"><a href="#home" class="nav-item ${state.view === "home" ? "active" : ""}" ${state.view === "home" ? 'aria-current="page"' : ""}>${icon("book")}<span>${t("Accueil")}</span></a><a href="#discover" class="nav-item ${state.view === "discover" ? "active" : ""}" ${state.view === "discover" ? 'aria-current="page"' : ""}>${icon("compass")}<span>${t("Découvrir")}</span></a><a href="#library" class="nav-item ${state.view === "library" ? "active" : ""}" ${state.view === "library" ? 'aria-current="page"' : ""}>${icon("grid")}<span>${t("Ma bibliothèque")}</span><span class="nav-count">${state.books.length}</span></a><button class="nav-item mobile-import" data-action="import">${icon("plus")}<span>${t("Importer")}</span></button></nav>
-      <div class="sidebar-bottom"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button><div class="local-note">${icon("shield")} ${t("Enregistré sur cet appareil")}</div></div>
+      <div class="sidebar-bottom"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button></div>
     </aside>
-    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button><small class="site-credit" lang="fr" translate="no">drslid avec &lt;3</small></footer></div>
+    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button></footer></div>
     </div>`;
   bindImages();
   window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
@@ -850,7 +852,7 @@ async function importFile(file, source, { signal } = {}) {
       /* Import can continue in memory. */
     }
     if (source || existing?.source) book.source = source || existing.source;
-    if (book.source?.providerId === "standard-ebooks" && /^data:image\//u.test(book.cover || "") && book.source.presentation?.image?.startsWith("https://standardebooks.org/")) {
+    if (["standard-ebooks", "fadedpage"].includes(book.source?.providerId) && /^data:image\//u.test(book.cover || "") && /^https:\/\//u.test(book.source.presentation?.image || "")) {
       book.source.presentation = { ...book.source.presentation, remoteImage: book.source.presentation.image, image: book.cover };
     }
     if (book.source?.providerId === "gutenberg" && !book.source.readingStart) {
@@ -982,7 +984,10 @@ async function readCatalogBook(id) {
     }
     renderShell();
     toast(t("Ouverture de {title}…", { title: book.title }), true);
-    const file = await downloadBook(book, { signal: controller.signal });
+    const [file, presentation] = await Promise.all([
+      downloadBook(book, { signal: controller.signal }),
+      captureOfflinePresentation(book, { signal: controller.signal }),
+    ]);
     controller.signal.throwIfAborted();
     state.busy = false;
     await importFile(
@@ -999,7 +1004,7 @@ async function readCatalogBook(id) {
         canonicalSourceId: book.canonicalSourceId,
         selection: book.providerId === "selection" ? book.id : undefined,
         readingStart: book.readingStart,
-        presentation: captureCatalogPresentation(book),
+        presentation,
       },
       { signal: controller.signal },
     );
@@ -1273,21 +1278,19 @@ app.addEventListener("pointerdown", (event) => {
   if (event.target.closest("#selection-toolbar button")) event.preventDefault();
 });
 
-async function exportBook(format = "focus", id = state.book?.id) {
+async function exportBook(id = state.book?.id) {
   if (state.busy || !id) return;
   state.busy = true;
-  const buttons = [...app.querySelectorAll('[data-action="export"], [data-action="export-classic"], [data-action="library-export"]')];
+  const buttons = [...app.querySelectorAll('[data-action="export-classic"], [data-action="library-export"]')];
   buttons.forEach((button) => { button.disabled = true; });
-  const label = format === "original" ? t("Original") : format === "classic" ? t("Classique") : t("Focus");
   try {
     pause();
     const book = state.book?.id === id ? state.book : await getBook(id) || state.memory.get(id);
     if (!book?.original) throw new Error(t("L’EPUB original de ce livre n’est pas disponible."));
-    if ((format === "focus" && book.source?.canExportFocus === false) || (format === "classic" && book.source?.canExportClassic === false)) throw new Error(t("Pour cette édition, téléchargez l’EPUB original afin de conserver les conditions de la source."));
-    toast(t("Préparation de l’EPUB {mode}…", { mode: label }), true);
-    const blob = format === "original" ? book.original : format === "classic" ? await exportClassicEpub(book) : await exportFocusedEpub(book, focusOptions(state.settings));
-    downloadText(blob, format === "original" ? book.fileName || "livre.epub" : `${format}_${book.fileName || "livre.epub"}`, "application/epub+zip");
-    toast(t("Votre EPUB {mode} est prêt à être téléchargé.", { mode: label }));
+    toast(t("Préparation de l’EPUB {mode}…", { mode: t("Classique") }), true);
+    const blob = await exportClassicEpub(book);
+    downloadText(blob, `classic_${book.fileName || "livre.epub"}`, "application/epub+zip");
+    toast("L’EPUB est prêt à être téléchargé.");
   } catch (error) {
     toast(error.message || t("L’export a échoué."));
   } finally {
@@ -1399,7 +1402,7 @@ app.addEventListener("click", async (event) => {
     if (action === "previous-sentence") { pause(); advanceWord(previousSentenceIndex(words, state.position.wordIndex) - state.position.wordIndex); }
     if (action === "reset-reading") updateReadingPreferences({ ...readingProfiles.balanced, profile: "balanced" });
     if (action === "catalog-download") await downloadCatalogOriginal(button.dataset.id);
-    if (action === "library-export") await exportBook(button.dataset.format, button.dataset.id);
+    if (action === "library-export") await exportBook(button.dataset.id);
     if (action === "demo") {
       const book = createDemo();
       try {
@@ -1432,7 +1435,7 @@ app.addEventListener("click", async (event) => {
     }
     if (action === "search") await runSearch(state.page);
     if (action === "provider") {
-      const language = { "standard-ebooks": "en", "ebooks-gratuits": "fr" }[button.dataset.provider] || state.searchLanguageDraft;
+      const language = { "standard-ebooks": "en", "ebooks-gratuits": "fr", fadedpage: "en", epubbooks: "en" }[button.dataset.provider] || state.searchLanguageDraft;
       await navigateSearch({ view: state.searchDraft.trim() ? "search" : state.view, query: state.searchDraft, language, provider: button.dataset.provider });
     }
     if (action === "next-results" || action === "previous-results")
@@ -1575,15 +1578,7 @@ app.addEventListener("click", async (event) => {
       pause();
       advanceWord(action === "rewind" ? -10 : 10);
     }
-    if (action === "export-original" && state.book?.original) {
-      downloadText(
-        state.book.original,
-        state.book.fileName || "mon-livre.epub",
-        "application/epub+zip",
-      );
-    }
-    if (action === "export") await exportBook("focus");
-    if (action === "export-classic") await exportBook("classic");
+    if (action === "export-classic") await exportBook();
     if (action === "install" && !installPrompt) showInstallHelp();
     if (action === "install" && installPrompt) {
       await installPrompt.prompt();

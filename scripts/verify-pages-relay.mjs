@@ -158,6 +158,11 @@ try {
       await route.fulfill({ status: 200, contentType: "application/atom+xml", headers: { "access-control-allow-origin": base.origin }, body: '<feed xmlns="http://www.w3.org/2005/Atom"><title>Empty test feed</title></feed>' });
       return;
     }
+    if (url.pathname === "/api/sources/fadedpage/search" || url.pathname === "/api/sources/epubbooks/search") {
+      const faded = url.pathname.includes("fadedpage");
+      await route.fulfill({ status: 200, contentType: faded ? "application/json" : "text/html", headers: { "access-control-allow-origin": base.origin }, body: faded ? '{"nrows":0,"rows":[]}' : '<html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>' });
+      return;
+    }
     assert.match(url.pathname, /^\/api\/books\/gutenberg\/[1-9]\d{0,8}\.epub$/u);
     assert.equal(request.headers().origin, base.origin);
     assert.equal(request.headers().cookie, undefined);

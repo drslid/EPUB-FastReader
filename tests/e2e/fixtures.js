@@ -1,6 +1,7 @@
 import { test as base, expect } from "@playwright/test";
 
 export const emptyStandardSearch = '<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Browse Standard Ebooks</title></head><body><main class="ebooks"><form role="search"></form><p class="no-results">No ebooks matched your filters.</p></main></body></html>';
+export const emptyEpubbooksSearch = '<!doctype html><html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>';
 export const emptyEbooksGratuitsSearch = '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"><id>https://www.ebooksgratuits.com/opds/feed.php</id><title>Recherche</title><opensearch:totalResults>0</opensearch:totalResults></feed>';
 
 // Deterministic CI never searches or downloads from a real remote book source.
@@ -19,6 +20,12 @@ export const test = base.extend({
     }));
     await context.route(/\/api\/books\/ebooks-gratuits\/[^/?]+\.epub(?:\?|$)/u, (route) => route.fulfill({ status: 503, body: "No EPUB fixture installed for this test." }));
     await context.route(/^https:\/\/(?:www\.)?ebooksgratuits\.com\//u, (route) => route.abort("blockedbyclient"));
+    await context.route(/\/api\/sources\/fadedpage\/search(?:\?|$)/u, (route) => route.fulfill({ json: { nrows: 0, rows: [] } }));
+    await context.route(/\/api\/books\/fadedpage\/[^/?]+\.epub(?:\?|$)/u, (route) => route.fulfill({ status: 503, body: "No EPUB fixture installed for this test." }));
+    await context.route(/^https:\/\/www\.fadedpage\.com\//u, (route) => route.abort("blockedbyclient"));
+    await context.route(/\/api\/sources\/epubbooks\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", body: emptyEpubbooksSearch }));
+    await context.route(/\/api\/(?:books\/epubbooks\/|sources\/epubbooks\/cover\/)/u, (route) => route.fulfill({ status: 503, body: "No epubBooks fixture installed for this test." }));
+    await context.route(/^https:\/\/www\.epubbooks\.com\//u, (route) => route.abort("blockedbyclient"));
     await use();
   }, { auto: true }],
 });

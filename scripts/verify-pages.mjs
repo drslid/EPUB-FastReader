@@ -213,6 +213,8 @@ try {
   });
   await context.route("https://standardebooks.org/ebooks?**", (route) => route.fulfill({ status: 200, contentType: "application/xhtml+xml", headers: { "access-control-allow-origin": "*" }, body: emptyStandardSearch }));
   await context.route(/\/api\/sources\/ebooks-gratuits\/search(?:\?|$)/u, (route) => route.fulfill({ status: 200, contentType: "application/atom+xml", headers: { "access-control-allow-origin": baseURL.origin }, body: emptyEbooksGratuitsSearch }));
+  await context.route(/\/api\/sources\/fadedpage\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "application/json", headers: { "access-control-allow-origin": baseURL.origin }, body: '{"nrows":0,"rows":[]}' }));
+  await context.route(/\/api\/sources\/epubbooks\/search(?:\?|$)/u, (route) => route.fulfill({ contentType: "text/html", headers: { "access-control-allow-origin": baseURL.origin }, body: '<html><body><form role="search"></form><h1>Top Search Results for "absent"</h1><h3>No results found.</h3></body></html>' }));
   if (configuredRelay) {
     const fixture = await makeEpub({ title: "Germinal — fixture de vérification", author: "Émile Zola", paragraphs: ["Ce fichier de test vérifie le téléchargement, la bibliothèque locale et la lecture. Il ne contient pas le texte du roman."] });
     await context.route(`${configuredRelay}/api/books/gutenberg/5711.epub`, (route) => route.fulfill({ status: 200, contentType: "application/epub+zip", headers: { "access-control-allow-origin": baseURL.origin }, body: fixture }));

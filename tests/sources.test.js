@@ -37,6 +37,8 @@ describe("plugins de sources versionnés", () => {
       "gutenberg",
       "standard-ebooks",
       "ebooks-gratuits",
+      "fadedpage",
+      "epubbooks",
       "public-domain-library",
     ]);
     expect(

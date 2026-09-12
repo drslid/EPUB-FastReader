@@ -66,14 +66,14 @@ describe("translated reading interface", () => {
   ])("renders %s throughout navigation, discovery and reading without translating book content", (language, libraryTitle, wordMode, searchLabel) => {
     setLocale(language);
     const home = render(homeMarkup(state, helpers));
-    expect(home.querySelector("#home-title").textContent).toBe(t("Ouvrez un livre.<br><em>Trouvez votre rythme.</em>").replace(/<[^>]+>/g, ""));
+    expect(home.querySelector("#home-title").textContent).toBe(t("Lisez plus vite.<br><em>Allez au bout de vos livres.</em>").replace(/<[^>]+>/g, ""));
     const library = render(libraryMarkup(state, helpers));
     expect(library.querySelector("h1").textContent).toBe(libraryTitle);
     expect(library.querySelector(".book-open h3").textContent).toBe(book.title);
     expect(library.querySelector(".book-open").getAttribute("aria-label")).toBe(t("Lire {title}", { title: book.title }));
     const search = render(searchBarMarkup(state, helpers));
     expect(search.querySelector('label[for="search-query"]').textContent).toBe(searchLabel);
-    expect([...search.querySelectorAll("#search-language option")].map((item) => item.value)).toEqual(["fr", "en", "es", "de", "it", "pt", ""]);
+    expect([...search.querySelectorAll("#search-language option")].map((item) => item.value)).toEqual(["", "fr", "en", "es", "de", "it", "pt"]);
     const local = render(localSearchResultsMarkup(state, helpers));
     expect(local.querySelector("h2").textContent).toContain(t("Mes livres"));
     const discover = render(discoverMarkup({ ...state, searching: true }, helpers));

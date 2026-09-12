@@ -161,8 +161,8 @@ test("cliquer une suggestion ouvre le livre, le conserve et le reprend depuis D�
   expect(restored.bookmarks).toEqual(saved.bookmarks);
   expect(restored.wordIndex).toBe(saved.wordIndex);
   await page.getByRole("button", { name: "Réglages de lecture" }).click();
-  await expect(page.locator('[data-action="export"]')).toBeEnabled();
-  await expect(page.locator('[data-action="export-original"]')).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Télécharger l’EPUB", exact: true })).toBeEnabled();
+  await expect(page.locator('[data-action="export"], [data-action="export-original"]')).toHaveCount(0);
 });
 
 test("Découvrir retrouve aussi une œuvre déjà importée et conserve ses repères", async ({
@@ -262,7 +262,7 @@ test("une édition dans une autre langue ne remplace pas le livre français choi
 test("l’accueil explique les trois modes et la démo reste hors de la bibliothèque", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".home-intro")).toBeVisible();
-  await expect(page.locator(".home-mode h2")).toHaveText(["Mot à mot", "Classique", "Focus"]);
+  await expect(page.locator(".home-mode h2")).toHaveText(["Mot à mot", "Focus", "Classique"]);
   const help = page.locator(".home-help");
   await expect(help).not.toHaveAttribute("open", "");
   await help.locator("summary").click();

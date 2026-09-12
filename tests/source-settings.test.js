@@ -5,7 +5,7 @@ vi.mock("../src/sources/standard-ebooks.js", () => ({ default: { search: mocks.s
 vi.mock("../src/sources/relay-config.js", () => ({ relayAvailable: mocks.relayAvailable, configuredSourceRelay: mocks.configuredSourceRelay }));
 let settings;
 let fetchMock;
-const response = (sources = [{ providerId: "gutenberg", available: true }, { providerId: "ebooks-gratuits", available: true }]) => ({ ok: true, json: async () => ({ sources }) });
+const response = (sources = [{ providerId: "gutenberg", available: true }, { providerId: "ebooks-gratuits", available: true }, { providerId: "fadedpage", available: true }, { providerId: "epubbooks", available: true }]) => ({ ok: true, json: async () => ({ sources }) });
 const escape = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 
 beforeEach(async () => {
@@ -55,7 +55,7 @@ describe("source availability", () => {
     fetchMock.mockRejectedValue(new Error("Offline"));
     const sources = await settings.checkSourceAvailability();
     expect(sources.selection.status).toBe("available");
-    for (const id of ["standard-ebooks", "gutenberg", "ebooks-gratuits", "z-library"]) expect(sources[id].status).toBe("unavailable");
+    for (const id of ["standard-ebooks", "gutenberg", "ebooks-gratuits", "fadedpage", "epubbooks", "z-library"]) expect(sources[id].status).toBe("unavailable");
   });
 
   it("does not request a nonexistent API on Pages without a configured relay", async () => {
@@ -68,7 +68,7 @@ describe("source availability", () => {
 
   it("uses only a deployment-configured relay and requires a strict availability boolean", async () => {
     mocks.configuredSourceRelay.mockReturnValue("https://relay.example/reader");
-    fetchMock.mockResolvedValue(response([{ providerId: "gutenberg", available: "true" }, { providerId: "ebooks-gratuits", available: true }]));
+    fetchMock.mockResolvedValue(response([{ providerId: "gutenberg", available: "true" }, { providerId: "ebooks-gratuits", available: true }, { providerId: "fadedpage", available: true }, { providerId: "epubbooks", available: true }]));
     const sources = await settings.checkSourceAvailability();
     expect(fetchMock.mock.calls[0][0]).toBe("https://relay.example/reader/api/sources/status");
     expect(sources.gutenberg.status).toBe("unavailable");

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Une bibliothèque EPUB personnelle et un lecteur accessible, installable et hors ligne.",
+  "description": "Read faster and finish the books you start. A free EPUB reader for phone, tablet and desktop.",
   "license": "MIT",
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || >=26.0.0"

@@ -1,25 +1,27 @@
-# Réglages de lecture et nouvelles sources — 12 septembre 2026
+# Lecture rapide, recherche en liste et nouvelles sources — 12 septembre 2026
 
-| Page ou parcours | Comportement livré | Vérifications |
+| Page ou parcours | Comportement livré | Vérification |
 | --- | --- | --- |
-| Accueil | Sépia et Verdana par défaut ; favicon verte ; suggestions conservées lors des changements de thème | Navigateur à 320 px, trois profils, cycle des thèmes, contrôle des assets |
-| Recherche / Découvrir | Bibliothèque en tête ; Gutenberg local, Standard Ebooks anglais et ELG français en parallèle ; résultats et couvertures ouvrables dès leur arrivée ; focus et filtres conservés pendant les réponses tardives ; source nommée sur chaque carte | Retard ELG, panne isolée, annulation, pagination, ouverture des trois sources |
-| Ma bibliothèque | Seuls les EPUB importés ou ouverts ; fichier original et progression conservés ; illustration Standard Ebooks conservée hors ligne | IndexedDB, rechargement, reprise, sauvegarde/restauration |
-| Lecteur | Ordre Mot à mot, Focus, Classique ; nouvelle ouverture en Mot à mot sans démarrage automatique ; Classique si réduction des mouvements ; Verdana et cinq autres choix de familles locales | Commandes, préférences, reprise exacte, affichage mobile, choix des six polices |
-| Focus | Graisse 700, différence de couleur adoucie, texte et surlignages lisibles dans les trois thèmes | Contrastes ≥ 4,5:1 avec le fond et audits axe |
-| Paramètres | Disponibilité rouge/verte accompagnée de texte ; résultats progressifs, nouvelle vérification, annulation à la fermeture ; sources et droits, lien Open SLUM | Clavier, retour du focus, mobile, trois thèmes, cache, erreurs et délais |
-| Exports | Original pour toutes les archives conservées ; Classique/Focus pour les éditions autorisant ces exports ; original uniquement par défaut pour les éditions ELG | Original conservé à l’import et dans la sauvegarde, commandes adaptées à la provenance |
+| Accueil | « Lisez plus vite. Allez au bout de vos livres. » ; démonstration immédiate et modes Mot à mot, Focus, Classique | Six langues, mobile et ordinateur, métadonnées et contenu sans JavaScript |
+| Navigation | Suppression du bandeau « Enregistré sur cet appareil » et de la signature du pied de page | Affichage, clavier et navigation conservés |
+| Recherche | Toutes les langues par défaut, livres personnels en tête, une ligne par résultat avec couverture, titre entier, auteur, source et actions | Recherche anglaise sans filtre, rechargement, titres longs, alignement des lignes, retours tardifs et affichage à 320 px |
+| Découvrir | Sélection visuelle conservée ; filtres Faded Page et epubBooks ajoutés ; recherche anglaise indépendante des autres sources | Résultats progressifs, panne isolée, annulation et acquisition |
+| Ma bibliothèque | Un seul bouton « Télécharger l’EPUB », sans menu ; fichier Classique directement téléchargé | Lecture Focus puis export sans préfixes, archive en base intacte, réimport, aucun doublon |
+| Lecteur | Un seul téléchargement Classique ; progression et réglages conservés | EPUB exporté valide, sommaire, images et emphase de l’auteur préservés |
+| Couvertures | Illustration Faded Page embarquée réutilisée ; illustration différente d’epubBooks récupérée et conservée localement | Image présente avant téléchargement, identique après import, réouverture hors ligne ; une panne de couverture n’empêche pas de lire |
+| Paramètres | Deux nouvelles sources avec disponibilité textuelle et pastille ; provenance et droits territoriaux | Contrôle sans téléchargement de livre, six langues, clavier et contrastes |
+| README et SEO | README anglais pour les lecteurs, capture réelle, mode d’emploi, sauvegardes ; titres et descriptions centrés sur la lecture rapide | Six pages statiques, canonical, hreflang, Open Graph et données structurées |
 
-Les cinq langues traduites en plus du français comprennent les nouveaux réglages, états et informations de droits. Le thème déjà choisi par un utilisateur reste conservé.
+Les éditions dont la source demande de conserver l’archive sont téléchargées intactes : elles restent des EPUB classiques, sans ajout de mise en évidence FastReader. Le menu Original/Focus a disparu ; les archives originales restent disponibles dans les sauvegardes.
 
 ## Sources réellement essayées
 
-- Standard Ebooks : recherche et EPUB compatibles directement depuis le navigateur ; *Pride and Prejudice* et *Frankenstein* importés lors des essais. Son catalogue reçoit les mots recherchés.
-- Ebooks libres et gratuits : recherche OPDS par titre, filtrage EPUB, relais FastReader ; *Candide* importé et conservé après rechargement. La source impose un débit mesuré et 50 tentatives de téléchargement sur 24 heures pour le service. Les licences varient selon l’édition ; l’archive originale et ses crédits restent inchangés.
-- Gutenberg : recherche dans le catalogue local et EPUB via les miroirs autorisés ; téléchargement direct maintenant raccordé à GitHub Pages.
-- Z-Library : recherche/acquisition non validées sur l’hôte demandé, qui a renvoyé une boucle de redirections. Présenté comme indisponible dans les paramètres, sans faux résultat ni promesse d’ouverture directe.
-- Open SLUM : lien externe vers un annuaire de disponibilité, sans validation des droits de ses ressources.
+- **Faded Page** : *Jane: A Story of Jamaica*, 296 961 octets, 28 chapitres. Recherche par titre en anglais, droits du domaine public au Canada à vérifier selon son pays. Illustration identique à celle de l’EPUB.
+- **epubBooks** : *Frankenstein*, 270 697 octets, 31 chapitres. La recherche publique renvoie ses meilleurs résultats, pas un catalogue intégral paginé. Couverture de recherche conservée, différente de celle de l’archive.
+- **Z-Library.sk** : le navigateur testé a reçu HTTP 517 « Access Denied | DiamWall ». Aucun accès de recherche/acquisition vérifiable ; la source reste indiquée indisponible. Ce constat ne prétend pas décrire tous les réseaux ou régions.
 
-Les livres, positions et annotations restent dans le navigateur. Seuls les termes de recherche externes et les demandes de livres publics passent aux sources concernées. Le site rappelle de vérifier le domaine public applicable ou l’autorisation nécessaire selon son pays.
+Les parcours publics Faded Page et epubBooks n’exigent pas de compte. Le relais utilise uniquement la session anonyme temporaire émise par la source pour cette acquisition. Les livres, positions et annotations personnels restent dans le navigateur. Aucun cookie utilisateur n’est transmis aux catalogues.
 
-Le [rapport de validation](VALIDATION.md) distingue les tests avec réponses contrôlées et les essais réseau réels. [Audit Standard Ebooks](SOURCE-STANDARDEBOOKS-AUDIT.md) · [Audit ELG](SOURCE-EBOOKS-GRATUITS.md) · [Service Cloudflare](SOURCE-RELAY-DEPLOYMENT.md).
+Le relais Cloudflare public a renvoyé HTTP 200 pour les deux recherches, les deux EPUB et la couverture epubBooks. L’interface est publiée par GitHub Actions après ses contrôles. Aucun gain chiffré ni bénéfice de compréhension garanti n’est annoncé.
+
+[Validation](VALIDATION.md) · [Audit Faded Page](SOURCE-FADEDPAGE-AUDIT.md) · [Audit epubBooks](SOURCE-EPUBBOOKS-AUDIT.md) · [Audit Z-Library](SOURCE-ZLIBRARY-AUDIT.md) · [Service Cloudflare](SOURCE-RELAY-DEPLOYMENT.md)

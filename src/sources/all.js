@@ -4,6 +4,8 @@ import selection from "./selection.js";
 import gutenberg from "./gutenberg.js";
 import standardEbooks from "./standard-ebooks.js";
 import ebooksGratuits from "./ebooks-gratuits.js";
+import fadedpage from "./fadedpage.js";
+import epubbooks from "./epubbooks.js";
 
 const GUTENBERG_WARNING = "Le catalogue complet n’a pas pu être chargé. Les livres disponibles ici restent accessibles. Rechargez l’application puis réessayez.";
 
@@ -16,7 +18,7 @@ async function search(options = {}) {
   // Opening the app never launches an unsolicited search on every remote site.
   // A reader can still browse a provider explicitly using its own filter.
   if (query.trim()) {
-    if (!language || language === "all" || language === "en") sources.push(standardEbooks);
+    if (!language || language === "all" || language === "en") sources.push(standardEbooks, fadedpage, epubbooks);
     if (!language || language === "all" || language === "fr") sources.push(ebooksGratuits);
   }
   const results = new Map();
@@ -99,7 +101,7 @@ export default defineSource({
   manifest: {
     id: "all",
     name: "Tout le catalogue",
-    version: "3.0.0",
+    version: "4.0.0",
     apiVersion: 1,
     description:
       "Livres disponibles ici et catalogues partenaires dans une recherche commune.",

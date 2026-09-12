@@ -671,5 +671,10 @@ export function exportFocusedEpub(book, options = {}) {
 
 /** Remove our Focus prefixes while preserving the author's original emphasis. */
 export function exportClassicEpub(book) {
+  // Some providers require the edition to remain untouched. Its original EPUB
+  // is already a classic edition; keep its layout, credits and archive intact.
+  if (book?.original && book.source?.canExportClassic === false) {
+    return Promise.resolve(new Blob([book.original], { type: EPUB_MIME }));
+  }
   return exportConvertedEpub(book, false);
 }

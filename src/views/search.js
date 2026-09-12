@@ -1,12 +1,12 @@
 import { t, formatNumber } from "../i18n.js";
 const languages = [
+  { value: "", label: "Toutes les langues", short: "Tous" },
   { value: "fr", label: "Français", short: "FR" },
   { value: "en", label: "English", short: "EN" },
   { value: "es", label: "Español", short: "ES" },
   { value: "de", label: "Deutsch", short: "DE" },
   { value: "it", label: "Italiano", short: "IT" },
   { value: "pt", label: "Português", short: "PT" },
-  { value: "", label: "Toutes les langues", short: "Tous" },
 ];
 
 export function searchBarMarkup(state, { icon, escape }) {
@@ -24,9 +24,9 @@ export function localSearchResultsMarkup(state, { icon, escape, cover }) {
   const books = state.localSearchResults || [];
   return `<section class="local-results" aria-label="${t("Résultats dans mes livres")}" aria-busy="${Boolean(state.localSearching)}">
     <div class="section-heading"><h2>${icon("book")} ${t("Mes livres")} <span class="count-pill">${formatNumber(books.length)}</span></h2><span class="subtle">${t("Sur cet appareil")}</span></div>
-    ${books.length ? `<div class="book-grid">${books.map((book) => {
+    ${books.length ? `<div class="book-grid book-list local-book-list">${books.map((book) => {
       const progress = Math.max(0, Math.min(1, Number(book.position?.progress) || 0));
-      return `<article class="book-card is-in-library"><button class="book-open" data-action="open" data-id="${escape(book.id)}" aria-label="${t("Lire {title}", { title: escape(book.title) })}" ${state.busy ? "disabled" : ""}>${cover(book)}<h3>${escape(book.title)}</h3><p>${escape(book.author)}</p></button><div class="book-card-meta"><span class="availability is-ready">${icon("check")} ${t("Disponible hors ligne")}</span><span>${book.position ? t("{progress} % lu", { progress: formatNumber(Math.round(progress * 100)) }) : t("Prêt à lire")}</span></div><p class="source-attribution">${t("Source")} : ${escape(book.source?.name || t("Import personnel"))}</p><progress max="1" value="${progress}" aria-label="${t("Progression de {title}", { title: escape(book.title) })}"></progress></article>`;
+      return `<article class="book-card is-in-library"><button class="book-open" data-action="open" data-id="${escape(book.id)}" aria-label="${t("Lire {title}", { title: escape(book.title) })}" ${state.busy ? "disabled" : ""}>${cover(book)}<h3>${escape(book.title)}</h3><p>${escape(book.author)}</p></button><div class="book-card-meta"><span class="availability is-ready">${icon("check")} ${t("Disponible hors ligne")}</span><span>${book.position ? t("{progress} % lu", { progress: formatNumber(Math.round(progress * 100)) }) : t("Prêt à lire")}</span></div><p class="source-attribution">${t("Source")} : ${escape(book.source?.name || t("Import personnel"))}</p><div class="catalog-book-actions"><button class="button ink start-book-button" data-action="open" data-id="${escape(book.id)}" ${state.busy ? "disabled" : ""}>${book.position ? t("Reprendre") : t("Lire")} ${icon("play")}</button></div><progress max="1" value="${progress}" aria-label="${t("Progression de {title}", { title: escape(book.title) })}"></progress></article>`;
     }).join("")}</div>` : `<p class="local-results-empty" role="status">${state.localSearching ? t("Recherche dans votre bibliothèque…") : t("Aucun livre enregistré ne correspond à cette recherche.")}</p>`}
   </section>`;
 }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildSearchRoute, parseSearchRoute } from "../src/search-route.js";
 
-const library = { view: "library", query: "", language: "fr", provider: "selection", page: 1 };
-const search = { view: "search", query: "", language: "fr", provider: "all", page: 1 };
-const discover = { view: "discover", query: "", language: "fr", provider: "selection", page: 1 };
+const library = { view: "library", query: "", language: "", provider: "selection", page: 1 };
+const search = { view: "search", query: "", language: "", provider: "all", page: 1 };
+const discover = { view: "discover", query: "", language: "", provider: "selection", page: 1 };
 
 describe("search route parsing", () => {
   it("assigns distinct default providers to unified search and catalogue browsing", () => {
@@ -18,10 +18,10 @@ describe("search route parsing", () => {
     });
   });
 
-  it("distinguishes all languages from an absent or unsupported language", () => {
+  it("uses all languages unless a supported filter is explicitly selected", () => {
     expect(parseSearchRoute("#search?language=").language).toBe("");
     for (const parameter of ["", "?language=unknown", "?language=all", "?language=fr-FR"]) {
-      expect(parseSearchRoute(`#search${parameter}`).language).toBe("fr");
+      expect(parseSearchRoute(`#search${parameter}`).language).toBe("");
     }
     for (const language of ["fr", "en", "es", "de"]) {
       expect(parseSearchRoute(`#search?language=${language}`).language).toBe(language);
@@ -68,14 +68,14 @@ describe("search route parsing", () => {
   it("tolerates malformed encodings and uses the first value of duplicate parameters", () => {
     expect(() => parseSearchRoute("#search?q=%E0%A4%A&language=%" )).not.toThrow();
     expect(parseSearchRoute("#search?q=first&q=second&language=fr&language=en&page=2&page=9")).toEqual({
-      ...search, query: "first", page: 2,
+      ...search, query: "first", language: "fr", page: 2,
     });
   });
 });
 
 describe("search route generation", () => {
   it("produces explicit reproducible defaults", () => {
-    expect(buildSearchRoute()).toBe("#search?q=&language=fr&provider=all&page=1");
+    expect(buildSearchRoute()).toBe("#search?q=&language=&provider=all&page=1");
     expect(parseSearchRoute(buildSearchRoute())).toEqual(search);
   });
 

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "EPUB FastReader",
   "short_name": "FastReader",
-  "description": "Vos livres EPUB, à votre rythme. Lecture classique, guidée ou rapide, même hors ligne.",
+  "description": "Avancez dans vos livres avec FastReader, le lecteur EPUB gratuit : lecture rapide mot à mot, Focus et Classique. Sur mobile, tablette et PC, sans compte.",
   "lang": "fr",
   "start_url": "./",
   "scope": "./",

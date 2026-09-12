@@ -1,5 +1,5 @@
 const languages = new Set(["fr", "en", "es", "it", "de", "pt", ""]);
-const providers = new Set(["selection", "all", "gutenberg", "standard-ebooks", "ebooks-gratuits"]);
+const providers = new Set(["selection", "all", "gutenberg", "standard-ebooks", "ebooks-gratuits", "fadedpage", "epubbooks"]);
 const views = new Set(["library", "discover", "search"]);
 
 function normalizeRoute(view, values = {}) {
@@ -7,7 +7,7 @@ function normalizeRoute(view, values = {}) {
   const defaults = {
     view,
     query: "",
-    language: "fr",
+    language: "",
     provider: view === "search" ? "all" : "selection",
     page: 1,
   };
@@ -43,7 +43,7 @@ export function parseSearchRoute(hash = "") {
 }
 
 /** Build a canonical route, preserving the explicit all-languages empty value. */
-export function buildSearchRoute({ view = "search", query = "", language = "fr", provider = "all", page = 1 } = {}) {
+export function buildSearchRoute({ view = "search", query = "", language = "", provider = "all", page = 1 } = {}) {
   const normalized = normalizeRoute(view, { query, language, provider, page });
   if (normalized.view === "library") return "#library";
   const parameters = new URLSearchParams();

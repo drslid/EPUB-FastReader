@@ -65,7 +65,7 @@ export function resolveCover(value, catalog = []) {
   const saved = record(source.presentation);
   if (current) {
     const visual = presentation(current);
-    // Standard Ebooks embeds the same artwork: keep that local image offline.
+    // These editions embed the catalogue artwork: keep that local image offline.
     if (saved?.version === 1 && saved.key === visual.key && saved.remoteImage === visual.image && /^data:image\//u.test(saved.image || "")) return { ...visual, image: saved.image };
     return visual;
   }

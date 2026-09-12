@@ -91,25 +91,25 @@ test("import EPUB, sécurité, ordre des chapitres, export et reprise après rec
   expect(trackerRequests).toEqual([]);
   await openSettings(page);
   await expect(
-    page.getByRole("button", { name: "Exporter l’EPUB Focus" }),
+    page.getByRole("button", { name: "Télécharger l’EPUB" }),
   ).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Exporter l’EPUB Focus" }).click();
+  await page.getByRole("button", { name: "Télécharger l’EPUB" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("focus_voyage.epub");
-  const output = testInfo.outputPath("focused.epub");
+  expect(download.suggestedFilename()).toBe("classic_voyage.epub");
+  const output = testInfo.outputPath("classic.epub");
   await download.saveAs(output);
   const exported = await JSZip.loadAsync(await readFile(output));
   expect(await exported.file("mimetype").async("string")).toBe(
     "application/epub+zip",
   );
   expect(exported.file("OPS/images/cover.png")).not.toBeNull();
-  const focusedChapter = await exported
+  const classicChapter = await exported
     .file("OPS/text/one.xhtml")
     .async("string");
-  expect(focusedChapter).toContain("focus-prefix");
-  expect(focusedChapter).not.toContain("<script");
-  expect(focusedChapter).not.toContain("tracker.invalid");
+  expect(classicChapter).not.toContain("focus-prefix");
+  expect(classicChapter).not.toContain("<script");
+  expect(classicChapter).not.toContain("tracker.invalid");
   await closeSettings(page);
   await page.locator("#chapter-content a").click();
   await expect(page.locator(".chapter-heading h1")).toHaveText(
