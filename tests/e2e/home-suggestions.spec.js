@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
 test.use({ serviceWorkers: "block" });
@@ -78,6 +78,11 @@ test("les suggestions restent stables pendant les changements de thème, la rech
   await page.goto("/");
   await expect(cards(page)).toHaveCount(3);
   const first = await suggestionIds(page);
+  await page
+    .getByRole("button", { name: "Passer au thème sombre", exact: true })
+    .click();
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
+  expect(await suggestionIds(page)).toEqual(first);
   await page
     .getByRole("button", { name: "Passer au thème clair", exact: true })
     .click();

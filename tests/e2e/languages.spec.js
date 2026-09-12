@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import AxeBuilder from "@axe-core/playwright";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 

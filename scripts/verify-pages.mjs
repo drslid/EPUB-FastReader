@@ -9,6 +9,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, expect } from "@playwright/test";
 import JSZip from "jszip";
+import { makeEpub } from "../tests/e2e/helpers/fixtures.js";
+import { emptyStandardSearch, emptyEbooksGratuitsSearch } from "../tests/e2e/fixtures.js";
+import { configuredSourceRelay } from "../src/sources/relay-config.js";
+const configuredRelay = configuredSourceRelay(process.env);
 import { languageUrl, SEO_LANGUAGES } from "../src/seo-data.js";
 
 const projectPath = "/EPUB-FastReader/";
@@ -167,6 +171,9 @@ try {
   assert.equal(new URL(manifest.scope, baseURL).pathname, baseURL.pathname);
   assert.equal(new URL(manifest.start_url, baseURL).pathname, baseURL.pathname);
   await Promise.all(manifest.icons.map((icon) => fetchAsset(baseURL, icon.src, /image\//)));
+  const favicon = (await fetchAsset(baseURL, "icons/favicon-green.svg", /image\/svg\+xml/)).toString();
+  assert.match(favicon, /#536341/);
+  assert.doesNotMatch(favicon, /#bd563c/);
   await Promise.all(["fr", "gb", "es", "it", "de", "pt"].map((code) => fetchAsset(baseURL, `flags/${code}.svg`, /image\/svg\+xml/)));
   const serviceWorker = (await fetchAsset(baseURL, "sw.js", /javascript/)).toString();
   assert.doesNotMatch(serviceWorker, /__BUILD_VERSION__|__PRECACHE_MANIFEST__/);
@@ -204,6 +211,12 @@ try {
     viewport: { width: 390, height: 844 },
     serviceWorkers: "allow",
   });
+  await context.route("https://standardebooks.org/ebooks?**", (route) => route.fulfill({ status: 200, contentType: "application/xhtml+xml", headers: { "access-control-allow-origin": "*" }, body: emptyStandardSearch }));
+  await context.route(/\/api\/sources\/ebooks-gratuits\/search(?:\?|$)/u, (route) => route.fulfill({ status: 200, contentType: "application/atom+xml", headers: { "access-control-allow-origin": baseURL.origin }, body: emptyEbooksGratuitsSearch }));
+  if (configuredRelay) {
+    const fixture = await makeEpub({ title: "Germinal — fixture de vérification", author: "Émile Zola", paragraphs: ["Ce fichier de test vérifie le téléchargement, la bibliothèque locale et la lecture. Il ne contient pas le texte du roman."] });
+    await context.route(`${configuredRelay}/api/books/gutenberg/5711.epub`, (route) => route.fulfill({ status: 200, contentType: "application/epub+zip", headers: { "access-control-allow-origin": baseURL.origin }, body: fixture }));
+  }
   const page = await context.newPage();
   page.setDefaultTimeout(15_000);
   const scriptErrors = [];
@@ -215,7 +228,7 @@ try {
     if (response.status() >= 400) httpErrors.push(`${response.status()} ${response.url()}`);
   });
   context.on("request", (request) => {
-    if (/\/api\//.test(new URL(request.url()).pathname)) apiRequests.push(request.url());
+    if (/\/api\//.test(new URL(request.url()).pathname) && new URL(request.url()).origin === baseURL.origin) apiRequests.push(request.url());
   });
   page.on("request", (request) => {
     if (/\.epub$/.test(new URL(request.url()).pathname)) epubRequests.push(request.url());
@@ -228,7 +241,7 @@ try {
   await expect(page.locator(".library-section .book-card")).toHaveCount(0);
   await expect(page.locator(".suggestions-section, [data-action=demo]")).toHaveCount(0);
   await page.goto(`${baseURL}#discover`);
-  await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
   await expect(page.locator(".catalog-grid .book-card")).toHaveCount(9);
   await expect(page.locator(".catalog-grid .cover")).toHaveCount(9);
   assert.equal((await libraryState(page)).books.length, 0);
@@ -244,6 +257,7 @@ try {
   assert.equal(offlineCache.scope, baseURL.href);
   assert.equal(offlineCache.names.length, 1);
   assert.ok(offlineCache.files.every((file) => file.startsWith(baseURL.href)));
+  assert.ok(offlineCache.files.includes(new URL("icons/favicon-green.svg", baseURL).href));
   for (const [language, copy] of Object.entries(SEO_LANGUAGES)) {
     assert.ok(offlineCache.files.includes(new URL(copy.file, baseURL).href));
     assert.ok(offlineCache.files.includes(new URL(language === "fr" ? "manifest.webmanifest" : `manifest-${language}.webmanifest`, baseURL).href));
@@ -254,7 +268,7 @@ try {
   assert.ok(offlineCache.files.some((file) => /\/assets\/[^/]+\.js$/.test(file)));
   assert.ok(offlineCache.files.some((file) => /\/assets\/[^/]+\.css$/.test(file)));
   assert.ok(offlineCache.files.some((file) => /\/catalog\/fr-[^/]+\.json$/.test(file)));
-  passed("Dark defaults, nine covers and complete offline installation within the project scope");
+  passed("Sepia defaults, nine covers and complete offline installation within the project scope");
 
   const horla = page.locator('.catalog-grid .book-open[data-id="selection-le-horla"]');
   const expectedCover = await coverAppearance(horla.locator(".cover"));
@@ -305,16 +319,30 @@ try {
   await expect(germinal).not.toContainText("EPUB à télécharger puis importer");
   await expect(germinal).not.toContainText("Lecture en un clic");
   await germinal.locator(".book-open").click();
-  const dialog = page.locator(".fallback-dialog");
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(/télécharge/i);
-  await expect(dialog).toContainText(/import/i);
-  await expect(dialog.getByRole("button", { name: "Réessayer", exact: true })).toHaveCount(0);
-  await expect(dialog.getByRole("link", { name: "Télécharger sur Gutenberg" })).toHaveAttribute("href", "https://www.gutenberg.org/ebooks/5711");
-  assert.equal((await libraryState(page)).books.length, 1);
-  assert.deepEqual(apiRequests, []);
-  const chooserPending = page.waitForEvent("filechooser");
-  await dialog.getByRole("button", { name: "Importer mon EPUB", exact: true }).click();
+  let chooserPending;
+  if (configuredRelay) {
+    await expect(page.locator(".reader-title strong")).toContainText("Germinal — fixture de vérification");
+    await expect(page.locator("#rsvp")).toBeVisible();
+    const downloaded = (await libraryState(page)).books.find((book) => book.source?.canonicalSourceId === "gutenberg:5711");
+    assert.ok(downloaded?.bytes > 0);
+    await returnToLibrary(page);
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator(`[data-action="remove"][data-id="${downloaded.id}"]`).click();
+    await expect(page.locator(".library-section .book-card")).toHaveCount(1);
+    chooserPending = page.waitForEvent("filechooser");
+    await page.locator('.topbar [data-action="import"]').click();
+  } else {
+    const dialog = page.locator(".fallback-dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(/télécharge/i);
+    await expect(dialog).toContainText(/import/i);
+    await expect(dialog.getByRole("button", { name: "Réessayer", exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole("link", { name: "Télécharger sur Gutenberg" })).toHaveAttribute("href", "https://www.gutenberg.org/ebooks/5711");
+    assert.equal((await libraryState(page)).books.length, 1);
+    assert.deepEqual(apiRequests, []);
+    chooserPending = page.waitForEvent("filechooser");
+    await dialog.getByRole("button", { name: "Importer mon EPUB", exact: true }).click();
+  }
   const chooser = await chooserPending;
   await chooser.setFiles({
     name: "candide.epub",
@@ -332,7 +360,7 @@ try {
   assert.equal(state.books.length, 2);
   assert.ok(state.books.some((book) => /Candide/i.test(book.title) && book.bytes === originals.get("candide.epub").byteLength));
   assert.ok(state.books.every((book) => book.source?.canonicalSourceId !== "gutenberg:5711"));
-  passed("Gutenberg manual access requests no API; actual EPUB import and all three reading modes work");
+  passed(configuredRelay ? "Configured relay fixture opens directly; EPUB import and all three reading modes work" : "Unconfigured relay fallback requests no API; EPUB import and all three reading modes work");
 
   await page.setViewportSize({ width: 320, height: 640 });
   const navigation = page.getByRole("navigation", { name: "Navigation principale" });
@@ -368,7 +396,7 @@ try {
   await search(page, "maupassant");
   await expect(page.locator(`.local-results .book-open[data-id="${horlaId}"]`)).toBeVisible();
   assert.ok(await page.locator(".catalog-grid .book-card").count() > 0);
-  await expect(page.locator(".source-warning")).toHaveCount(0);
+  await expect(page.locator('.source-warning[data-provider="gutenberg"]')).toHaveCount(0);
   await navigation.getByRole("link", { name: "Découvrir", exact: true }).click();
   await page.locator('.catalog-grid .book-open[data-id="selection-trois-contes"]').click();
   await expect(page.locator(".reader-title strong")).toContainText(/Trois contes/i);
@@ -379,10 +407,10 @@ try {
   assert.equal(state.positions.find((position) => position.id === horlaId).bookmarks.length, 1);
   passed("Offline page reload, saved position, French search and first opening of a precached EPUB");
 
-  assert.deepEqual(apiRequests, [], "A static Pages build must never request a server API.");
+  assert.deepEqual(apiRequests, [], "A static Pages build must never request a same-origin server API.");
   assert.deepEqual(httpErrors, [], "No missing assets or HTTP errors are expected.");
   assert.deepEqual(scriptErrors, [], "The browser must not report uncaught JavaScript errors.");
-  passed("No API calls, missing HTTP assets or uncaught browser errors");
+  passed("No same-origin API calls, missing HTTP assets or uncaught browser errors");
   console.log(JSON.stringify({ url: baseURL.href, checks: completed.length, result: "passed" }));
 } finally {
   await context?.close();

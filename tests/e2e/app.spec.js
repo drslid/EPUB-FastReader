@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import JSZip from "jszip";
 import { readFile } from "node:fs/promises";
 
@@ -78,7 +78,7 @@ test("import EPUB, sécurité, ordre des chapitres, export et reprise après rec
     "Le premier horizon",
   );
   await expect(page.locator("#rsvp")).toBeVisible();
-  await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
   await page.getByRole("button", { name: "Focus", exact: true }).click();
   await expect(
     page.locator("#chapter-content .focus-prefix").first(),

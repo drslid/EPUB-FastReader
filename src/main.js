@@ -8,6 +8,8 @@ import "./search.css";
 import "./home.css";
 import "./covers.css";
 import "./reader-enhancements.css";
+import "./source-settings.css";
+import { openSourceSettings } from "./source-settings.js";
 import { homeMarkup } from "./views/home.js";
 import { createReadingWakeLock, wordDuration, previousSentenceIndex } from "./reading-comfort.js";
 import { readingProfiles, focusOptions, readingFont } from "./reading-preferences.js";
@@ -249,9 +251,9 @@ function renderShell({ resetScroll = false } = {}) {
   app.innerHTML = `<div class="app-shell">
     <aside class="sidebar">${brand()}<p class="nav-label">${t("VOTRE ESPACE DE LECTURE")}</p>
       <nav aria-label="${escape(t("Navigation principale"))}"><a href="#home" class="nav-item ${state.view === "home" ? "active" : ""}" ${state.view === "home" ? 'aria-current="page"' : ""}>${icon("book")}<span>${t("Accueil")}</span></a><a href="#discover" class="nav-item ${state.view === "discover" ? "active" : ""}" ${state.view === "discover" ? 'aria-current="page"' : ""}>${icon("compass")}<span>${t("Découvrir")}</span></a><a href="#library" class="nav-item ${state.view === "library" ? "active" : ""}" ${state.view === "library" ? 'aria-current="page"' : ""}>${icon("grid")}<span>${t("Ma bibliothèque")}</span><span class="nav-count">${state.books.length}</span></a><button class="nav-item mobile-import" data-action="import">${icon("plus")}<span>${t("Importer")}</span></button></nav>
-      <div class="sidebar-bottom"><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button><div class="local-note">${icon("shield")} ${t("Enregistré sur cet appareil")}</div></div>
+      <div class="sidebar-bottom"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button><div class="local-note">${icon("shield")} ${t("Enregistré sur cet appareil")}</div></div>
     </aside>
-    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button><small class="site-credit" lang="fr" translate="no">drslid avec &lt;3</small></footer></div>
+    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde et stockage")}</button><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button><small class="site-credit" lang="fr" translate="no">drslid avec &lt;3</small></footer></div>
     </div>`;
   bindImages();
   window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
@@ -469,9 +471,9 @@ function applySettings() {
   if (themeColor)
     themeColor.content =
       state.settings.theme === "night"
-        ? "#101619"
+        ? "#101a1b"
         : state.settings.theme === "sepia"
-          ? "#f2e9d8"
+          ? "#ede2ca"
           : "#f6f7f8";
   document.documentElement.style.setProperty(
     "--reading-size",
@@ -706,6 +708,8 @@ async function openBook(id, setHash = true) {
   }
   state.book = book;
   state.view = "reader";
+  // Opening a book always starts paused, in the default reading mode.
+  state.settings.mode = matchMedia("(prefers-reduced-motion: reduce)").matches ? "classic" : "rsvp";
   state.position = normalizePosition(position, book);
   if (!position)
     state.position.chapterIndex = Math.max(
@@ -824,6 +828,9 @@ async function importFile(file, source, { signal } = {}) {
       /* Import can continue in memory. */
     }
     if (source || existing?.source) book.source = source || existing.source;
+    if (book.source?.providerId === "standard-ebooks" && /^data:image\//u.test(book.cover || "") && book.source.presentation?.image?.startsWith("https://standardebooks.org/")) {
+      book.source.presentation = { ...book.source.presentation, remoteImage: book.source.presentation.image, image: book.cover };
+    }
     if (book.source?.providerId === "gutenberg" && !book.source.readingStart) {
       book.source.readingStart = getGutenbergReadingStart(book);
     }
@@ -868,6 +875,17 @@ async function runSearch(page = 1) {
   state.catalogWarnings = [];
   state.catalog = [];
   if (state.view === "discover" || state.view === "search") renderShell();
+  const acceptResult = (result) => {
+    if (controller.signal.aborted) return;
+    state.catalog = result.books;
+    state.catalogCount = result.count;
+    state.hasNext = result.hasNext;
+    state.catalogWarnings = result.warnings || [];
+    state.catalogCountIsApproximate = !!result.countIsApproximate;
+    state.pendingSources = result.pendingSources || [];
+    state.searched = true;
+    if (state.view === "discover" || state.view === "search") renderShell();
+  };
   try {
     const result = await searchBooks({
       query: state.query,
@@ -875,13 +893,10 @@ async function runSearch(page = 1) {
       language: state.language,
       page,
       signal: controller.signal,
+      onUpdate: acceptResult,
     });
     if (controller.signal.aborted) return;
-    state.catalog = result.books;
-    state.catalogCount = result.count;
-    state.hasNext = result.hasNext;
-    state.catalogWarnings = result.warnings || [];
-    state.catalogCountIsApproximate = !!result.countIsApproximate;
+    acceptResult(result);
   } catch (error) {
     if (controller.signal.aborted) return;
     state.catalogError =
@@ -922,6 +937,8 @@ async function readCatalogBook(id) {
     state.catalog.find((item) => item.id === id) ||
     state.suggestionCatalog.find((item) => item.id === id);
   if (!book) return;
+  searchController?.abort();
+  state.searching = false;
   state.busy = true;
   const controller = new AbortController();
   catalogDownloadController = controller;
@@ -955,6 +972,8 @@ async function readCatalogBook(id) {
         url: book.sourceUrl,
         rights: book.rights,
         rightsUrl: book.rightsUrl,
+        canExportFocus: book.canExportFocus,
+        canExportClassic: book.canExportClassic,
         canonicalSourceId: book.canonicalSourceId,
         selection: book.providerId === "selection" ? book.id : undefined,
         readingStart: book.readingStart,
@@ -1237,14 +1256,15 @@ async function exportBook(format = "focus", id = state.book?.id) {
   state.busy = true;
   const buttons = [...app.querySelectorAll('[data-action="export"], [data-action="export-classic"], [data-action="library-export"]')];
   buttons.forEach((button) => { button.disabled = true; });
-  const label = format === "classic" ? t("Classique") : t("Focus");
+  const label = format === "original" ? t("Original") : format === "classic" ? t("Classique") : t("Focus");
   try {
     pause();
     const book = state.book?.id === id ? state.book : await getBook(id) || state.memory.get(id);
     if (!book?.original) throw new Error(t("L’EPUB original de ce livre n’est pas disponible."));
+    if ((format === "focus" && book.source?.canExportFocus === false) || (format === "classic" && book.source?.canExportClassic === false)) throw new Error(t("Pour cette édition, téléchargez l’EPUB original afin de conserver les conditions de la source."));
     toast(t("Préparation de l’EPUB {mode}…", { mode: label }), true);
-    const blob = format === "classic" ? await exportClassicEpub(book) : await exportFocusedEpub(book, focusOptions(state.settings));
-    downloadText(blob, `${format}_${book.fileName || "livre.epub"}`, "application/epub+zip");
+    const blob = format === "original" ? book.original : format === "classic" ? await exportClassicEpub(book) : await exportFocusedEpub(book, focusOptions(state.settings));
+    downloadText(blob, format === "original" ? book.fileName || "livre.epub" : `${format}_${book.fileName || "livre.epub"}`, "application/epub+zip");
     toast(t("Votre EPUB {mode} est prêt à être téléchargé.", { mode: label }));
   } catch (error) {
     toast(error.message || t("L’export a échoué."));
@@ -1313,6 +1333,7 @@ app.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button || button.disabled) return;
   const action = button.dataset.action;
+  if (action === "source-settings") return openSourceSettings({ icon, escape, beforeOpen: pause });
   try {
     if (action === "global-theme") {
       const hadFocus = document.activeElement === button;
@@ -1389,7 +1410,8 @@ app.addEventListener("click", async (event) => {
     }
     if (action === "search") await runSearch(state.page);
     if (action === "provider") {
-      await navigateSearch({ view: state.searchDraft.trim() ? "search" : state.view, query: state.searchDraft, language: state.searchLanguageDraft, provider: button.dataset.provider });
+      const language = { "standard-ebooks": "en", "ebooks-gratuits": "fr" }[button.dataset.provider] || state.searchLanguageDraft;
+      await navigateSearch({ view: state.searchDraft.trim() ? "search" : state.view, query: state.searchDraft, language, provider: button.dataset.provider });
     }
     if (action === "next-results" || action === "previous-results")
       await navigateSearch({ view: state.view, query: state.query, language: state.language, provider: state.provider, page: state.page + (action === "next-results" ? 1 : -1) });

@@ -35,6 +35,8 @@ describe("plugins de sources versionnés", () => {
       "selection",
       "all",
       "gutenberg",
+      "standard-ebooks",
+      "ebooks-gratuits",
       "public-domain-library",
     ]);
     expect(
@@ -111,7 +113,7 @@ describe("sélection intégrée", () => {
     expect(
       (await searchBooks({ provider: "selection", language: "all" })).count,
     ).toBe(9);
-    expect(await searchBooks({ provider: "selection", page: 2 })).toEqual({
+    expect(await searchBooks({ provider: "selection", page: 2 })).toMatchObject({
       books: [],
       count: 9,
       hasNext: false,
@@ -215,6 +217,11 @@ describe("recherche commune", () => {
         providerId: "gutenberg",
         code: "NETWORK",
         message: expect.stringContaining("n’a pas pu être chargé"),
+      },
+      {
+        providerId: "ebooks-gratuits",
+        code: "NETWORK",
+        message: expect.stringContaining("catalogue est inaccessible"),
       },
     ]);
     expect(result.count).toBe(1);

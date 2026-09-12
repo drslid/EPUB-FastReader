@@ -130,3 +130,13 @@ describe("cover identity", () => {
     expect(resolveCover(book, [candide]).key).toBe(book.id);
   });
 });
+
+
+it("keeps identical Standard Ebooks artwork locally when the live catalogue is present", () => {
+  const catalogue = { id: "standardebooks-jane-austen_pride-and-prejudice", canonicalSourceId: "standardebooks:jane-austen/pride-and-prejudice", title: "Pride and Prejudice", author: "Jane Austen", cover: "https://standardebooks.org/images/covers/jane-austen_pride-and-prejudice.jpg" };
+  const captured = captureCatalogPresentation(catalogue);
+  const local = { ...catalogue, source: { canonicalSourceId: catalogue.canonicalSourceId, presentation: { ...captured, remoteImage: captured.image, image: "data:image/jpeg;base64,bG9jYWw=" } } };
+  expect(resolveCover(local, [catalogue]).image).toBe("data:image/jpeg;base64,bG9jYWw=");
+  expect(resolveCover(local).image).toBe("data:image/jpeg;base64,bG9jYWw=");
+  expect(resolveCover(local, [{ ...catalogue, cover: "https://standardebooks.org/images/covers/new.jpg" }]).image).toContain("new.jpg");
+});

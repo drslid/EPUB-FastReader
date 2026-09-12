@@ -37,10 +37,11 @@ function sourceMetadata(value) {
   const result = {};
   for (const key of ["name", "providerId", "bookId", "rights", "canonicalSourceId", "selection"])
     if (typeof value[key] === "string") result[key] = string(value[key]);
+  for (const key of ["canExportFocus", "canExportClassic"]) if (typeof value[key] === "boolean") result[key] = value[key];
   for (const key of ["url", "rightsUrl"]) if (value[key]) result[key] = safeUrl(value[key]);
   if (record(value.readingStart)) result.readingStart = { chapterId: string(value.readingStart.chapterId, 512), exact: string(value.readingStart.exact, 2000) };
   if (record(value.presentation) && value.presentation.version === 1) result.presentation = {
-    version: 1, key: string(value.presentation.key), title: string(value.presentation.title), author: string(value.presentation.author), image: safeUrl(value.presentation.image, true) || null,
+    version: 1, key: string(value.presentation.key), title: string(value.presentation.title), author: string(value.presentation.author), image: safeUrl(value.presentation.image, true) || null, ...(value.presentation.remoteImage ? { remoteImage: safeUrl(value.presentation.remoteImage) } : {}),
   };
   return result;
 }

@@ -48,6 +48,7 @@ describe("language build artifacts", () => {
       expect(html).toContain(data.heading);
       const manifest = JSON.parse(await readFile(path.join(directory, language === "fr" ? "manifest.webmanifest" : `manifest-${language}.webmanifest`), "utf8"));
       expect(manifest).toMatchObject({ id: "./", scope: "./", lang: language, start_url: language === "fr" ? "./" : `./${data.file}` });
+      expect(manifest).toMatchObject({ background_color: "#ede2ca", theme_color: "#ede2ca" });
     }
     expect(await readFile(path.join(directory, "sitemap.xml"), "utf8")).toContain(`${DEFAULT_SITE_URL}de.html`);
     await expect(readFile(path.join(directory, "robots.txt"))).rejects.toMatchObject({ code: "ENOENT" });

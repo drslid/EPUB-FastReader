@@ -1,11 +1,13 @@
-.seo-landing { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 5rem; color: #e9efec; background: #101619; font-family: system-ui, sans-serif; line-height: 1.65; }
-.seo-landing a { color: #c5dda2; text-underline-offset: .2em; }
+/* The public document is readable in Sépia before the application loads. */
+html { color-scheme: light; background: #ede2ca; }
+.seo-landing { max-width: 70rem; margin: 0 auto; padding: 2rem 1.25rem 5rem; color: #443a2b; background: #ede2ca; font-family: Verdana, "Trebuchet MS", sans-serif; line-height: 1.65; }
+.seo-landing a { color: #536341; text-underline-offset: .2em; }
 .seo-landing h1 { max-width: 20ch; font-size: clamp(2rem, 7vw, 3.75rem); line-height: 1.12; margin: 2rem 0 1rem; }
 .seo-landing p { max-width: 70ch; }
 .seo-landing nav { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
 .seo-landing nav a { display: inline-flex; align-items: center; min-height: 44px; gap: .4rem; }
 .seo-landing .language-flag { display: block; width: 24px; height: 18px; flex: 0 0 auto; object-fit: cover; border-radius: 2px; }
 .seo-landing .seo-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0 2.5rem; }
-.seo-landing .seo-actions a { border: 1px solid #889b7f; border-radius: 999px; padding: .65rem 1.25rem; }
+.seo-landing .seo-actions a { border: 1px solid #536341; border-radius: 999px; padding: .65rem 1.25rem; }
 .seo-landing section { margin-block: 2rem; }
 .seo-landing h2 { font-size: 1.2rem; margin-bottom: .4rem; }

@@ -9,6 +9,7 @@ import {
 import { defineSource } from "./source.js";
 import manifest from "./catalog-manifest.json";
 import { normalizeCatalogQuery } from "./query.js";
+import { configuredSourceRelay } from "./relay-config.js";
 
 const PAGE_SIZE = 24;
 const cache = new Map();
@@ -17,18 +18,7 @@ const RIGHTS =
 
 /** Deployment configuration only: a catalogue entry can never choose a relay. */
 export function configuredGutenbergRelay() {
-  const value = import.meta.env.VITE_GUTENBERG_RELAY_URL;
-  if (typeof value !== "string" || !value) return "";
-  try {
-    const url = new URL(value);
-    const rawPath = value.replace(/^https:\/\/[^/]+/u, "");
-    if (
-      url.protocol !== "https:" || url.username || url.password || url.search || url.hash ||
-      !/^https:\/\/[^\s/?#\\]+(?:\/[A-Za-z0-9_.~-]+)*\/?$/u.test(value) ||
-      rawPath.split("/").some((segment) => segment === "." || segment === "..")
-    ) return "";
-    return `${url.origin}${url.pathname.replace(/\/$/u, "")}`;
-  } catch { return ""; }
+  return configuredSourceRelay();
 }
 
 const manualImportRequired = () => import.meta.env.MODE === "pages" && !configuredGutenbergRelay();

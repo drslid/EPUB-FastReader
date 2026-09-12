@@ -20,6 +20,7 @@ export async function searchBooks({
   page = 1,
   provider = "all",
   signal,
+  onUpdate,
 } = {}) {
   const adapter = getSource(provider);
   if (!adapter?.manifest.capabilities.search)
@@ -40,12 +41,42 @@ export async function searchBooks({
       "Recherche invalide : utilisez un titre ou un auteur, une langue et un numéro de page positif.",
     );
   }
-  return adapter.search({
+  const options = {
     query: plainText(query, 200),
     language,
     page,
     signal,
+  };
+  if (provider === "all") return adapter.search({ ...options, onUpdate });
+  signal?.throwIfAborted();
+  const publish = (result) => {
+    if (!signal?.aborted && typeof onUpdate === "function") onUpdate(result);
+  };
+  publish({
+    books: [], count: 0, countIsApproximate: true, hasNext: false, warnings: [],
+    pendingSources: [provider],
+    sourceStatuses: { [provider]: { status: "pending", checkedAt: null } },
   });
+  try {
+    const result = await adapter.search(options);
+    signal?.throwIfAborted();
+    const complete = {
+      ...result, warnings: result.warnings || [], pendingSources: [],
+      sourceStatuses: { [provider]: { status: "available", checkedAt: Date.now() } },
+    };
+    publish(complete);
+    return complete;
+  } catch (error) {
+    signal?.throwIfAborted();
+    if (error?.name === "AbortError") throw error;
+    publish({
+      books: [], count: 0, countIsApproximate: false, hasNext: false,
+      warnings: [{ providerId: provider, code: error?.code || "NETWORK", message: error?.message || "" }],
+      pendingSources: [],
+      sourceStatuses: { [provider]: { status: "unavailable", checkedAt: Date.now(), code: error?.code || "NETWORK", message: error?.message || "" } },
+    });
+    throw error;
+  }
 }
 
 /** Keep legacy Gutenberg records usable; new records name their source explicitly. */

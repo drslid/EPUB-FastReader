@@ -150,7 +150,7 @@ describe("catalogue officiel local", () => {
 
   it("renvoie un résultat vide honnête pour un titre absent ou une langue absente", async () => {
     expect(
-      await catalog.searchBooks({ query: "zxqvunfindable978123" }),
+      await catalog.searchBooks({ query: "zxqvunfindable978123", provider: "gutenberg" }),
     ).toMatchObject({ count: 0, books: [], warnings: [], hasNext: false });
     fetch.mockClear();
     expect(
@@ -161,7 +161,7 @@ describe("catalogue officiel local", () => {
 
   it("utilise le préfixe GitHub Pages pour chaque fichier de recherche", async () => {
     vi.stubEnv("BASE_URL", "/EPUB-FastReader/");
-    await catalog.searchBooks({ query: "Verne" });
+    await catalog.searchBooks({ query: "Verne", provider: "gutenberg" });
     expect(
       fetch.mock.calls.every(([url]) =>
         url.startsWith("/EPUB-FastReader/catalog/fr-"),

@@ -93,3 +93,19 @@ LD_LIBRARY_PATH=/tmp/fastreader-browser-libs/root/usr/lib/x86_64-linux-gnu PLAYW
 ```
 
 `FASTREADER_URL` permet de viser un autre port, par exemple le conteneur local. Elle reste séparée de la CI pour ne pas rendre chaque build dépendant d’un miroir public.
+
+## 12 septembre 2026 — sources directes et lecture Sépia
+
+- `npm audit --omit=dev --audit-level=high` : aucune vulnérabilité.
+- `npm test` : 501 tests, 33 fichiers, tous réussis.
+- Suite navigateur : 282 cas exécutés, 266 réussis au premier passage. Les anciennes attentes de thème/mode et de recherche exclusivement locale ont été adaptées. Un véritable contraste insuffisant du lien actif au survol a été corrigé. Les cinq suites concernées ont ensuite passé leurs 87 cas sur Chromium ordinateur/téléphone et WebKit tablette.
+- Paramètres des sources : neuf contrôles navigateur, dont états progressifs, fermeture/annulation, cache/nouvelle vérification, focus clavier et audits axe dans les trois thèmes.
+- Nouvelles sources : quinze contrôles navigateur avec réponses fidèles contrôlées, téléchargement/import des fichiers EPUB, annulation, erreurs et réponse ELG retardée de trois secondes. La CI ne sollicite pas les serveurs de livres réels.
+- Pages avec relais simulé : six contrôles réussis. Build Pages configuré avec l’URL publique : neuf contrôles réussis, téléchargement de test explicitement intercepté. Ces tests ne valent pas preuve d’un téléchargement amont réel.
+- Relais public Cloudflare réellement publié et vérifié : statut/search ELG 200, Alice Gutenberg 136 519 octets, Candide ELG 1 530 924 octets, CORS `https://drslid.github.io`. Les fichiers réels ont aussi été parsés et sauvegardés dans IndexedDB lors des essais séparés des adaptateurs.
+- Standard Ebooks réellement testé : Pride and Prejudice 831 959 octets, 65 chapitres et 122 675 mots ; Frankenstein 685 797 octets, 38 chapitres et 78 594 mots. Les recherches, couvertures et fichiers ont été obtenus dans un navigateur, sans compte ni API privée.
+- Le favicon SVG vert et les trois PNG ont été régénérés ; six pages statiques vérifiées sans JavaScript, Sépia/Verdana.
+
+Le nouveau [rapport page par page](EVOLUTION-SOURCES.md) décrit le résultat et les limites.
+
+Essai navigateur public complet avant publication de l’interface : profil Pixel 7 neuf sur l’origine Pages, seuls les assets de l’application provenant du build local. Les recherches, couvertures et EPUB ont été récupérés sur les vrais serveurs publics. Les trois parcours Lire → Mot à mot/Sépia → IndexedDB → bibliothèque après rechargement → réouverture hors ligne ont réussi, sans erreur JavaScript. Livres : Pride and Prejudice (Standard Ebooks), Candide 637 (ELG), Alice 11 (Gutenberg). Les trois sources étaient disponibles dans les paramètres ; Z-Library était indisponible. La couverture embarquée Standard Ebooks était visible hors ligne.

@@ -4,6 +4,8 @@ import { realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createGutenbergMiddleware } from "./gutenberg-relay.js";
+import { createEbooksGratuitsMiddleware } from "./ebooks-gratuits-source.js";
+import { createSourceStatusMiddleware } from "./source-status.js";
 
 const defaultRoot = fileURLToPath(new URL("../dist/", import.meta.url));
 const types = {
@@ -22,12 +24,14 @@ const types = {
   ".woff2": "font/woff2",
 };
 
-export function createAppServer({ root = defaultRoot, relayOptions } = {}) {
+export function createAppServer({ root = defaultRoot, relayOptions, ebooksGratuitsOptions, sourceStatusOptions } = {}) {
   const directory = path.resolve(root);
   const relay = createGutenbergMiddleware({
-    allowOrigin: process.env.GUTENBERG_ALLOWED_ORIGIN,
+    allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN,
     ...relayOptions,
   });
+  const ebooksGratuits = createEbooksGratuitsMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...ebooksGratuitsOptions });
+  const sourceStatus = createSourceStatusMiddleware({ allowOrigin: process.env.SOURCE_ALLOWED_ORIGIN || process.env.GUTENBERG_ALLOWED_ORIGIN, ...sourceStatusOptions });
   return createServer((req, res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "no-referrer");
@@ -104,12 +108,12 @@ export function createAppServer({ root = defaultRoot, relayOptions } = {}) {
     };
     try {
       Promise.resolve(
-        relay(req, res, () =>
+        relay(req, res, () => ebooksGratuits(req, res, () => sourceStatus(req, res, () =>
           staticFile().catch(() => {
             if (!res.headersSent) fail(500, "Lecture du fichier impossible.");
             else res.destroy();
           }),
-        ),
+        ))),
       ).catch(() => {
         if (!res.headersSent)
           fail(502, "Téléchargement temporairement indisponible.");

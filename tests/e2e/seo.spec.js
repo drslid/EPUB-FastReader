@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { fileURLToPath } from "node:url";
 import { createAppServer } from "../../server/app.js";
 import { DEFAULT_SITE_URL, languageUrl, SEO_LANGUAGES } from "../../src/seo-data.js";

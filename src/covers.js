@@ -62,9 +62,14 @@ export function resolveCover(value, catalog = []) {
       ids.includes(text(candidate.id))
     );
   });
-  if (current) return presentation(current);
-
   const saved = record(source.presentation);
+  if (current) {
+    const visual = presentation(current);
+    // Standard Ebooks embeds the same artwork: keep that local image offline.
+    if (saved?.version === 1 && saved.key === visual.key && saved.remoteImage === visual.image && /^data:image\//u.test(saved.image || "")) return { ...visual, image: saved.image };
+    return visual;
+  }
+
   if (saved?.version === 1 && text(saved.key) && text(saved.title)) {
     return {
       key: text(saved.key),

@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
 async function isolatedProductionServer() {
@@ -261,7 +261,7 @@ test("la recherche fonctionne hors ligne en français et dans une langue déjà 
     await page.getByLabel("Langue du livre", { exact: true }).selectOption("fr");
     await page.getByRole("button", { name: "Rechercher", exact: true }).click();
     await expect(page.locator(".catalog-grid")).toContainText(/Hugo/);
-    await expect(page.locator(".source-warning")).toHaveCount(0);
+    await expect(page.locator('.source-warning[data-provider="gutenberg"]')).toHaveCount(0);
     await page
       .getByRole("searchbox", { name: "Titre ou auteur" })
       .fill("pride prejudice");
@@ -272,7 +272,7 @@ test("la recherche fonctionne hors ligne en français et dans une langue déjà 
     await expect(page.locator(".catalog-grid")).toContainText(
       /Pride and Prejudice/i,
     );
-    await expect(page.locator(".source-warning")).toHaveCount(0);
+    await expect(page.locator('.source-warning[data-provider="gutenberg"]')).toHaveCount(0);
     const book = page.locator('.catalog-grid [data-provider="gutenberg"] .book-open').first();
     await expect(book.locator(".cover")).toBeVisible();
     await book.click();

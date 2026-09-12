@@ -14,6 +14,9 @@ describe("localized public documents", () => {
     const html = localizeHtml(template, language, DEFAULT_SITE_URL);
     const doc = parse(html);
     expect(doc.documentElement.lang).toBe(language);
+    expect(doc.body.dataset.theme).toBe("sepia");
+    expect(doc.querySelector('meta[name="theme-color"]').content).toBe("#ede2ca");
+    expect(doc.querySelector('link[rel="icon"]').getAttribute("href")).toBe("./icons/favicon-green.svg");
     expect(doc.title).toBe(data.title);
     expect(doc.querySelectorAll("title")).toHaveLength(1);
     expect(doc.querySelector('meta[name="description"]').content).toBe(data.description);

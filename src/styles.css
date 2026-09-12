@@ -1,7 +1,8 @@
 /* Shared colours keep the library, dialogs and reader in the chosen theme. */
 :root {
   font-family:
-    Inter,
+    Verdana,
+    "Trebuchet MS",
     ui-sans-serif,
     system-ui,
     -apple-system,
@@ -9,9 +10,17 @@
     "Segoe UI",
     sans-serif;
   font-synthesis: none;
+  color: var(--text);
+  background: var(--background);
+  --ink: var(--accent);
+  --reader-bg: var(--background);
+  --reader-text: var(--text);
+  --reader-panel: var(--surface);
+  --reading-size: 20px;
+  --reading-font: Verdana, "Trebuchet MS", sans-serif;
+}
+body[data-theme="night"] {
   color-scheme: dark;
-  color: #e8eee7;
-  background: #101a1b;
   --background: #101a1b;
   --surface: #172426;
   --surface-raised: #203032;
@@ -23,20 +32,14 @@
   --accent-soft: #263b2b;
   --accent-text: #17241c;
   --warm: #e4bd8d;
-  --ink: var(--accent);
   --danger: #f0b5a9;
   --notice: #302d21;
   --notice-text: #e4d1a3;
   --shadow: 0 12px 40px #00000024;
-  --reader-bg: var(--background);
-  --reader-text: var(--text);
-  --reader-panel: var(--surface);
-  --focus-text: #8fa49b;
-  --focus-prefix: #f2ffe0;
+  --focus-text: #bdcbc3;
+  --focus-prefix: #e8eee7;
   --focus-highlight: #283b25;
   --focus-highlight-text: #b8c9bd;
-  --reading-size: 20px;
-  --reading-font: Georgia, "Times New Roman", serif;
 }
 body[data-theme="paper"] {
   color-scheme: light;
@@ -55,11 +58,12 @@ body[data-theme="paper"] {
   --notice: #f2ead8;
   --notice-text: #695333;
   --shadow: 0 12px 40px #263b2c0d;
-  --focus-text: #626e64;
-  --focus-prefix: #163723;
+  --focus-text: #3f4b44;
+  --focus-prefix: #23312d;
   --focus-highlight: #e1e8d4;
   --focus-highlight-text: #4b5948;
 }
+:root,
 body[data-theme="sepia"] {
   color-scheme: light;
   --background: #ede2ca;
@@ -67,7 +71,7 @@ body[data-theme="sepia"] {
   --surface-raised: #e5d7bb;
   --surface-hover: #ded0b2;
   --text: #443a2b;
-  --muted: #72634a;
+  --muted: #6b5c45;
   --border: #cbbc9d;
   --accent: #536341;
   --accent-soft: #dfe1c6;
@@ -77,8 +81,8 @@ body[data-theme="sepia"] {
   --notice: #e9dab8;
   --notice-text: #6e5430;
   --shadow: 0 12px 40px #4b381812;
-  --focus-text: #6a5b46;
-  --focus-prefix: #352a15;
+  --focus-text: #554b3b;
+  --focus-prefix: #443a2b;
   --focus-highlight: #ddcfac;
   --focus-highlight-text: #554834;
 }
@@ -347,7 +351,7 @@ h1 em {
   background: var(--accent-soft);
   font-weight: 650;
 }
-.nav-item:hover {
+.nav-item:not(.active):hover {
   background: var(--surface-hover);
 }
 .nav-item .icon {
@@ -1602,7 +1606,7 @@ body.reading {
 }
 .reader-shell[data-reading-mode="focus"] .chapter-content .focus-prefix {
   color: var(--focus-prefix);
-  font-weight: 900;
+  font-weight: 700;
 }
 .reader-shell[data-reading-mode="focus"] .chapter-content .reader-highlight {
   color: var(--focus-highlight-text);

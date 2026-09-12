@@ -52,9 +52,48 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  build-pages:
-    if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+  deploy-sources:
+    if: vars.SOURCE_RELAY_DEPLOY_ENABLED == 'true' && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: fastreader-source-relay
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Publish the source service after verification
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx --yes --package wrangler@4.131.1 wrangler deploy --config wrangler.jsonc
+      - name: Verify the public service
+        env:
+          SOURCE_RELAY_URL: ${{ vars.VITE_SOURCE_RELAY_URL }}
+        run: |
+          case "$SOURCE_RELAY_URL" in
+            https://*) ;;
+            *) exit 1 ;;
+          esac
+          curl --fail --silent --show-error --max-time 70 "$SOURCE_RELAY_URL/api/sources/status" --output /tmp/source-status.json
+          node -e 'const s=require("/tmp/source-status.json"); if(!Array.isArray(s.sources)||!s.sources.some(x=>x.available)) process.exit(1)'
+
+  build-pages:
+    if: ${{ !cancelled() && needs.verify.result == 'success' && (needs.deploy-sources.result == 'success' || needs.deploy-sources.result == 'skipped') && github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    needs: [verify, deploy-sources]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -75,10 +114,16 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Build the static GitHub Pages version
+        env:
+          VITE_SOURCE_RELAY_URL: ${{ vars.VITE_SOURCE_RELAY_URL }}
+          VITE_GUTENBERG_RELAY_URL: ${{ vars.VITE_GUTENBERG_RELAY_URL }}
         run: npm run build:pages
       - name: Install the browser engine
         run: npx playwright install --with-deps chromium
       - name: Test the static site under its repository path
+        env:
+          VITE_SOURCE_RELAY_URL: ${{ vars.VITE_SOURCE_RELAY_URL }}
+          VITE_GUTENBERG_RELAY_URL: ${{ vars.VITE_GUTENBERG_RELAY_URL }}
         run: npm run test:pages
       - name: Upload the verified GitHub Pages site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

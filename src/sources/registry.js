@@ -3,9 +3,11 @@ import gutenberg from "./gutenberg.js";
 import selection from "./selection.js";
 import publicDomainLibrary from "./public-domain-library.js";
 import all from "./all.js";
+import standardEbooks from "./standard-ebooks.js";
+import ebooksGratuits from "./ebooks-gratuits.js";
 
 // Explicit imports are the allowlist. A catalog response cannot install code.
-const sources = [selection, all, gutenberg, publicDomainLibrary];
+const sources = [selection, all, gutenberg, standardEbooks, ebooksGratuits, publicDomainLibrary];
 const registry = new Map();
 for (const source of sources) {
   if (registry.has(source.manifest.id)) {

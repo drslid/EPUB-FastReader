@@ -57,7 +57,7 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 describe("Full library ZIP backup", () => {
   it("round-trips original EPUB bytes, cover identity, exact location, notes, bookmarks and preferences", async () => {
     const book = await imported();
-    book.source = { name: "Gutenberg", providerId: "gutenberg", bookId: "gutenberg-123", canonicalSourceId: "gutenberg:123", url: "https://www.gutenberg.org/ebooks/123", presentation: { version: 1, key: "gutenberg:123", title: "Une couverture stable", author: "Une autrice", image: null } };
+    book.source = { canExportFocus: false, canExportClassic: true, name: "Gutenberg", providerId: "gutenberg", bookId: "gutenberg-123", canonicalSourceId: "gutenberg:123", url: "https://www.gutenberg.org/ebooks/123", presentation: { version: 1, key: "gutenberg:123", title: "Une couverture stable", author: "Une autrice", image: null } };
     await storage.saveBook(book);
     await storage.savePosition(book.id, position());
     const settings = await storage.writeSettings({ ...storage.defaultSettings, theme: "sepia", speed: 420 });

@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 // Public files only: no account, uploads, cookies, reading history or database.
 // These mirrors are explicitly listed at https://www.gutenberg.org/MIRRORS.ALL.
 // Keep source credits and the original EPUB licence when displaying these files.

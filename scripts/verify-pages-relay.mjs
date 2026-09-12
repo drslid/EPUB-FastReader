@@ -93,7 +93,7 @@ const diagnostics = [];
 try {
   await run(process.execPath, [path.join(projectRoot, "node_modules/vite/bin/vite.js"), "build", "--mode", "pages", "--outDir", buildDirectory, "--emptyOutDir"], {
     cwd: projectRoot,
-    env: { ...process.env, VITE_GUTENBERG_RELAY_URL: relayOrigin },
+    env: { ...process.env, VITE_SOURCE_RELAY_URL: relayOrigin, VITE_GUTENBERG_RELAY_URL: relayOrigin },
     timeout: 120_000,
     maxBuffer: 4 * 1024 ** 2,
   });
@@ -141,18 +141,23 @@ try {
   context.on("request", (request) => {
     const url = new URL(request.url());
     if (url.origin === base.origin && /\/api\//u.test(url.pathname)) localApiRequests.push(url.href);
-    if (url.origin === relayOrigin && request.method() === "GET") relayRequests.push(url.href);
-    if (["http:", "https:"].includes(url.protocol) && ![base.origin, relayOrigin].includes(url.origin)) unexpectedRequests.push(url.href);
+    if (url.origin === relayOrigin && request.method() === "GET" && url.pathname.startsWith("/api/books/")) relayRequests.push(url.href);
+    if (["http:", "https:"].includes(url.protocol) && ![base.origin, relayOrigin, "https://standardebooks.org"].includes(url.origin)) unexpectedRequests.push(url.href);
   });
   await context.route(/^https?:\/\//u, async (route) => {
     const origin = new URL(route.request().url()).origin;
     if ([base.origin, relayOrigin].includes(origin)) await route.fallback();
     else await route.abort("blockedbyclient");
   });
+  await context.route("https://standardebooks.org/ebooks?**", (route) => route.fulfill({ status: 200, contentType: "application/xhtml+xml", headers: { "access-control-allow-origin": "*" }, body: '<html><main class="ebooks"><form role="search"></form><p class="no-results">No ebooks matched your filters.</p></main></html>' }));
   await context.route(`${relayOrigin}/**`, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     diagnostics.push(`Intercepted ${request.method()} ${url.href}`);
+    if (url.pathname === "/api/sources/ebooks-gratuits/search") {
+      await route.fulfill({ status: 200, contentType: "application/atom+xml", headers: { "access-control-allow-origin": base.origin }, body: '<feed xmlns="http://www.w3.org/2005/Atom"><title>Empty test feed</title></feed>' });
+      return;
+    }
     assert.match(url.pathname, /^\/api\/books\/gutenberg\/[1-9]\d{0,8}\.epub$/u);
     assert.equal(request.headers().origin, base.origin);
     assert.equal(request.headers().cookie, undefined);

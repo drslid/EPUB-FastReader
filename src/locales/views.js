@@ -1,6 +1,8 @@
 // Interface copy only: book text, titles, authors and personal notes retain their original language.
 export default {
   "en": {
+    "Police de l’appareil": "Device font",
+    "Les polices disponibles dépendent de votre appareil. Une police proche prend le relais si nécessaire.": "The available fonts depend on your device. A similar font is used when needed.",
     "Trois façons de lire": "Three ways to read",
     "histoire": "story",
     "Mot à mot": "Word by word",
@@ -220,6 +222,8 @@ export default {
     "Progression du livre": "Book progress"
   },
   "es": {
+    "Police de l’appareil": "Fuente del dispositivo",
+    "Les polices disponibles dépendent de votre appareil. Une police proche prend le relais si nécessaire.": "Las fuentes disponibles dependen de tu dispositivo. Si es necesario, se utiliza una fuente similar.",
     "Trois façons de lire": "Tres formas de leer",
     "histoire": "historia",
     "Mot à mot": "Palabra a palabra",
@@ -439,6 +443,8 @@ export default {
     "Progression du livre": "Progreso del libro"
   },
   "it": {
+    "Police de l’appareil": "Carattere del dispositivo",
+    "Les polices disponibles dépendent de votre appareil. Une police proche prend le relais si nécessaire.": "I caratteri disponibili dipendono dal dispositivo. Se necessario, viene usato un carattere simile.",
     "Trois façons de lire": "Tre modi di leggere",
     "histoire": "storia",
     "Mot à mot": "Parola per parola",
@@ -658,6 +664,8 @@ export default {
     "Progression du livre": "Avanzamento del libro"
   },
   "de": {
+    "Police de l’appareil": "Geräteschrift",
+    "Les polices disponibles dépendent de votre appareil. Une police proche prend le relais si nécessaire.": "Die verfügbaren Schriften hängen von deinem Gerät ab. Bei Bedarf wird eine ähnliche Schrift verwendet.",
     "Trois façons de lire": "Drei Arten zu lesen",
     "histoire": "Geschichte",
     "Mot à mot": "Wort für Wort",
@@ -877,6 +885,8 @@ export default {
     "Progression du livre": "Lesefortschritt im Buch"
   },
   "pt": {
+    "Police de l’appareil": "Tipo de letra do dispositivo",
+    "Les polices disponibles dépendent de votre appareil. Une police proche prend le relais si nécessaire.": "Os tipos de letra disponíveis dependem do teu dispositivo. Se necessário, é usado um semelhante.",
     "Trois façons de lire": "Três formas de ler",
     "histoire": "história",
     "Mot à mot": "Palavra a palavra",

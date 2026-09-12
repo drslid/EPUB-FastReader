@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
 test.use({ serviceWorkers: "block" });
@@ -294,6 +294,8 @@ test("remonter les pages de navigation ne réinitialise pas le passage enregistr
   await submitSearch(page, "voyage préservé");
   await expect(localBooks(page)).toHaveCount(1);
   await page.locator(".local-results").getByRole("button", { name: "Lire Le voyage préservé", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Mot à mot", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Classique", exact: true }).click();
   await expect(page.getByRole("button", { name: "Classique", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => page.locator("#chapter-scroll").evaluate((element) => element.scrollTop)).toBeGreaterThan(1000);
   const after = (await storedRows(page, "positions"))[0];

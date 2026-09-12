@@ -1,5 +1,6 @@
 import { t } from "./i18n.js";
 import { normalizePosition } from "./reading-state.js";
+import { readingFonts } from "./reading-preferences.js";
 
 const DATABASE = "fastreader";
 let connection;
@@ -168,9 +169,9 @@ export const deleteBook = (id) =>
 
 export const defaultSettings = Object.freeze({
   locale: "fr",
-  theme: "night",
+  theme: "sepia",
   fontSize: 20,
-  font: "serif",
+  font: "humanist",
   mode: "rsvp",
   speed: 300,
   lineHeight: 1.85,
@@ -193,7 +194,7 @@ export function normalizeSettings(value) {
     fontSize: Math.round(
       Math.min(32, Math.max(16, Number(source.fontSize) || 20)),
     ),
-    font: ["serif", "sans", "humanist"].includes(source.font) ? source.font : "serif",
+    font: Object.hasOwn(readingFonts, source.font) ? source.font : defaultSettings.font,
     mode: ["classic", "focus", "rsvp"].includes(source.mode)
       ? source.mode
       : defaultSettings.mode,
@@ -219,11 +220,12 @@ export async function readSettings() {
   } catch {
     /* Old preferences are optional; books never depend on localStorage. */
   }
-  // The mobile reader starts with its new defaults once. Keep existing font and cadence.
+  // Existing explicit preferences survive migration; fresh installs use the
+  // current defaults, with a calmer initial mode when the OS requests it.
   const settings = normalizeSettings({
     ...legacy,
-    theme: defaultSettings.theme,
-    mode: globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "classic" : defaultSettings.mode,
+    mode: ["classic", "focus", "rsvp"].includes(legacy.mode) ? legacy.mode
+      : globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "classic" : defaultSettings.mode,
   });
   await writeSettings(settings);
   try {

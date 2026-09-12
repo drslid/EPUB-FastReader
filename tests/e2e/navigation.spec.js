@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { makeEpub } from "./helpers/fixtures.js";
 
 test.use({ serviceWorkers: "block" });

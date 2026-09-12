@@ -17,9 +17,9 @@ npm run test:pages
 
 `build:pages` produit `dist-pages`. Le test sert ces fichiers sous `/EPUB-FastReader/`, sans relais, pour vérifier le comportement de l'hébergement statique. Les URL relatives permettent aussi d'utiliser un domaine personnalisé. La production Node utilise son propre dossier `dist` et conserve les téléchargements directs.
 
-## Relier Pages au téléchargement Gutenberg
+## Relier Pages aux téléchargements
 
-Ce raccordement est facultatif et nécessite un serveur HTTPS choisi et déployé séparément. Aucune nouvelle source n'est ajoutée : le relais existant ne récupère que les EPUB publics Gutenberg déjà autorisés. Les valeurs ci-dessous sont des exemples de configuration ; elles n'activent aucun hébergement.
+Le relais public FastReader est déployé à `https://fastreader-sources.carbonnier-anthony.workers.dev`. La variable GitHub `VITE_SOURCE_RELAY_URL` est injectée au build Pages et dans sa vérification statique. [Configuration du Worker et limites des sources](SOURCE-RELAY-DEPLOYMENT.md). Les exemples ci-dessous restent utiles pour un autre hébergement.
 
 Sur le serveur Node/Docker, définir l'origine exacte de l'interface :
 
@@ -32,7 +32,7 @@ Une origine ne comprend pas le chemin `/EPUB-FastReader/`, ni de barre finale. L
 À la compilation Pages, indiquer l'URL de base HTTPS de ce serveur :
 
 ```sh
-VITE_GUTENBERG_RELAY_URL=https://relais.example.fr npm run build:pages
+VITE_SOURCE_RELAY_URL=https://relais.example.fr npm run build:pages
 ```
 
 Le client construit lui-même `https://relais.example.fr/api/books/gutenberg/5711.epub` à partir de l'identifiant Gutenberg. La configuration peut inclure un sous-chemin, par exemple `https://relais.example.fr/lecteur` ; le reverse proxy doit alors retirer `/lecteur` avant de transmettre les requêtes à Node. Ne pas ajouter `/api/books/gutenberg` dans la variable. Les paramètres d'URL, fragments, identifiants et chemins ambigus sont refusés. Une valeur absente ou invalide conserve le parcours manuel sur Pages. L'URL du relais est publique dans le JavaScript compilé : ce n'est pas un secret et elle ne doit contenir aucun jeton.

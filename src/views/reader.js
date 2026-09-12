@@ -1,14 +1,14 @@
 import { t, formatNumber, languageSelector } from "../i18n.js";
-import { focusOptions } from "../reading-preferences.js";
+import { focusOptions, readingFonts } from "../reading-preferences.js";
 import { readingPreferencesMarkup, advancedReadingMarkup } from "./reading-preferences.js";
 
 export function readerMarkup(state, { icon, escape, applyFocus }) {
   const { book, position, settings } = state;
   const chapter = book.chapters[position.chapterIndex];
   const modes = [
-    ["classic", "Classique"],
-    ["focus", "Focus"],
     ["rsvp", "Mot à mot"],
+    ["focus", "Focus"],
+    ["classic", "Classique"],
   ];
   const marks = position.bookmarks || [];
   const notes = position.annotations || [];
@@ -27,9 +27,9 @@ export function readerMarkup(state, { icon, escape, applyFocus }) {
     ${languageSelector()}
     <label class="setting-label" for="chapter-select">${t("Chapitres")}</label><select id="chapter-select">${book.chapters.map((item, index) => `<option value="${index}" ${index === position.chapterIndex ? "selected" : ""}>${index + 1}. ${escape(item.title)}</option>`).join("")}</select>
     <fieldset><legend>${t("Mode de lecture")}</legend><div class="mode-options">${[
-      ["classic", "Classique", "La page, tout simplement"],
-      ["focus", "Focus", "Le début des mots en évidence"],
       ["rsvp", "Mot à mot", "Un mot à la fois, à votre vitesse"],
+      ["focus", "Focus", "Le début des mots en évidence"],
+      ["classic", "Classique", "La page, tout simplement"],
     ]
       .map(
         ([id, label, description]) =>
@@ -48,11 +48,12 @@ export function readerMarkup(state, { icon, escape, applyFocus }) {
       .join("")}</div></fieldset>
     ${readingPreferencesMarkup(settings, { applyFocus })}
     <label class="setting-label" for="font-size">${t("Taille du texte")} <output id="font-size-value">${formatNumber(settings.fontSize)} px</output></label><input id="font-size" type="range" min="16" max="32" step="1" value="${settings.fontSize}" />
-    <label class="setting-label" for="font-family">${t("Police")}</label><select id="font-family"><option value="serif" ${settings.font === "serif" ? "selected" : ""}>${t("Littéraire · Georgia")}</option><option value="sans" ${settings.font === "sans" ? "selected" : ""}>${t("Épurée · Sans serif")}</option><option value="humanist" ${settings.font === "humanist" ? "selected" : ""}>${t("Aérée · Verdana")}</option></select>
+    <label class="setting-label" for="font-family">${t("Police")}</label><select id="font-family">${Object.entries(readingFonts).map(([id, font]) => `<option value="${id}" ${settings.font === id ? "selected" : ""}>${id === "system" ? t("Police de l’appareil") : font.label}</option>`).join("")}</select>
+    <p class="setting-hint">${t("Les polices disponibles dépendent de votre appareil. Une police proche prend le relais si nécessaire.")}</p>
     ${advancedReadingMarkup(settings)}
     <label class="setting-label" for="reading-speed">${t("Vitesse")} <output id="speed-value">${settings.speed} ${t("mots/min")}</output></label><input id="reading-speed" type="range" min="100" max="800" step="25" value="${settings.speed}" /><p class="setting-hint">${t("La cadence règle le mode mot à mot et les estimations. Ralentissez ou retrouvez la page dès que vous en avez besoin.")}</p>
     ${book.source?.rightsUrl ? `<p class="source-rights"><a href="${escape(book.source.rightsUrl)}" target="_blank" rel="noopener noreferrer">${t("Source et droits de ce livre")} ${icon("external")}</a></p>` : ""}
-    ${book.original ? `<button class="button secondary export-button" data-action="export-original" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Télécharger l’EPUB original")}</button><button class="button secondary export-button" data-action="export-classic" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Exporter l’EPUB Classique")}</button><button class="button secondary export-button" data-action="export" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Exporter l’EPUB Focus")}</button>` : ""}<p class="device-note">${t("Votre position suit le passage du texte, même quand vous changez la taille des caractères.")}</p></aside>
+    ${book.original ? `<button class="button secondary export-button" data-action="export-original" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Télécharger l’EPUB original")}</button>${book.source?.canExportClassic !== false ? `<button class="button secondary export-button" data-action="export-classic" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Exporter l’EPUB Classique")}</button>` : ""}${book.source?.canExportFocus !== false ? `<button class="button secondary export-button" data-action="export" ${state.busy ? "disabled" : ""}>${icon("download")} ${t("Exporter l’EPUB Focus")}</button>` : ""}` : ""}<button class="button secondary export-button" data-action="source-settings">${icon("settings")} ${t("Sources de livres")}</button><p class="device-note">${t("Votre position suit le passage du texte, même quand vous changez la taille des caractères.")}</p></aside>
     <aside id="reader-notes" class="reader-settings reader-notes" ${state.notesOpen ? "" : "hidden"}>${panelHeading("Mes repères", "notes")}
       <div class="automatic-bookmark"><span class="ribbon">${icon("bookmark")}</span><span class="eyebrow">${t("VOTRE MARQUE-PAGE AUTOMATIQUE")}</span><h3>${escape(chapter.title)}</h3><p id="auto-bookmark-quote">${escape(position.locator?.exact || t("Votre position se sauvegarde pendant la lecture."))}</p><span class="setting-hint">${t("Vous retrouverez ce passage à la prochaine ouverture.")}</span></div>
       <section class="passage-search-section"><form id="passage-search"><label for="passage-query">${t("Retrouver un passage")}</label><div><input id="passage-query" name="passage" type="search" placeholder="${t("Quelques mots du livre…")}" minlength="2" maxlength="120" required value="${escape(state.passageQuery)}"><button class="round-button" aria-label="${t("Chercher dans le livre")}">${icon("search")}</button></div></form><div class="passage-results" tabindex="-1" aria-live="polite">${state.passageSearched ? `<p class="setting-hint">${state.passageResults.length ? state.passageResults.length === 20 ? t("Les 20 premiers passages trouvés") : state.passageResults.length === 1 ? t("1 passage trouvé") : t("{count} passages trouvés", { count: formatNumber(state.passageResults.length) }) : t("Aucun passage trouvé. Essayez d’autres mots.")}</p>${state.passageResults.map((result, index) => `<button class="passage-result" data-action="goto-passage" data-index="${index}"><span>${escape(result.chapterTitle)}</span><q>${escape(result.quote)}</q></button>`).join("")}` : ""}</div></section>

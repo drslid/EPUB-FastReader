@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 
 // Exercise the location engine with real text layout on all browser projects.
 // Loading the pure module here keeps this test independent of the app's build.

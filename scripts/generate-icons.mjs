@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
@@ -6,6 +6,8 @@ import { chromium } from '@playwright/test';
 const iconsDirectory = new URL('../public/icons/', import.meta.url);
 await mkdir(iconsDirectory, { recursive: true });
 const svg = await readFile(new URL('../public/icon.svg', import.meta.url), 'utf8');
+// A new URL replaces cached orange favicons and remains a real precached file.
+await writeFile(new URL('favicon-green.svg', iconsDirectory), svg);
 const browser = await chromium.launch();
 try {
   for (const [size, filename] of [[192, 'icon-192.png'], [512, 'icon-512.png'], [180, 'apple-touch-icon.png']]) {

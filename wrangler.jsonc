@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fastreader-sources",
+  "main": "server/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "SOURCE_ALLOWED_ORIGIN": "https://drslid.github.io"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "SOURCES", "class_name": "FastReaderSources" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FastReaderSources"] }],
+  "observability": { "enabled": false }
+}

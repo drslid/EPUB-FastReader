@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import JSZip from "jszip";
 import { makeEpub, importEpub, storedRows } from "./helpers/fixtures.js";
 

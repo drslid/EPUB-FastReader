@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { readFile } from "node:fs/promises";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
@@ -113,10 +113,12 @@ test("l’EPUB original téléchargé conserve exactement les octets importés, 
   await expect(page.locator(".library-section .book-card")).toHaveCount(1);
 });
 
-test("le thème sombre est global par défaut et le choix clair ou sépia persiste en base navigateur", async ({
+test("le thème sépia est global par défaut et le cycle sombre, clair, sépia persiste en base navigateur", async ({
   page,
 }) => {
   await page.goto("/");
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
+  await page.getByRole("button", { name: "Passer au thème sombre", exact: true }).click();
   await expect(page.locator("body")).toHaveAttribute("data-theme", "night");
   const darkBackground = await page
     .locator("body")

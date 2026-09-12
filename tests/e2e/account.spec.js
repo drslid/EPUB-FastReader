@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { importEpub, makeEpub } from "./helpers/fixtures.js";
 
 // Legacy account links resolve to the only personal space: the local library.

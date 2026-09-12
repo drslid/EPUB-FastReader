@@ -12,12 +12,12 @@ Les résultats dépendent aussi du public. Une étude publiée le 24 novembre 20
 
 ## Interface de lecture retenue
 
-Les choix suivants sont des décisions de conception à tester, pas des effets scientifiques démontrés pour FastReader. Le mode initial Mot à mot et le thème sombre répondent à la demande du produit. Les utilisateurs peuvent choisir le texte classique et un thème clair ; ce choix est mémorisé. Le sombre n’est pas présenté comme une garantie de repos visuel.
+Les choix suivants sont des décisions de conception à tester, pas des effets scientifiques démontrés pour FastReader. Le mode initial Mot à mot, le thème Sépia et Verdana répondent à la demande du produit. Les utilisateurs peuvent changer de mode pendant la lecture ; chaque ouverture revient au mode Mot à mot, sans démarrage automatique. Le thème clair ou sombre et la police choisis explicitement restent mémorisés. Lorsque le système demande une réduction des mouvements, chaque ouverture utilise Classique. Aucun thème n’est présenté comme une garantie de repos visuel.
 
 | Élément              | Comportement proposé                                                              | Raison                                                                                       |
 | -------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Ouverture d'un livre | Mot à mot sélectionné, démarrage explicite, reprise au dernier emplacement        | Choix initial demandé pour ce produit ; le contexte et le texte complet restent accessibles. |
-| Modes                | « Classique », « Focus », « Mot à mot » avec aperçu                               | Laisser une préférence personnelle, avec des libellés compréhensibles.                       |
+| Modes                | « Mot à mot », « Focus », « Classique » avec aperçu                               | Laisser une préférence personnelle, avec des libellés compréhensibles.                       |
 | Commandes            | Modes visibles en haut; commandes de lecture et repères accessibles en bas        | Une seule zone pour les actions courantes sur téléphone et tablette.                         |
 | Mot à mot            | Démarrage explicite, bouton pause permanent, vitesse réglable, retour à la phrase | L'utilisateur garde la maîtrise du rythme.                                                   |
 | Contexte RSVP        | Phrase courante visible; commande de retour au texte à la même position           | Faciliter la compréhension et la reprise après interruption.                                 |
@@ -85,3 +85,11 @@ Cette fonction peut fonctionner localement, sans résumé ni IA : structure EPUB
 ## Vérifier avec des lecteurs
 
 Faire essayer trois tâches sur PC, tablette et téléphone : ouvrir une couverture et commencer, retrouver un passage gardé, puis reprendre après changement de police et d'appareil. Observer le nombre d'actions, les erreurs, la compréhension du libellé de progression et le confort déclaré. Pour comparer les modes, mesurer aussi la compréhension du texte, pas seulement les mots par minute. Une barre en bas, une citation de reprise et un panneau de réglages sont des hypothèses de départ à confronter à ces essais.
+
+## Focus adouci et polices locales — septembre 2026
+
+La présentation officielle de Bionic Reading distingue la quantité de lettres mises en évidence de leur visibilité et propose des variantes plus ou moins marquées. Elle ne prescrit donc pas un contraste de couleur maximal entre les deux parties du mot. C’est une référence de réglage typographique, pas une preuve d’efficacité. [Méthode Bionic Reading, fixation et opacité](https://bionic-reading.com/br-method/).
+
+FastReader conserve un gras normal de 700 pour les préfixes, contre 900 auparavant, et rapproche les couleurs des deux parties. L’aperçu et le lecteur utilisent les mêmes couleurs et la même graisse. Les tests navigateur imposent un contraste d’au moins 4,5:1 de chacune des parties contre le fond, y compris après surlignage, et un écart de couleur volontairement modéré entre préfixe et reste du mot (1,2 à 1,7:1). Ce dernier intervalle est un choix visuel de produit, pas un seuil WCAG. Le réglage système de contraste renforcé conserve le texte uniforme avec préfixes soulignés. [W3C, contraste minimal](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html).
+
+Verdana est le nouveau choix initial ; Arial, Georgia, Palatino, Trebuchet MS et la police de l’appareil sont proposés dans les réglages. Les polices sont locales, avec des familles de remplacement : leur disponibilité dépend du système, aucun fichier commercial n’est redistribué et aucune requête à un fournisseur de polices n’est nécessaire. Les choix explicites enregistrés, y compris ceux d’anciennes sauvegardes, restent prioritaires sur les nouveaux réglages par défaut.

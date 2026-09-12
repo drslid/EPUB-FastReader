@@ -1,4 +1,4 @@
-# Sources, recherche locale et droits
+# Sources, recherche et droits
 
 ## Pourquoi la recherche ne fonctionnait pas
 
@@ -8,7 +8,7 @@ Diagnostic du 10 septembre 2026, avec de vraies requêtes réseau :
 - L’EPUB Gutenberg `cache/epub/135/pg135-images-3.epub` répondait HTTP 200 mais sans `Access-Control-Allow-Origin`, y compris avec un en-tête `Origin` représentant notre site. Le miroir officiel ODU présentait la même absence d’autorisation CORS pour l’EPUB testé. Un lien de téléchargement dans une fiche fonctionne ; un `fetch` JavaScript depuis un autre site est bloqué par le navigateur.
 - La sélection précédente ne contenait que trois œuvres. Elle ne suffisait pas à rendre utile une recherche d’autres auteurs pendant une panne de Gutendex.
 
-La recherche de production ne dépend plus de Gutendex. Aucune requête de recherche ni donnée de lecture n’est envoyée à un fournisseur. L’application charge des fichiers de catalogue de son propre hébergement, puis cherche dans le navigateur.
+La recherche de production ne dépend plus de Gutendex. La recherche Gutenberg charge des fichiers de catalogue du site puis cherche localement. Les recherches Standard Ebooks sont transmises à son site public ; celles d’Ebooks gratuits passent par le relais FastReader puis son OPDS. Les livres personnels, annotations et positions ne sont transmis à aucune source.
 
 ## Fonctionnement livré
 
@@ -22,7 +22,9 @@ Le moteur cherche les mots du titre et de l’auteur, indépendamment de leur or
 | ----------------------- | ------- | ------------------------------------------------------------------------------ |
 | `selection`             | 1.1.0   | Neuf EPUB complets servis ici, lecture directe                                 |
 | `gutenberg`             | 3.0.0   | Catalogue officiel local, puis récupération de l’EPUB et ouverture via le relais |
-| `all`                   | 2.0.0   | Recherche commune ; l’édition intégrée est prioritaire sur sa notice Gutenberg |
+| `all`                   | 3.0.0   | Recherche commune ; l’édition intégrée est prioritaire sur sa notice Gutenberg |
+| `standard-ebooks`       | 1.0.0   | Recherche anglaise publique, couvertures et EPUB direct depuis le navigateur |
+| `ebooks-gratuits`        | 1.0.0   | Recherche française par titre, EPUB uniquement, relais et résultats progressifs |
 | `public-domain-library` | 1.0.0   | Lien vers le site externe                                                      |
 
 Tous les résultats de recherche ont une couverture : `downloadMode: "bundled"` pour les neuf éditions intégrées, `"direct"` pour le catalogue Gutenberg. Un clic sur la couverture ou **Commencer** récupère le fichier, importe le livre dans IndexedDB et ouvre le lecteur. Si une correspondance existe déjà dans la bibliothèque, la carte affiche **Dans votre bibliothèque** et **Reprendre** : l’application ouvre cette copie locale et conserve ses repères sans refaire le téléchargement. La correspondance se fait par identifiant de source ou, pour un EPUB personnel sans provenance, par titre et auteur normalisés, avec une langue compatible. Deux identifiants canoniques explicitement différents ne sont pas assimilés par ce rapprochement. Dans ce dernier cas, l’édition personnelle reste utilisée avec son contenu et ses propres chapitres.
@@ -35,13 +37,13 @@ Si le catalogue local n’est pas encore chargé et que son hébergement est ina
 
 ## Récupération des EPUB publics
 
-Le navigateur appelle une seule route de son propre site : `GET /api/books/gutenberg/<identifiant>.epub`. Le serveur construit l’adresse auprès des miroirs PGLAF ou ODU figurant dans la [liste officielle Gutenberg](https://www.gutenberg.org/MIRRORS.ALL). Il ne télécharge aucun livre au simple affichage d’une recherche. Le recours à ces miroirs suit le [guide de distribution](https://www.gutenberg.org/help/mirroring.html) ; le site principal de navigation n’est pas aspiré. L’absence de CORS sur les fichiers sources est ainsi gérée par notre service HTTP, sans proxy tiers arbitraire ni demande de réglage au lecteur.
+Pour Gutenberg, le navigateur appelle le service configuré : `GET /api/books/gutenberg/<identifiant>.epub`. Le serveur construit l’adresse auprès des miroirs PGLAF ou ODU figurant dans la [liste officielle Gutenberg](https://www.gutenberg.org/MIRRORS.ALL). Il ne télécharge aucun livre au simple affichage d’une recherche. Le recours à ces miroirs suit le [guide de distribution](https://www.gutenberg.org/help/mirroring.html) ; le site principal de navigation n’est pas aspiré. L’absence de CORS sur les fichiers sources est ainsi gérée par notre service HTTP, sans proxy tiers arbitraire ni demande de réglage au lecteur.
 
 Pour limiter le téléchargement sur mobile, le relais demande d’abord `pg<identifiant>.epub`, l’édition texte légère fournie par Gutenberg. Si elle est absente avec un statut 404, il peut utiliser la variante `pg<identifiant>-images.epub`. Ce sont les fichiers originaux proposés par la source : l’application ne réécrit pas leurs octets, leur contenu ou leurs licences. L’EPUB téléchargé est conservé localement et exportable. Une édition ancienne du snapshot peut néanmoins manquer ou être momentanément inaccessible sur les miroirs.
 
 Le relais accepte seulement un identifiant numérique, pas une URL arbitraire. Il refuse les redirections et les méthodes autres que GET/HEAD ; les statuts d’accès restreint ou de surcharge ne déclenchent pas de contournement par un autre miroir. Les réponses ont une limite de 30 Mio vérifiée pendant la lecture, un délai maximal de 20 secondes et un contrôle du type et de l’en-tête EPUB. L’import dans le navigateur applique ensuite les validations complètes de l’archive. Quatre téléchargements distincts peuvent être en cours ; les requêtes simultanées du même livre sont regroupées. Un cache mémoire de fichiers publics est limité à 64 Mio, avec une validité de six heures.
 
-Ce service ne reçoit aucun EPUB personnel, aucune note, position ou requête de recherche. Il n’utilise ni compte ni base de données personnelle. Les identifiants de livres publics passent nécessairement par le serveur lors de leur premier téléchargement. La sélection intégrée, les imports et les livres déjà enregistrés restent lisibles sans ce relais. `npm run dev`, `npm run preview` et le serveur de production incluent la route ; un hébergement statique seul ne la fournit pas. Voir [DEPLOYMENT.md](DEPLOYMENT.md).
+Ce service ne reçoit aucun EPUB personnel, aucune note ou position. Il reçoit les recherches destinées au catalogue ELG, ainsi que les identifiants des livres publics à récupérer. Il n’utilise ni compte ni base de données personnelle. Les identifiants de livres publics passent nécessairement par le serveur lors de leur premier téléchargement. La sélection intégrée, les imports et les livres déjà enregistrés restent lisibles sans ce relais. `npm run dev`, `npm run preview` et le serveur de production incluent la route ; un hébergement statique seul ne la fournit pas. Voir [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Taille et maintien du catalogue
 
@@ -91,11 +93,11 @@ Les couvertures Gutenberg ne sont pas chargées par hotlink : sa [politique d’
 
 ### Essais complémentaires du 12 septembre 2026
 
-La sélection des prochaines sources se fait **après un essai de recherche, de récupération du contenu et d’import**, puis validation avec le propriétaire. Aucun nouveau plugin n’est activé par ces audits.
+La sélection des prochaines sources se fait **après un essai de recherche, de récupération du contenu et d’import**, puis validation avec le propriétaire. Standard Ebooks et Ebooks gratuits ont ensuite été validés et intégrés ; les autres pistes restent à valider.
 
 - [Wikisource](SOURCE-WIKISOURCE-AUDIT.md) : recherche API accessible dans les six langues ; l’EPUB officiel de WS Export nécessite un relais. Une autre voie a été démontrée sur le recueil du *Horla* : fabrication de l’EPUB dans le navigateur via les API autorisées, 14 nouvelles et 1 458 paragraphes comparés avec succès, puis import réel. Ce prototype couvre une édition française contrôlée, pas tout le catalogue.
 - [Bibebook et BEQ](SOURCE-BROWSER-CANDIDATES.md) : catalogues et EPUB testés ; leur accès direct externe échoue par CORS. Bibebook fournit un index de 1 722 notices et l’édition *Candide* examinée autorise la redistribution avec attribution et partage dans les mêmes conditions. Une sélection vérifiée pourrait donc être hébergée ici, sans relais. La taille et les droits de l’ensemble des fichiers ne sont pas validés.
-- [Gallica / ELG](SOURCE-ALTERNATIVES-AUDIT.md), [Standard Ebooks](SOURCE-STANDARDEBOOKS-AUDIT.md), [Internet Archive / OAPEN](SOURCE-ARCHIVE-OAPEN-AUDIT.md) et [autres fournisseurs](SOURCE-TRANSPORT-AUDIT.md) : résultats, limites de catalogue, droits et refus CORS documentés. Ne pas présenter une fiche ou un OPDS accessible côté serveur comme une lecture directe fonctionnelle sur Pages.
+- [Gallica et premier audit ELG](SOURCE-ALTERNATIVES-AUDIT.md), [Internet Archive / OAPEN](SOURCE-ARCHIVE-OAPEN-AUDIT.md) et [autres fournisseurs](SOURCE-TRANSPORT-AUDIT.md) : essais historiques. Les intégrations livrées Standard Ebooks et ELG sont décrites dans la section ci-dessous, avec leurs preuves complètes.
 
 [Public Domain Library](https://publicdomainlibrary.org/en/ebooks) reste accessible par lien. Les pages consultées ne fournissent pas de contrat d’API publique permettant ici une intégration de recherche et téléchargement maintenable. Ses conditions et ses restrictions techniques doivent être clarifiées avant de livrer un adaptateur automatique ; changer simplement le nom de la source ne résout pas CORS.
 
@@ -114,3 +116,16 @@ Chaque plugin reste un module explicitement importé par `src/sources/registry.j
 Les parcours navigateur utilisent les vrais fichiers de catalogue et les neuf EPUB intégrés servis par l’application ; ils ne simulent plus un Gutendex fonctionnel pour démontrer la recherche principale. `discovery.spec.js` contrôle les couvertures de tous les résultats, le téléchargement automatique, l’ajout à la bibliothèque, la reprise sans nouvelle requête, les échecs avec nouvelle tentative et l’annulation par navigation. Les réponses de téléchargement Gutenberg des tests navigateur sont des fixtures déterministes ; elles ne démontrent pas à elles seules la disponibilité réelle d’un miroir.
 
 `tests/relay.test.js` vérifie le relais avec des réponses contrôlées, notamment les miroirs et variantes, les délais, limites, redirections, erreurs et cache. `tests/server-app.test.js` exerce un vrai serveur HTTP local : fichiers publics, MIME, HEAD, santé, erreurs, traversées de chemins, liens symboliques sortants et branchement du relais. `cover-consistency.spec.js` utilise les EPUB réels de Candide et du Horla pour vérifier la même couverture avant/après import et rechargement, la compatibilité des anciens livres et les images des EPUB personnels. `home-suggestions.spec.js` contrôle la rotation locale et la reprise. Les résultats exécutés et les essais réseau réels sont consignés dans [VALIDATION.md](VALIDATION.md).
+
+## Sources intégrées le 12 septembre 2026
+
+La recherche commune publie les réponses indépendamment : sélection et index Gutenberg d’abord lorsqu’ils répondent vite, puis chaque catalogue externe. Les résultats déjà arrivés restent ouvrables ; changer de recherche ou ouvrir un livre annule les réponses devenues inutiles. Une panne est affichée par source. La pagination avance d’une page dans chaque fournisseur ; un total approximatif reste signalé comme tel.
+
+- **Standard Ebooks** : recherche HTML publique, 24 résultats par page, anglais. La fiche donne le téléchargement EPUB compatible ; le plugin suit uniquement son éventuel rafraîchissement officiel vers le même fichier. CORS a été vérifié dans un navigateur. Les illustrations du catalogue et de l’EPUB sont identiques pour les éditions testées ; la couverture embarquée est conservée localement. [Audit](SOURCE-STANDARDEBOOKS-AUDIT.md).
+- **Ebooks libres et gratuits** : OPDS officiel, français, recherche par titre et filtrage EPUB. Une réponse lente n’empêche pas les autres catalogues de répondre. Le relais respecte les limites de la source, dont 50 tentatives de téléchargement par 24 heures, globalement et de manière persistante sur le Worker. Les droits diffèrent selon l’édition : original préservé, exports convertis désactivés par défaut pour ce fournisseur. [Audit](SOURCE-EBOOKS-GRATUITS.md).
+- **Z-Library** : l’hôte demandé a renvoyé une boucle de redirections ; aucune recherche/acquisition EPUB automatisée n’a été validée. Il apparaît comme indisponible dans les paramètres et n’alimente pas les résultats. Aucun autre miroir ni accès protégé n’a été contourné.
+- **Open SLUM** : lien externe vers un annuaire de disponibilité. Ce n’est pas un fournisseur EPUB intégré ni une validation des droits des bibliothèques qu’il répertorie.
+
+Les paramètres indiquent la disponibilité vérifiée, avec texte et pastille ; un contrôle ne télécharge pas de livre. Le site rappelle que les droits dépendent du pays et qu’il faut un domaine public applicable ou une autorisation. Posséder un exemplaire ne suffit pas automatiquement à autoriser un autre téléchargement.
+
+Le relais public `https://fastreader-sources.carbonnier-anthony.workers.dev` a répondu HTTP 200 pour le statut, la recherche ELG Candide, l’EPUB Gutenberg Alice (136 519 octets) et l’EPUB ELG Candide (1 530 924 octets), avec CORS pour `https://drslid.github.io`. [Exploitation du Worker](SOURCE-RELAY-DEPLOYMENT.md).

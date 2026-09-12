@@ -13,7 +13,7 @@
 }
 .reading-preview p { font: inherit; margin: 0; }
 .reading-preview[data-focus="true"] { color: var(--focus-text, var(--text)); }
-.reading-preview .focus-prefix { color: var(--focus-prefix, var(--text)); font-weight: 850; }
+.reading-preview .focus-prefix { color: var(--focus-prefix, var(--text)); font-weight: 700; }
 .advanced-reading, .keyboard-shortcuts { margin-block: 18px; }
 .advanced-reading summary, .keyboard-shortcuts summary {
   cursor: pointer; min-height: 44px; display: list-item; align-content: center;

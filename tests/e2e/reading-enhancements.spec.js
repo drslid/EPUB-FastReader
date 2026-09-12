@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import AxeBuilder from "@axe-core/playwright";
 import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
@@ -25,6 +25,8 @@ test("les profils et réglages Focus ont un aperçu immédiat et survivent à la
   await expect(page.locator("#chapter-content .focus-prefix").first()).toHaveText("Chapit");
   await page.getByRole("button", { name: "Fermer les réglages", exact: true }).click();
   await page.reload();
+  await expect(page.getByRole("button", { name: "Mot à mot", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Focus", exact: true }).click();
   await expect(page.locator("#chapter-scroll")).toBeVisible();
   await page.getByRole("button", { name: "Réglages de lecture", exact: true }).click();
   await expect(page.locator("#font-family")).toHaveValue("humanist");
@@ -34,6 +36,27 @@ test("les profils et réglages Focus ont un aperçu immédiat et survivent à la
   await page.getByRole("button", { name: "Réinitialiser le confort" }).click();
   await expect(page.locator("#font-size")).toHaveValue("20");
   await expect(page.locator("#focus-intensity")).toHaveValue("50");
+});
+
+test("le lecteur commence en Sépia et Verdana, présente les modes dans l’ordre et applique chaque police", async ({ page }) => {
+  await openReader(page);
+  await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
+  await expect(page.locator("#rsvp-word")).toHaveCSS("font-family", /Verdana/);
+  await expect(page.locator(".reading-modes button")).toHaveText(["Mot à mot", "Focus", "Classique"]);
+  await page.getByRole("button", { name: "Focus", exact: true }).click();
+  await page.getByRole("button", { name: "Réglages de lecture", exact: true }).click();
+  await expect(page.locator('.mode-option input')).toHaveCount(3);
+  expect(await page.locator('.mode-option input').evaluateAll((inputs) => inputs.map((input) => input.value))).toEqual(["rsvp", "focus", "classic"]);
+  await expect(page.locator("#font-family")).toHaveValue("humanist");
+  for (const [value, family] of [["humanist", /Verdana/], ["sans", /Arial/], ["serif", /Georgia/], ["palatino", /Palatino/], ["trebuchet", /Trebuchet/], ["system", /system-ui/]]) {
+    await page.locator("#font-family").selectOption(value);
+    await expect(page.locator("#chapter-content")).toHaveCSS("font-family", family);
+    await expect(page.locator("#reading-preview")).toHaveCSS("font-family", family);
+  }
+  await page.reload();
+  await page.getByRole("button", { name: "Réglages de lecture", exact: true }).click();
+  await expect(page.locator("#font-family")).toHaveValue("system");
+  await expect(page.locator("#chapter-content")).toHaveCSS("font-family", /system-ui/);
 });
 
 test("le sommaire est accessible directement et les panneaux gardent le focus clavier", async ({ page }) => {
@@ -83,11 +106,13 @@ test("la réduction des mouvements choisit Classique initialement et respecte un
   await page.getByRole("button", { name: "Essayer le lecteur", exact: true }).click();
   await expect(page.getByRole("button", { name: "Classique", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Mot à mot", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Mot à mot", exact: true })).toHaveAttribute("aria-pressed", "true");
   const position = await page.locator("#rsvp-count").textContent();
   await page.waitForTimeout(350);
   await expect(page.locator("#rsvp-count")).toHaveText(position);
   await page.reload();
-  await expect(page.getByRole("button", { name: "Mot à mot", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Classique", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#rsvp")).toBeHidden();
 });
 
 test("le téléphone garde son écran pendant la lecture et libère le verrou à la pause ou au masquage", async ({ page }) => {

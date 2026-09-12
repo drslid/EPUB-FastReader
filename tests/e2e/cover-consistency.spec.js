@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 import { readFile } from "node:fs/promises";
 import { importEpub, storedRows } from "./helpers/fixtures.js";
 

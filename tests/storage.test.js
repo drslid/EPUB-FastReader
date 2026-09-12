@@ -233,12 +233,12 @@ describe("Storage connection recovery", () => {
 });
 
 describe("Reader preferences in IndexedDB", () => {
-  it("starts in dark RSVP mode and restores explicit choices after reload", async () => {
+  it("starts in sepia RSVP with Verdana and restores explicit choices after reload", async () => {
     expect(await storage.readSettings()).toEqual({
       ...storage.defaultSettings,
-      theme: "night",
+      theme: "sepia",
       fontSize: 20,
-      font: "serif",
+      font: "humanist",
       mode: "rsvp",
       speed: 300,
     });
@@ -257,6 +257,16 @@ describe("Reader preferences in IndexedDB", () => {
     expect(localStorage.getItem("fastreader-settings")).toBeNull();
   });
 
+  it.each(["humanist", "sans", "serif", "palatino", "trebuchet", "system"])(
+    "retains the selected %s font in IndexedDB",
+    async (font) => {
+      await storage.writeSettings({ ...storage.defaultSettings, font });
+      vi.resetModules();
+      const reopened = await import("../src/storage.js");
+      expect(await reopened.readSettings()).toHaveProperty("font", font);
+    },
+  );
+
   it("validates enum values and clamps numeric preferences", async () => {
     await storage.writeSettings({
       theme: "invalid",
@@ -267,8 +277,8 @@ describe("Reader preferences in IndexedDB", () => {
     });
     expect(await storage.readSettings()).toEqual({
       ...storage.defaultSettings,
-      theme: "night",
-      font: "serif",
+      theme: "sepia",
+      font: "humanist",
       mode: "rsvp",
       fontSize: 32,
       speed: 100,
@@ -285,7 +295,7 @@ describe("Reader preferences in IndexedDB", () => {
     },
   );
 
-  it("moves old font/cadence preferences once and preserves books and positions during the v1 upgrade", async () => {
+  it("preserves explicit legacy preferences, books and positions during the v1 upgrade", async () => {
     const request = factory.open("fastreader", 1);
     request.onupgradeneeded = () => {
       request.result.createObjectStore("books", { keyPath: "id" });
@@ -316,8 +326,8 @@ describe("Reader preferences in IndexedDB", () => {
     );
     expect(await storage.readSettings()).toEqual({
       ...storage.defaultSettings,
-      theme: "night",
-      mode: "rsvp",
+      theme: "paper",
+      mode: "focus",
       font: "sans",
       fontSize: 24,
       speed: 475,

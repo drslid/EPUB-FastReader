@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures.js";
 
 test.use({ serviceWorkers: "block" });
 
@@ -66,12 +66,13 @@ for (const [theme, label] of [
     expect(contrast(colors.prefix, colors.background)).toBeGreaterThanOrEqual(
       4.5,
     );
-    // A token could accidentally change to a nearly identical colour while still
-    // passing the background checks: retain a visible distinction between parts.
-    expect(contrast(colors.prefix, colors.text)).toBeGreaterThanOrEqual(2);
+    // Keep a gentle colour difference: emphasis mainly comes from font weight,
+    // and neither half of the word becomes faint against the page.
+    expect(contrast(colors.prefix, colors.text)).toBeGreaterThanOrEqual(1.2);
+    expect(contrast(colors.prefix, colors.text)).toBeLessThanOrEqual(1.7);
     await expect(
       page.locator("#chapter-content .focus-prefix").first(),
-    ).toHaveCSS("font-weight", "900");
+    ).toHaveCSS("font-weight", "700");
 
     const quote = await page
       .locator("#chapter-content p")

@@ -10,3 +10,6 @@ test-results-*/
 !.env.example
 *.log
 .DS_Store
+
+# Local Cloudflare build and runtime state
+.wrangler/
