@@ -55,9 +55,9 @@ Au premier usage, la préférence système de réduction des mouvements peut sé
 
 Les vérifications automatisées de contraste, de clavier et de taille d’écran complètent ces comportements. Une validation réelle avec VoiceOver/TalkBack, le clavier virtuel et plusieurs appareils physiques reste nécessaire avant de conclure à une couverture complète de l’accessibilité.
 
-## Sauvegarde et stockage
+## Sauvegarde
 
-Le panneau **Sauvegarde et stockage** est accessible depuis le haut de la bibliothèque, la navigation ou le pied de page. Il exporte un ZIP contenant les EPUB originaux, les positions, les signets, les notes et les préférences conservées. Le lecteur peut transférer ce fichier vers un autre appareil et le restaurer sans compte.
+Le panneau **Sauvegarde** est accessible depuis le haut de la bibliothèque, la navigation ou le pied de page. Il exporte un ZIP contenant les EPUB originaux, les positions, les signets, les notes et les préférences conservées. Le lecteur peut transférer ce fichier vers un autre appareil et le restaurer sans compte.
 
 La restauration vérifie l’archive et prépare les livres avant l’écriture. Elle ajoute les livres absents et fusionne les nouveaux repères sans écraser les livres, positions et notes déjà présents. Le remplacement des réglages nécessite de cocher l’option correspondante. Une archive invalide est rejetée et une erreur d’écriture ne doit pas laisser une restauration partielle.
 

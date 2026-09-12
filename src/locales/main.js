@@ -18,7 +18,6 @@ const rows = [
   ["Passer au thème sombre", "Switch to dark theme", "Cambiar al tema oscuro", "Passa al tema scuro", "Zum dunklen Design wechseln", "Mudar para o tema escuro"],
   ["VOTRE ESPACE DE LECTURE", "YOUR READING SPACE", "TU ESPACIO DE LECTURA", "IL TUO SPAZIO DI LETTURA", "DEIN LESEBEREICH", "O TEU ESPAÇO DE LEITURA"],
   ["Navigation principale", "Main navigation", "Navegación principal", "Navigazione principale", "Hauptnavigation", "Navegação principal"],
-  ["Sauvegarde et stockage", "Backup and storage", "Copia de seguridad y almacenamiento", "Backup e archiviazione", "Sicherung und Speicher", "Cópia de segurança e armazenamento"],
   ["Installer l’application", "Install the app", "Instalar la aplicación", "Installa l’app", "App installieren", "Instalar a aplicação"],
   ["Enregistré sur cet appareil", "Saved on this device", "Guardado en este dispositivo", "Salvato su questo dispositivo", "Auf diesem Gerät gespeichert", "Guardado neste dispositivo"],
   ["Hors connexion · Vos livres enregistrés restent disponibles.", "Offline · Your saved books are still available.", "Sin conexión · Tus libros guardados siguen disponibles.", "Offline · I libri salvati restano disponibili.", "Offline · Deine gespeicherten Bücher bleiben verfügbar.", "Sem ligação · Os teus livros guardados continuam disponíveis."],

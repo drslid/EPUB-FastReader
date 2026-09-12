@@ -4,12 +4,12 @@ import { importEpub, makeEpub, storedRows } from "./helpers/fixtures.js";
 
 test.use({ serviceWorkers: "block" });
 const locales = [
-  ["fr", "Ma bibliothèque", "Mot à mot", "Importer un EPUB"],
-  ["en", "My library", "Word by word", "Import an EPUB"],
-  ["es", "Mi biblioteca", "Palabra a palabra", "Importar un EPUB"],
-  ["it", "La mia biblioteca", "Parola per parola", "Importa un EPUB"],
-  ["de", "Meine Bibliothek", "Wort für Wort", "EPUB importieren"],
-  ["pt", "A minha biblioteca", "Palavra a palavra", "Importar um EPUB"],
+  ["fr", "Ma bibliothèque", "Mot à mot", "Importer un EPUB", "Sauvegarde"],
+  ["en", "My library", "Word by word", "Import an EPUB", "Backup"],
+  ["es", "Mi biblioteca", "Palabra a palabra", "Importar un EPUB", "Copia de seguridad"],
+  ["it", "La mia biblioteca", "Parola per parola", "Importa un EPUB", "Backup"],
+  ["de", "Meine Bibliothek", "Wort für Wort", "EPUB importieren", "Sicherung"],
+  ["pt", "A minha biblioteca", "Palavra a palavra", "Importar um EPUB", "Cópia de segurança"],
 ];
 const invalidMessages = {
   fr: "Ce fichier n’est pas une archive EPUB valide.",
@@ -27,7 +27,7 @@ const switchLanguage = async (page, code) => {
 };
 
 test("all six languages cover home, search, library, backup, installation and reading", async ({ page }) => {
-  for (const [code, library, mode, importLabel] of locales) {
+  for (const [code, library, mode, importLabel, backupLabel] of locales) {
     await page.goto(code === "fr" ? "/" : `/${code}.html`);
     await expect(page.locator(".app-shell")).toBeVisible();
     await expect(page.locator("html")).toHaveAttribute("lang", code);
@@ -45,7 +45,7 @@ test("all six languages cover home, search, library, backup, installation and re
     await expect(page.locator("#main h1")).toHaveText(library);
     await page.locator('[data-action="backup"]:visible').first().click();
     await expect(page.locator("#backup-title")).toBeVisible();
-    if (code !== "fr") await expect(page.locator("#backup-title")).not.toHaveText("Sauvegarde et stockage");
+    await expect(page.locator("#backup-title")).toHaveText(backupLabel);
     await expect(page.locator(".backup-dialog")).toHaveAttribute("aria-busy", "false");
     await page.keyboard.press("Escape");
     await expect(page.locator(".backup-dialog")).toHaveCount(0);

@@ -7,7 +7,7 @@ test.use({ serviceWorkers: "block" });
 
 async function openBackup(page) {
   await page.locator('.page-footer [data-action="backup"]').click();
-  await expect(page.getByRole("dialog", { name: "Sauvegarde et stockage" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Sauvegarde" })).toBeVisible();
   await expect(page.locator("#backup-export")).toBeEnabled();
 }
 

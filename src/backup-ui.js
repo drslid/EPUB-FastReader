@@ -70,7 +70,7 @@ export function createBackupController({ beforeExport = async () => {}, afterRes
     if (!dialog) return;
     const labels = [
       [".eyebrow", "SUR VOTRE APPAREIL"],
-      ["#backup-title", "Sauvegarde et stockage"],
+      ["#backup-title", "Sauvegarde"],
       [".backup-intro", "Gardez une copie de vos livres, positions, signets, notes et réglages. Vous pourrez la restaurer ici ou sur un autre appareil, sans compte."],
       ["#backup-export-title", "Tout sauvegarder"],
       ["#backup-export-title + p", "Un fichier ZIP à conserver dans vos fichiers personnels. Jusqu’à 500 livres et 250 Mo par sauvegarde."],
@@ -99,7 +99,7 @@ export function createBackupController({ beforeExport = async () => {}, afterRes
     dialog = document.createElement("dialog");
     dialog.className = "backup-dialog";
     dialog.setAttribute("aria-labelledby", "backup-title");
-    dialog.innerHTML = `<div class="backup-heading"><div><span class="eyebrow">${t("SUR VOTRE APPAREIL")}</span><h2 id="backup-title">${t("Sauvegarde et stockage")}</h2></div><button type="button" class="round-button" id="backup-close" aria-label="${t("Fermer la sauvegarde")}">×</button></div>
+    dialog.innerHTML = `<div class="backup-heading"><div><span class="eyebrow">${t("SUR VOTRE APPAREIL")}</span><h2 id="backup-title">${t("Sauvegarde")}</h2></div><button type="button" class="round-button" id="backup-close" aria-label="${t("Fermer la sauvegarde")}">×</button></div>
       <p class="backup-intro">${t("Gardez une copie de vos livres, positions, signets, notes et réglages. Vous pourrez la restaurer ici ou sur un autre appareil, sans compte.")}</p>
       <section class="backup-section" aria-labelledby="backup-export-title"><h3 id="backup-export-title">${t("Tout sauvegarder")}</h3><p>${t("Un fichier ZIP à conserver dans vos fichiers personnels. Jusqu’à 500 livres et 250 Mo par sauvegarde.")}</p><button type="button" class="button ink" id="backup-export">${t("Exporter ma sauvegarde")}</button></section>
       <section class="backup-section" aria-labelledby="backup-restore-title"><h3 id="backup-restore-title">${t("Retrouver une sauvegarde")}</h3><p>${t("Les livres manquants et les nouveaux signets et notes sont ajoutés. Vos livres, positions et notes déjà présents sont conservés.")}</p><label for="backup-file" class="backup-file-label">${t("Choisir une sauvegarde FastReader (.zip)")}</label><input type="file" id="backup-file" accept=".zip,application/zip"><label class="backup-check"><input type="checkbox" id="backup-settings">${t("Remplacer aussi mes réglages de lecture par ceux de la sauvegarde")}</label><button type="button" class="button secondary" id="backup-restore" disabled>${t("Restaurer la sauvegarde")}</button></section>

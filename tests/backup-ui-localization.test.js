@@ -52,7 +52,7 @@ it("relabels the open dialog and result when restored preferences change languag
   expect(document.querySelector("#backup-settings")).toBe(checkbox);
   expect(checkbox.checked).toBe(true);
   expect(dialog.getAttribute("aria-busy")).toBe("false");
-  expect(document.querySelector("#backup-title").textContent).toBe("Sicherung und Speicher");
+  expect(document.querySelector("#backup-title").textContent).toBe("Sicherung");
   expect(document.querySelector("#backup-status").textContent).toContain("Hinzugefügte Bücher: 2; bereits vorhanden: 1");
   expect(document.querySelector("#backup-storage").textContent).toContain("1,5 MB");
 
