@@ -6,6 +6,7 @@ import { defineConfig, loadEnv } from "vite";
 import { gutenbergRelay } from "./server/vite-relay.js";
 import { localizedSeoPlugin, writeLocalizedPages } from "./scripts/localized-pages.mjs";
 import { DEFAULT_SITE_URL, normalizeSiteUrl } from "./src/seo-data.js";
+import { prepareVoiceRuntime } from "./scripts/prepare-voice-runtime.mjs";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 
@@ -45,6 +46,7 @@ function offlineShell(siteUrl) {
         (file) =>
           file !== "sw.js" &&
           file !== "CNAME" &&
+          !file.startsWith("voice-runtime/") &&
           !file.endsWith(".map") &&
           !file.split("/").some((segment) => segment.startsWith(".")),
       );
@@ -68,7 +70,10 @@ function offlineShell(siteUrl) {
   };
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
+  // These assets are copied to the deployment, but excluded from the app's
+  // precache: opening FastReader must never install speech implicitly.
+  await prepareVoiceRuntime();
   const env = loadEnv(mode, root, "VITE_");
   const siteUrl = normalizeSiteUrl(env.VITE_SITE_URL || DEFAULT_SITE_URL);
   return {

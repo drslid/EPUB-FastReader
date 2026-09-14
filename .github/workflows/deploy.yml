@@ -188,6 +188,13 @@ jobs:
           image="ghcr.io/${REPOSITORY,,}"
           printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
           docker build --label "org.opencontainers.image.source=https://github.com/$REPOSITORY" --label "org.opencontainers.image.revision=$REVISION" --tag "$image:$REVISION" --tag "$image:latest" .
+          container_id="$(docker run --detach --publish 127.0.0.1::4173 "$image:$REVISION")"
+          trap 'docker rm --force "$container_id" > /dev/null' EXIT
+          published_address="$(docker port "$container_id" 4173/tcp)"
+          if ! curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 --max-time 5 "http://$published_address/api/health"; then
+            docker logs "$container_id"
+            exit 1
+          fi
           docker push "$image:$REVISION"
           docker push "$image:latest"
 

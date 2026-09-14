@@ -6,6 +6,9 @@ const SCOPE = new URL(self.registration.scope);
 // Isolate this app from other GitHub Pages projects on the same origin.
 const CACHE_PREFIX = `fastreader:${SCOPE.pathname}:`;
 const CACHE_NAME = `${CACHE_PREFIX}${VERSION}`;
+// Voice installations survive app updates and are managed explicitly by UI.
+const VOICE_CACHE_NAME = "fastreader-voice-v1";
+const VOICE_ROOT = new URL("voice-runtime/v1/", SCOPE).href;
 const SHELL_URL = new URL("index.html", SCOPE).href;
 const PRECACHE_URLS = new Set(
   PRECACHE_FILES.map((file) => new URL(file, SCOPE).href),
@@ -61,6 +64,26 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname))
     return;
+
+  if (url.href.startsWith(VOICE_ROOT)) {
+    event.respondWith((async () => {
+      const modelRequest = url.href.startsWith(`${VOICE_ROOT}models/`);
+      // An explicit repair/update must obtain the new runtime bytes rather
+      // than receiving the old cached file it is trying to replace.
+      if (!modelRequest && request.cache === "no-store") return fetch(request);
+      const cache = await caches.open(VOICE_CACHE_NAME);
+      const cached = await cache.match(url.href, { ignoreVary: true });
+      if (cached) return cached;
+      // Model URLs are virtual cache entries. Never turn a missing model into
+      // an app-shell response or contact a model provider from the worker.
+      if (modelRequest) {
+        return new Response("Voice asset not installed", { status: 404 });
+      }
+      // Runtime downloads are explicit; fetch does not populate this cache.
+      return fetch(request);
+    })());
+    return;
+  }
 
   if (request.mode === "navigate") {
     // Serve one coherent shell and its matching hashed assets while an update waits.

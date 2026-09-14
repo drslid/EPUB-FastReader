@@ -42,11 +42,11 @@ test("le lecteur commence en Sépia et Verdana, présente les modes dans l’ord
   await openReader(page);
   await expect(page.locator("body")).toHaveAttribute("data-theme", "sepia");
   await expect(page.locator("#rsvp-word")).toHaveCSS("font-family", /Verdana/);
-  await expect(page.locator(".reading-modes button")).toHaveText(["Mot à mot", "Focus", "Classique"]);
+  await expect(page.locator(".reading-modes button")).toHaveText(["Mot à mot", "Focus", "Classique", "Écouter"]);
   await page.getByRole("button", { name: "Focus", exact: true }).click();
   await page.getByRole("button", { name: "Réglages de lecture", exact: true }).click();
-  await expect(page.locator('.mode-option input')).toHaveCount(3);
-  expect(await page.locator('.mode-option input').evaluateAll((inputs) => inputs.map((input) => input.value))).toEqual(["rsvp", "focus", "classic"]);
+  await expect(page.locator('.mode-option input')).toHaveCount(4);
+  expect(await page.locator('.mode-option input').evaluateAll((inputs) => inputs.map((input) => input.value))).toEqual(["rsvp", "focus", "classic", "audio"]);
   await expect(page.locator("#font-family")).toHaveValue("humanist");
   for (const [value, family] of [["humanist", /Verdana/], ["sans", /Arial/], ["serif", /Georgia/], ["palatino", /Palatino/], ["trebuchet", /Trebuchet/], ["system", /system-ui/]]) {
     await page.locator("#font-family").selectOption(value);

@@ -57,8 +57,21 @@ import {
   writeSuggestionHistory,
 } from "./storage.js";
 import { createDemo } from "./demo.js";
+import { createAcceleratedVoiceEngine } from "./voice-engine.js";
+import { createVoiceDownloads } from "./voice-downloads.js";
+import { voiceForId } from "./voice-assets.js";
+import { createVoiceUI, audioControlsMarkup } from "./voice-ui.js";
+import { createVoicePlayback } from "./voice-playback.js";
+import { createPreparedVoiceSource } from "./prepared-voice.js";
+import { createExclusiveVoiceEngine } from "./exclusive-voice-engine.js";
+import { createAudioQueue } from "./audio-queue.js";
+import { createAudioQueueUI, audioQueueErrorMessage } from "./audio-queue-ui.js";
 
 const icons = {
+  queue: '<path d="M9 5h12M9 12h12M9 19h12M3 3l3 2-3 2zM3 12h1M3 19h1"/>',
+  volume: '<path d="m11 4-6 5H2v6h3l6 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
+  skipBack: '<path d="M5 5v14m14-14L8 12l11 7z"/>',
+  skipForward: '<path d="M19 5v14M5 5l11 7-11 7z"/>',
   book: '<path d="M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-3H4z"/><path d="M20 4h-4a3 3 0 0 0-3 3v14a4 4 0 0 1 4-3h3z"/>',
   moon: '<path d="M20.7 13A9 9 0 0 1 11 3.3 9 9 0 1 0 20.7 13z"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
@@ -146,6 +159,277 @@ let readingResizeObserver;
 let pendingSelection;
 let captureTimer;
 let lastRsvpSave = 0;
+let voiceChoiceContext = null;
+let voiceWarmupContext = null;
+let voiceWarmupRevision = 0;
+let voiceSessionContext = null;
+let readerMovement = 0;
+let voiceStartEpoch = 0;
+let pendingVoiceStart = null;
+let preparedListening = false;
+let preparedJobId = null;
+const bookPreparationRevision = new Map();
+const pendingBookPreparations = new Map();
+let audioQueueSnapshot = { jobs: [], activeJobId: null };
+const audioQueue = createAudioQueue({ createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }) });
+const audioQueueUI = createAudioQueueUI({
+  queue: audioQueue, icon, onListen: listenPreparedBook,
+  onBrowse: () => {
+    if (location.hash !== "#library") history.pushState(null, "", "#library");
+    void navigate();
+  },
+  onChooseVoice: async job => {
+    if (state.book?.id !== job.bookId) {
+      const opening = openBook(job.bookId);
+      const version = routeVersion;
+      await opening;
+      if (state.book?.id !== job.bookId || routeVersion !== version) return;
+    }
+    await chooseVoice({ force: true });
+  },
+});
+const voiceDownloads = createVoiceDownloads({ baseUrl: import.meta.env.BASE_URL });
+const voicePlayback = createVoicePlayback({
+  createEngine: () => createExclusiveVoiceEngine({ createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }) }),
+  onState: updateVoiceControls,
+  onPosition: saveVoicePassage,
+  onEnd: () => {
+    if (voiceSessionMatches()) void changeChapter(state.position.chapterIndex + 1, {}, true);
+  },
+});
+const voiceUI = createVoiceUI({
+  downloads: voiceDownloads,
+  icon,
+  onActivate: () => voicePlayback.activate(),
+  onReady: prepareVoiceStart,
+  onChoose: async (voice, { intent = "listen" } = {}) => {
+    if (!voiceChoiceContext || voiceChoiceContext.bookId !== state.book?.id || voiceChoiceContext.chapter !== state.position?.chapterIndex || voiceChoiceContext.route !== routeVersion) return;
+    if (intent === "prepare") {
+      cancelVoiceWarmup();
+      const book = state.book;
+      const revision = bookPreparationRevision.get(book.id) || 0;
+      pendingBookPreparations.set(book.id, (pendingBookPreparations.get(book.id) || 0) + 1);
+      pause();
+      audioQueueUI.open({ bookId: book.id });
+      try {
+        toast("Préparation du livre…");
+        const chapters = [];
+        for (const chapter of book.chapters) {
+          const root = document.createElement("article");
+          root.innerHTML = chapter.html;
+          chapters.push({ id: chapter.id, title: chapter.title, text: getTextContent(root) });
+          // Keep the dialog and navigation responsive for books with many chapters.
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+        if (revision !== (bookPreparationRevision.get(book.id) || 0)) return;
+        const job = await audioQueue.enqueue({ bookId: book.id, title: book.title, voice, chapters });
+        if (revision !== (bookPreparationRevision.get(book.id) || 0)) await audioQueue.delete(job.id);
+      } catch (error) { toast(audioQueueErrorMessage(error), true); }
+      finally {
+        const remaining = (pendingBookPreparations.get(book.id) || 1) - 1;
+        if (remaining) pendingBookPreparations.set(book.id, remaining);
+        else pendingBookPreparations.delete(book.id);
+      }
+      return;
+    }
+    state.settings.voiceId = voice.id;
+    state.settings.mode = "audio";
+    state.settingsOpen = false;
+    state.notesOpen = false;
+    savePreferences();
+    // Keep the silent first sentence and loaded model selected in the dialog.
+    renderReader({ preserveVoicePreparation: true });
+    void startVoice(voice, { requirePrepared: false });
+  },
+  onClose: ({ reason }) => {
+    if (reason !== "chosen") { voiceChoiceContext = null; cancelVoiceWarmup(); }
+  },
+});
+
+function cancelVoiceWarmup() {
+  ++voiceWarmupRevision;
+  if (voiceWarmupContext) voicePlayback.stop();
+  voiceWarmupContext = null;
+}
+
+async function prepareVoiceStart(voice) {
+  if (!voice) { cancelVoiceWarmup(); return; }
+  const context = voiceChoiceContext;
+  const root = document.getElementById("chapter-content");
+  if (!context || !root || !state.book || document.hidden) return;
+  cancelVoiceWarmup();
+  // Choosing a voice for another book must not interrupt a queued audiobook.
+  // An explicit Listen click can take priority; a silent preview cannot.
+  if (audioQueueSnapshot.jobs.some(job => ["preparing", "queued"].includes(job.status))) return;
+  const revision = voiceWarmupRevision;
+  const text = getTextContent(root);
+  const offset = state.position?.locator?.textOffset || 0;
+  const chapterId = state.book.chapters[context.chapter]?.id;
+  try {
+    // Saved audio already starts quickly; never recompute it just to preview.
+    const saved = await audioQueue.getPreparedChapter(context.bookId, voice.id, chapterId, text);
+    if (saved) return;
+  } catch { /* Live reading still works if the prepared-audio database cannot be read. */ }
+  if (revision !== voiceWarmupRevision || voiceChoiceContext !== context || document.hidden
+    || state.book?.id !== context.bookId || state.position?.chapterIndex !== context.chapter || routeVersion !== context.route
+    || audioQueueSnapshot.jobs.some(job => ["preparing", "queued"].includes(job.status))) return;
+  voiceWarmupContext = context;
+  try { await voicePlayback.prepare({ text, voice, offset }); }
+  catch { /* The reader exposes a retryable error if the user starts listening. */ }
+}
+
+function voiceSessionMatches() {
+  return state.book && state.settings.mode === "audio" && voiceSessionContext?.bookId === state.book.id && voiceSessionContext.chapter === state.position.chapterIndex && voiceSessionContext.route === routeVersion;
+}
+
+function updateVoiceControls(snapshot) {
+  state.voiceState = snapshot;
+  const live = !snapshot.prepared && (snapshot.warming || ["playing", "loading", "preparing", "buffering"].includes(snapshot.status));
+  if (live) void audioQueue.suspend("live");
+  else void audioQueue.unsuspend("live");
+  if (state.settings.mode === "audio") void syncWakeLock();
+  const container = document.getElementById("voice-controls");
+  if (!container || state.settings.mode !== "audio") return;
+  // Updating the rate must not replace a slider that is being dragged.
+  if (container.contains(document.activeElement) && document.activeElement.matches("[data-voice-rate]") && snapshot.status === container.dataset.status) {
+    const output = container.querySelector("[data-voice-rate-value]");
+    if (output) output.textContent = `${formatNumber(snapshot.rate, { maximumFractionDigits: 2 })}×`;
+    return;
+  }
+  const action = container.contains(document.activeElement) ? document.activeElement.dataset.voiceAction : null;
+  const previousStatus = container.querySelector(".voice-player-status");
+  const message = snapshot.error === "autoplay" ? t("Touchez Reprendre pour autoriser le son.")
+    : snapshot.error === "AUDIO_MISSING" ? t("Cet audio préparé n’est plus disponible. Préparez à nouveau le livre.")
+    : snapshot.error === "empty" ? t("Ce livre ne contient pas de texte à écouter.")
+      : snapshot.error ? t("Impossible de préparer ce passage. Réessayez ou choisissez une autre voix.") : "";
+  container.innerHTML = audioControlsMarkup({ ...snapshot, message }, { icon });
+  const nextStatus = container.querySelector(".voice-player-status");
+  if (previousStatus && nextStatus && previousStatus.textContent === nextStatus.textContent) nextStatus.replaceWith(previousStatus);
+  container.dataset.status = snapshot.status;
+  if (action) container.querySelector(`[data-voice-action="${action}"]`)?.focus({ preventScroll: true });
+}
+
+function saveVoicePassage(passage) {
+  if (!voiceSessionMatches()) return;
+  const root = document.getElementById("chapter-content");
+  if (!root) return;
+  for (const mark of root.querySelectorAll("mark.voice-current-passage")) { const parent = mark.parentNode; mark.replaceWith(...mark.childNodes); parent.normalize(); }
+  const locator = createTextLocator(root, { chapterId: state.book.chapters[state.position.chapterIndex].id, textOffset: passage.completed ? passage.end : passage.start });
+  state.position.locator = locator;
+  state.position.chapterProgress = locator.progression;
+  state.position.wordIndex = wordIndexForLocator(root, locator);
+  state.position.completed = false;
+  if (!passage.completed) {
+    applyLocatorHighlight(root, { ...locator, exact: passage.text }, { className: "voice-current-passage" });
+    root.querySelector(".voice-current-passage")?.scrollIntoView({ block: "nearest", behavior: "instant" });
+  }
+  updateProgress();
+  scheduleSave();
+}
+
+async function startVoice(voice = voiceForId(state.settings.voiceId), { requirePrepared = preparedListening } = {}) {
+  const root = document.getElementById("chapter-content");
+  if (!root || !voice || !state.book) return;
+  const epoch = ++voiceStartEpoch;
+  const bookId = state.book.id;
+  const chapterIndex = state.position.chapterIndex;
+  const chapterId = state.book.chapters[chapterIndex].id;
+  const text = getTextContent(root);
+  if (requirePrepared && !/[\p{L}\p{N}]/u.test(text)) {
+    preparedListening = true;
+    await changeChapter(chapterIndex + 1, {}, true);
+    return;
+  }
+  const offset = state.position.locator?.textOffset || 0;
+  pendingVoiceStart = { epoch, voice, requirePrepared };
+  // Show feedback immediately, including the brief IndexedDB lookup before
+  // playback owns progress. Pause/navigation invalidate this startup below.
+  const warmed = voicePlayback.snapshot();
+  updateVoiceControls({ ...warmed, status: "loading", voice, voiceLabel: voice.name,
+    rate: state.settings.voiceRate, prepared: requirePrepared, error: "",
+    preparation: warmed.warming ? warmed.preparation : { phase: "loading", completed: 0, total: 0, bufferedSeconds: 0 } });
+  let stored;
+  try { stored = await audioQueue.getPreparedChapter(bookId, voice.id, chapterId, text, requirePrepared && preparedJobId ? { jobId: preparedJobId } : undefined); }
+  catch (error) {
+    if (requirePrepared) {
+      if (epoch === voiceStartEpoch) updateVoiceControls({ status: "error", prepared: true, error: "AUDIO_MISSING", voiceLabel: voice.name, rate: state.settings.voiceRate });
+      return;
+    }
+  }
+  finally { if (pendingVoiceStart?.epoch === epoch) pendingVoiceStart = null; }
+  if (epoch !== voiceStartEpoch || state.book?.id !== bookId || state.position.chapterIndex !== chapterIndex || state.settings.mode !== "audio") return;
+  if (requirePrepared && !stored) {
+    updateVoiceControls({ status: "error", prepared: true, error: "AUDIO_MISSING", voiceLabel: voice.name, rate: state.settings.voiceRate });
+    return;
+  }
+  preparedListening = requirePrepared || Boolean(stored);
+  preparedJobId = stored?.jobId || null;
+  ++voiceWarmupRevision;
+  voiceWarmupContext = null;
+  if (!stored) void audioQueue.suspend("live");
+  voiceSessionContext = { bookId: state.book.id, chapter: state.position.chapterIndex, route: routeVersion };
+  voicePlayback.start({ text, voice, offset, rate: state.settings.voiceRate,
+    prepared: stored ? createPreparedVoiceSource(audioQueue, stored, { bookId, chapterId, text }) : undefined,
+  });
+  if (document.hidden) voicePlayback.pause();
+}
+
+async function listenPreparedBook(job, { fromStart = job.status !== "ready" } = {}) {
+  voicePlayback.activate();
+  const opening = openBook(job.bookId);
+  const version = routeVersion;
+  await opening;
+  if (state.book?.id !== job.bookId || routeVersion !== version) return;
+  // The partial-audio action explicitly says "Listen from the start". A saved
+  // bookmark may be in a chapter that has not been prepared yet.
+  if (fromStart) {
+    const first = job.chapters.find(chapter => (chapter.readySegments ?? chapter.completedSegments) > 0);
+    const chapterIndex = state.book.chapters.findIndex(chapter => chapter.id === first?.id);
+    if (chapterIndex < 0) return;
+    Object.assign(state.position, { chapterIndex, wordIndex: 0, chapterProgress: 0, scrollRatio: 0, locator: null, completed: false });
+  }
+  preparedJobId = job.id;
+  state.settings.voiceId = job.voice.id;
+  state.settings.mode = "audio";
+  state.settingsOpen = false;
+  state.notesOpen = false;
+  savePreferences();
+  renderReader();
+  await startVoice(job.voice, { requirePrepared: true });
+}
+
+async function chooseVoice({ force = false } = {}) {
+  if (!state.book) return;
+  readerMovement++;
+  pause();
+  ensureReaderPosition();
+  const context = { bookId: state.book.id, chapter: state.position.chapterIndex, route: routeVersion };
+  voiceChoiceContext = context;
+  if (!force) {
+    let snapshot = audioQueueSnapshot;
+    // Include jobs restored after a reload or started from another tab. Merely
+    // opening Listen never starts another conversion of the same book.
+    try { snapshot = await audioQueue.list(); } catch { /* Voice choice can still work if the queue is unavailable. */ }
+    if (voiceChoiceContext !== context || state.book?.id !== context.bookId || state.position?.chapterIndex !== context.chapter || routeVersion !== context.route) return;
+    if (pendingBookPreparations.has(context.bookId) || snapshot.jobs.some(job => job.bookId === context.bookId)) {
+      audioQueueUI.open({ bookId: context.bookId });
+      return;
+    }
+  }
+  voiceUI.open({ bookLanguage: state.book.language, lastVoiceId: state.settings.voiceId, estimatedAudioBytes: Math.ceil(state.book.totalWords / 160 * 60 * 48000) });
+}
+
+function toggleVoice() {
+  const snapshot = voicePlayback.snapshot();
+  if (pendingVoiceStart) pause();
+  else if (["playing", "preparing", "loading", "buffering"].includes(snapshot.status)) voicePlayback.pause();
+  else if (snapshot.voice && voiceSessionMatches()) { voicePlayback.activate(); voicePlayback.resume(); }
+  else if (state.settings.mode === "audio" && state.voiceState?.status === "paused" && voiceForId(state.settings.voiceId)) {
+    voicePlayback.activate();
+    void startVoice();
+  }
+  else chooseVoice();
+}
 const wordMeasure = document.createElement("canvas").getContext("2d");
 const newId = () =>
   crypto.randomUUID?.() ||
@@ -155,6 +439,23 @@ const wakeLock = createReadingWakeLock({ onChange: (active) => {
   const status = document.getElementById("wake-lock-status");
   if (status) status.hidden = !active;
 } });
+function syncWakeLock() {
+  const audioActive = state.settings.mode === "audio" && ["playing", "preparing", "loading", "buffering"].includes(state.voiceState?.status);
+  return wakeLock.setActive(state.settings.wakeLock && !document.hidden && (playing || audioActive || Boolean(audioQueueSnapshot.activeJobId)));
+}
+audioQueue.subscribe(snapshot => {
+  audioQueueSnapshot = snapshot;
+  state.audioQueueCount = snapshot.jobs.filter(job => job.status !== "ready").length;
+  if (preparedJobId && voiceSessionMatches() && !snapshot.jobs.some(job => job.id === preparedJobId)) {
+    preparedJobId = null;
+    voicePlayback.stop();
+    updateVoiceControls({ status: "error", prepared: true, error: "AUDIO_MISSING", rate: state.settings.voiceRate });
+  }
+  const count = state.audioQueueCount;
+  for (const badge of document.querySelectorAll("[data-audio-queue-count]")) { badge.textContent = formatNumber(count); badge.hidden = !count; }
+  void syncWakeLock();
+});
+if (document.hidden) void audioQueue.suspend("hidden");
 const backups = createBackupController({
   beforeExport: async () => {
     if (state.busy) throw new Error(t("Attendez la fin de l’ouverture du livre."));
@@ -246,6 +547,10 @@ function themeButton() {
   const next = nextTheme();
   return `<button class="round-button theme-toggle" data-action="global-theme" aria-label="${escape(next.label)}" title="${escape(next.label)}">${icon(next.icon)}</button>`;
 }
+function audioQueueButton() {
+  const count = audioQueueSnapshot.jobs.filter(job => job.status !== "ready").length;
+  return `<button class="round-button audio-queue-trigger" data-action="audio-queue" aria-label="${escape(t("Préparations audio"))}" title="${escape(t("Préparations audio"))}">${icon("queue")}<span class="audio-queue-count" data-audio-queue-count ${count ? "" : "hidden"}>${formatNumber(count)}</span></button>`;
+}
 
 function renderShell({ resetScroll = false, preserveInteraction = false } = {}) {
   syncInterfaceLanguage();
@@ -292,7 +597,7 @@ function renderShell({ resetScroll = false, preserveInteraction = false } = {}) 
       <nav aria-label="${escape(t("Navigation principale"))}"><a href="#home" class="nav-item ${state.view === "home" ? "active" : ""}" ${state.view === "home" ? 'aria-current="page"' : ""}>${icon("book")}<span>${t("Accueil")}</span></a><a href="#discover" class="nav-item ${state.view === "discover" ? "active" : ""}" ${state.view === "discover" ? 'aria-current="page"' : ""}>${icon("compass")}<span>${t("Découvrir")}</span></a><a href="#library" class="nav-item ${state.view === "library" ? "active" : ""}" ${state.view === "library" ? 'aria-current="page"' : ""}>${icon("grid")}<span>${t("Ma bibliothèque")}</span><span class="nav-count">${state.books.length}</span></a><button class="nav-item mobile-settings" data-action="source-settings">${icon("settings")}<span>${t("Paramètres")}</span></button></nav>
       <div class="sidebar-bottom"><button class="install-link" data-action="source-settings">${icon("settings")} ${t("Paramètres")}</button><button class="install-link" data-action="backup">${icon("archive")} ${t("Sauvegarde")}</button><button class="install-link" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button></div>
     </aside>
-    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button></footer></div>
+    <div class="workspace"><header class="shell-header"><div class="topbar"><span>${pageTitle}</span><div class="topbar-right">${languageSelector()}${audioQueueButton()}${themeButton()}${importButton("compact")}</div></div>${searchBarMarkup(state, { icon, escape })}</header><main id="main" tabindex="-1" class="dashboard">${state.offline ? `<div class="offline-notice" role="status">${icon("check")} ${t("Hors connexion · Vos livres enregistrés restent disponibles.")}</div>` : ""}${state.view === "home" ? homeMarkup(state, { icon, escape, cover }) : state.view === "library" ? libraryMarkup(state, { icon, escape, cover }) : discoverView()}</main><footer class="page-footer"><span>${t("Vos livres et vos repères, sur cet appareil.")}</span><button class="install-link footer-install" data-action="install" ${matchMedia("(display-mode: standalone)").matches ? "hidden" : ""}>${icon("install")} ${t("Installer l’application")}</button></footer></div>
     </div>`;
   bindImages();
   if (loyalSearch && !state.localSearching) loyalSearchPanel.mount(app.querySelector("#loyal-search-host"), { query: state.query, busy: state.busy });
@@ -388,13 +693,13 @@ function restoreReaderPosition() {
   });
 }
 
-function renderReader() {
+function renderReader({ preserveVoicePreparation = false } = {}) {
   loyalSearchPanel.unmount();
   loyalShellKey = "";
   syncInterfaceLanguage();
   const previousPanelFocus = document.activeElement?.closest("#reader-settings, #reader-notes") ? document.activeElement.id : null;
   ensureImportInput();
-  pause();
+  if (!preserveVoicePreparation) pause();
   clearTimeout(captureTimer);
   captureTimer = null;
   pendingSelection = null;
@@ -424,6 +729,8 @@ function renderReader() {
         id: note.id,
       });
   }
+  const spokenPassage = voicePlayback.snapshot().passage;
+  if (voiceSessionMatches() && spokenPassage) saveVoicePassage(spokenPassage);
   requestAnimationFrame(() => {
     if (!scroll.isConnected) return;
     restoreReaderPosition();
@@ -472,6 +779,8 @@ function captureReaderPosition() {
   const root = document.querySelector("#chapter-content");
   const scroll = document.querySelector("#chapter-scroll");
   if (!root || !scroll || !state.book || state.position.completed) return;
+  // Spoken passages own the audio bookmark; scrolling around must not move it.
+  if (state.settings.mode === "audio" && state.position.locator) return;
   const options = {
     chapterId: state.book.chapters[state.position.chapterIndex].id,
     scrollContainer: scroll,
@@ -685,7 +994,7 @@ function updateProgress() {
     t("{percent} % parcouru", { percent: Math.round(state.position.progress * 100) });
   const remaining = Math.ceil(
     (state.book.totalWords * (1 - state.position.progress)) /
-      state.settings.speed,
+      (state.settings.mode === "audio" ? 160 * state.settings.voiceRate : state.settings.speed),
   );
   document.querySelector("#remaining-label").textContent = remaining
     ? t("≈ {minutes} min restantes", { minutes: remaining })
@@ -693,7 +1002,7 @@ function updateProgress() {
 }
 
 function onReadScroll() {
-  if (!state.book || state.settings.mode === "rsvp" || restoringLocation)
+  if (!state.book || ["rsvp", "audio"].includes(state.settings.mode) || restoringLocation)
     return;
   state.position.completed = false;
   clearTimeout(captureTimer);
@@ -734,10 +1043,18 @@ async function persistPosition() {
 }
 
 async function openBook(id, setHash = true) {
+  preparedListening = false;
+  preparedJobId = null;
+  voiceUI.close("dispose");
+  readerMovement++;
   searchController?.abort();
   const version = ++routeVersion;
   pause();
-  await persistPosition();
+  const saved = persistPosition();
+  voicePlayback.stop();
+  voiceSessionContext = null;
+  await saved;
+  if (version !== routeVersion) return;
   let book;
   let position;
   try {
@@ -801,6 +1118,8 @@ async function openBook(id, setHash = true) {
 }
 
 async function navigate() {
+  voiceUI.close("dispose");
+  readerMovement++;
   // Handle path and hash together on browser Back/Forward. A separate async
   // language handler could otherwise reopen a stale book while routing.
   const routeLocale = localeFromPath();
@@ -826,6 +1145,8 @@ async function navigate() {
   const version = ++routeVersion;
   pause();
   const savedPosition = persistPosition();
+  voicePlayback.stop();
+  voiceSessionContext = null;
   state.book = null;
   Object.assign(state, parseSearchRoute(location.hash));
   if (!route || route === "home") state.view = "home";
@@ -1092,14 +1413,30 @@ async function readCatalogBook(id) {
   }
 }
 
-async function changeChapter(index, position = {}) {
+async function changeChapter(index, position = {}, continueAudio = false) {
+  const movement = ++readerMovement;
+  const bookId = state.book?.id;
+  const route = routeVersion;
+  const current = () => movement === readerMovement && bookId === state.book?.id && route === routeVersion;
   pause();
+  voiceUI.close("dispose");
+  voicePlayback.stop();
+  voiceSessionContext = null;
+  if (continueAudio) {
+    while (index < state.book.chapters.length) {
+      const root = document.createElement("article");
+      root.innerHTML = state.book.chapters[index].html;
+      if (/[\p{L}\p{N}]/u.test(getTextContent(root))) break;
+      index++;
+    }
+  }
   if (index >= state.book.chapters.length) {
     state.position.completed = true;
     state.position.scrollRatio = 1;
     state.position.chapterProgress = 1;
     updateProgress();
     await persistPosition();
+    if (!current()) return;
     toast("Livre terminé. Une belle histoire de plus !");
     location.hash = "library";
     return;
@@ -1113,12 +1450,20 @@ async function changeChapter(index, position = {}) {
     position.locator?.progression ?? state.position.scrollRatio;
   renderReader();
   await persistPosition();
+  if (current() && continueAudio && state.settings.mode === "audio" && !state.settingsOpen && !state.notesOpen) startVoice();
 }
 
 function pause() {
-  void wakeLock.setActive(false);
+  voiceStartEpoch++;
+  const starting = pendingVoiceStart;
+  pendingVoiceStart = null;
+  // Also invalidate a silent warm-up still waiting for its database lookup.
+  cancelVoiceWarmup();
+  voicePlayback.pause();
+  if (starting) updateVoiceControls({ ...state.voiceState, status: "paused", warming: false, voice: starting.voice, voiceLabel: starting.voice.name, prepared: starting.requirePrepared });
   clearTimeout(playTimer);
   playing = false;
+  void syncWakeLock();
   const button = document.querySelector("#play-button");
   if (button) button.innerHTML = `${icon("play")} ${t("Reprendre")}`;
 }
@@ -1223,9 +1568,13 @@ function ensureReaderPosition() {
 }
 
 function changeReadingMode(mode) {
+  readerMovement++;
+  if (mode === "audio") { chooseVoice(); return; }
   if (!["classic", "focus", "rsvp"].includes(mode)) return;
   pause();
   ensureReaderPosition();
+  voicePlayback.stop();
+  voiceSessionContext = null;
   state.settings.mode = mode;
   savePreferences();
   renderReader();
@@ -1396,6 +1745,15 @@ async function downloadCatalogOriginal(id) {
 }
 
 app.addEventListener("click", async (event) => {
+  const voiceAction = event.target.closest("[data-voice-action]")?.dataset.voiceAction;
+  if (voiceAction && state.book) {
+    if (voiceAction === "queue") audioQueueUI.open();
+    if (voiceAction === "choose") void chooseVoice({ force: true });
+    if (voiceAction === "toggle") toggleVoice();
+    if (voiceAction === "previous") voicePlayback.previous();
+    if (voiceAction === "next") voicePlayback.next();
+    return;
+  }
   const languageLink = event.target.closest("a[data-locale]");
   if (languageLink && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
     event.preventDefault();
@@ -1430,6 +1788,7 @@ app.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button || button.disabled) return;
   const action = button.dataset.action;
+  if (action === "audio-queue") { audioQueueUI.open(); return; }
   if (action === "source-settings") return openSourceSettings({ icon, escape, beforeOpen: pause });
   try {
     if (action === "global-theme") {
@@ -1469,6 +1828,13 @@ app.addEventListener("click", async (event) => {
     }
     if (action === "import") document.querySelector("#epub-file").click();
     if (action === "open") await openBook(button.dataset.id);
+    if (action === "prepare-audio") {
+      const bookId = button.dataset.id;
+      const opening = openBook(bookId);
+      const version = routeVersion;
+      await opening;
+      if (state.book?.id === bookId && version === routeVersion) chooseVoice();
+    }
     if (action === "backup") await backups.open();
     if (action === "toc") showTableOfContents();
     if (action === "previous-sentence") { pause(); advanceWord(previousSentenceIndex(words, state.position.wordIndex) - state.position.wordIndex); }
@@ -1493,6 +1859,7 @@ app.addEventListener("click", async (event) => {
           t("Supprimer « {title} » et sa progression de cet appareil ?", { title: summary.title }),
         )
       ) {
+        bookPreparationRevision.set(summary.id, (bookPreparationRevision.get(summary.id) || 0) + 1);
         try {
           await deleteBook(summary.id);
         } catch (error) {
@@ -1503,6 +1870,10 @@ app.addEventListener("click", async (event) => {
         await refreshLibrary();
         renderShell();
         toast("Livre supprimé de cet appareil.");
+        try {
+          const snapshot = await audioQueue.list();
+          for (const job of snapshot.jobs.filter(item => item.bookId === summary.id)) await audioQueue.delete(job.id);
+        } catch { toast("Le livre est supprimé. Ouvrez Préparations audio pour retirer son audio.", true); }
       }
     }
     if (action === "search") await runSearch(state.page);
@@ -1698,6 +2069,12 @@ app.addEventListener("change", (event) => {
   });
   if (target.name === "mode") {
     changeReadingMode(target.value);
+    if (target.value === "audio") {
+      target.checked = state.settings.mode === "audio";
+      const current = document.querySelector(`input[name="mode"][value="${state.settings.mode}"]`);
+      if (current) current.checked = true;
+      return;
+    }
     document
       .querySelector(`input[name="mode"][value="${state.settings.mode}"]`)
       .focus();
@@ -1706,12 +2083,23 @@ app.addEventListener("change", (event) => {
   if (target.id === "reading-profile" && readingProfiles[target.value]) updateReadingPreferences({ ...readingProfiles[target.value], profile: target.value });
   if (target.id === "skip-short-words") updateReadingPreferences({ skipShortWords: target.checked });
   if (target.id === "reading-cadence") { state.settings.cadence = target.value; savePreferences(); }
-  if (target.id === "keep-awake") { state.settings.wakeLock = target.checked; void wakeLock.setActive(playing && target.checked); savePreferences(); }
+  if (target.id === "keep-awake") {
+    state.settings.wakeLock = target.checked;
+    void syncWakeLock();
+    savePreferences();
+  }
 
 });
 
 app.addEventListener("input", (event) => {
   const target = event.target;
+  if (target.matches("[data-voice-rate]")) {
+    state.settings.voiceRate = clamp(target.value, 0.75, 1.75);
+    voicePlayback.setRate(state.settings.voiceRate);
+    savePreferences();
+    updateProgress();
+    return;
+  }
   if (target.id === "search-query") {
     state.searchDraft = target.value;
     const clear = document.querySelector('[data-action="clear-search"]');
@@ -1813,6 +2201,10 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     play();
   }
+  if (event.code === "Space" && state.settings.mode === "audio") {
+    event.preventDefault();
+    toggleVoice();
+  }
   if (event.key === "ArrowRight") {
     event.preventDefault();
     changeChapter(state.position.chapterIndex + 1);
@@ -1824,11 +2216,13 @@ window.addEventListener("keydown", (event) => {
 });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
+    void audioQueue.suspend("hidden");
     pause();
     persistPosition();
-  }
+  } else void audioQueue.unsuspend("hidden");
 });
 window.addEventListener("pagehide", () => {
+  void audioQueue.suspend("hidden");
   pause();
   persistPosition();
 });
@@ -1858,10 +2252,11 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
     beforeUpdate: async () => {
       if (state.busy) throw new Error(t("Attendez la fin de l’ouverture du livre avant de mettre à jour."));
       pause();
+      await audioQueue.suspend("update");
       if (await persistPosition() === false) throw new Error(t("La position n’a pas pu être enregistrée. La mise à jour attendra."));
       await writeSettings(state.settings);
     },
-    onError: (message) => toast(message, true),
+    onError: (message) => { void audioQueue.unsuspend("update"); toast(message, true); },
   }).catch(() => { /* Reading remains possible if installation is unavailable. */ });
 }
 

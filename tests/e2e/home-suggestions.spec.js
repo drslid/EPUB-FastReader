@@ -259,10 +259,10 @@ test("une édition dans une autre langue ne remplace pas le livre français choi
   ).toEqual(originalPosition.bookmarks);
 });
 
-test("l’accueil explique les trois modes et la démo reste hors de la bibliothèque", async ({ page }) => {
+test("l’accueil explique les quatre modes et la démo reste hors de la bibliothèque", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".home-intro")).toBeVisible();
-  await expect(page.locator(".home-mode h2")).toHaveText(["Mot à mot", "Focus", "Classique"]);
+  await expect(page.locator(".home-mode h2")).toHaveText(["Mot à mot", "Focus", "Classique", "Écouter"]);
   const help = page.locator(".home-help");
   await expect(help).not.toHaveAttribute("open", "");
   await help.locator("summary").click();

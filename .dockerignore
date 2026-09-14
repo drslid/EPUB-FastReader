@@ -1,4 +1,6 @@
 node_modules
+.cache
+public/voice-runtime
 dist
 dist-pages
 .git

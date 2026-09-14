@@ -14,3 +14,6 @@ test-results-*/
 
 # Local Cloudflare build and runtime state
 .wrangler/
+
+# Reproducible optional speech runtime, generated from pinned dependencies.
+public/voice-runtime/

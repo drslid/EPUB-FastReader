@@ -25,7 +25,7 @@ export function advancedReadingMarkup(settings) {
     <button class="button secondary" data-action="reset-reading">${t("Réinitialiser le confort")}</button>
   </details>
   <label class="setting-label" for="reading-cadence">${t("Cadence du mot à mot")}</label><select id="reading-cadence"><option value="gentle" ${settings.cadence === "gentle" ? "selected" : ""}>${t("Souple · pauses de ponctuation")}</option><option value="steady" ${settings.cadence === "steady" ? "selected" : ""}>${t("Régulière")}</option></select>
-  <label class="setting-check"><input id="keep-awake" type="checkbox" ${settings.wakeLock ? "checked" : ""}>${t("Garder l’écran allumé pendant le mot à mot")}</label>
+  <label class="setting-check"><input id="keep-awake" type="checkbox" ${settings.wakeLock ? "checked" : ""}>${t("Garder l’écran allumé pendant la lecture")}</label>
   <p class="setting-hint">${t("Selon les possibilités du téléphone. Désactivé à la pause.")}</p>
-  <details class="keyboard-shortcuts"><summary>${t("Raccourcis et commandes")}</summary><dl><dt>${t("Espace")}</dt><dd>${t("Démarrer / mettre en pause le mot à mot")}</dd><dt>← / →</dt><dd>${t("Chapitre précédent / suivant")}</dd><dt>${t("Échap")}</dt><dd>${t("Fermer le panneau ouvert")}</dd></dl><p class="setting-hint">${t("Les boutons restent disponibles sur écran tactile. Le mode Classique permet de parcourir le texte avec votre lecteur d’écran.")}</p></details>`;
+  <details class="keyboard-shortcuts"><summary>${t("Raccourcis et commandes")}</summary><dl><dt>${t("Espace")}</dt><dd>${t("Démarrer / mettre en pause le mot à mot ou l’écoute")}</dd><dt>← / →</dt><dd>${t("Chapitre précédent / suivant")}</dd><dt>${t("Échap")}</dt><dd>${t("Fermer le panneau ouvert")}</dd></dl><p class="setting-hint">${t("Les boutons restent disponibles sur écran tactile. Le mode Classique permet de parcourir le texte avec votre lecteur d’écran.")}</p></details>`;
 }

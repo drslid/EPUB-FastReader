@@ -173,6 +173,8 @@ export const defaultSettings = Object.freeze({
   fontSize: 20,
   font: "humanist",
   mode: "rsvp",
+  voiceId: "",
+  voiceRate: 1,
   speed: 300,
   lineHeight: 1.85,
   columnWidth: 70,
@@ -195,9 +197,11 @@ export function normalizeSettings(value) {
       Math.min(32, Math.max(16, Number(source.fontSize) || 20)),
     ),
     font: Object.hasOwn(readingFonts, source.font) ? source.font : defaultSettings.font,
-    mode: ["classic", "focus", "rsvp"].includes(source.mode)
+    mode: ["classic", "focus", "rsvp", "audio"].includes(source.mode)
       ? source.mode
       : defaultSettings.mode,
+    voiceId: ["ff_siwis", "af_heart", "ef_dora", "if_sara", "pf_dora"].includes(source.voiceId) ? source.voiceId : "",
+    voiceRate: Math.min(1.75, Math.max(0.75, Number(source.voiceRate) || 1)),
     speed: Math.min(800, Math.max(100, Number(source.speed) || 300)),
     lineHeight: Math.min(2.4, Math.max(1.4, Number(source.lineHeight) || 1.85)),
     columnWidth: Math.round(Math.min(85, Math.max(45, Number(source.columnWidth) || 70))),

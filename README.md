@@ -22,17 +22,54 @@
 
 Search looks through your own books and the catalogues together. Your books come first; catalogue results arrive as each source responds. All book languages are included by default, and you can narrow the search with the language and source filters.
 
-## Three ways to keep reading
+## Four ways to keep reading
 
 | Mode | What it does | How to use it |
 | --- | --- | --- |
 | **Word by word** | Shows one word at a time in a steady position. | Set your words per minute, choose a Gentle or Steady cadence, and use pause or previous sentence to stay with the text. |
 | **Focus** | Emphasizes the beginning of words while keeping the whole passage visible. | Adjust how much of each word is emphasized, with an option to leave short words unchanged. |
 | **Classic** | Displays the full text for ordinary reading. | Scroll at your own pace and move through the book with the table of contents. |
+| **Listen** | Reads the book aloud using a voice generated on your device. | Choose your book’s language, download its voice once, and listen from your current passage. |
 
 Books open in Word by word, ready for you to press play. If your device requests reduced motion, they open in Classic instead. You can switch modes while reading.
 
 The aim is to help you spend more time reading and make steady progress. Choose a speed that lets you follow the story; a higher setting does not guarantee better understanding.
+
+## Listen with a voice on your device
+
+**Start listening while the next passages prepare, or save a whole book’s audio for later.** Listening is optional, free, and needs no account, subscription or paid voice service. Your book text stays on your device.
+
+**Start from your current passage**
+
+1. Open a book and select **Listen**, then choose the language of its text and a voice.
+2. On first use, choose **Download and listen**. The app shows the download size and progress; you can cancel and resume without losing completed files. With an installed voice, choose **Start listening**.
+3. Follow the text while listening. Use **Pause**, the passage controls and the listening speed slider whenever you need them.
+
+Selecting an installed voice quietly prepares the first passage while you choose, unless another book is already being prepared. Nothing is spoken before you press **Start listening**. The player then shows the current preparation stage, the number of sentences ready and the seconds of audio available. Listening starts automatically as soon as the first complete sentence is ready.
+
+FastReader prepares upcoming sentences while you listen and automatically uses parallel processing on capable devices. Longer sentences stay together and may take more time to prepare. An initial wait or pauses between passages are still possible, especially on slower devices. Preparing the whole book first avoids these generation waits during listening.
+
+The first voice needs approximately **117 MB**, including shared files reused by other voices. Adding another language needs much less space. Voices are available in **French, English, Spanish, Italian and Brazilian Portuguese**. German voices are not available yet; books in German remain readable in the other modes. New voice downloads require an internet connection.
+
+**Prepare a book and listen before it finishes**
+
+1. In the voice chooser, select **Prepare this book**, or **Download and prepare this book** if its voice is not installed. **Audio preparation** shows progress, completed chapters and the storage used. Books wait in a local queue, with one book prepared at a time.
+2. Tap **Listen to the beginning** as soon as the first passages are ready. You can hear those passages while the rest of the book continues preparing. If listening catches up, it waits for the next passage and resumes automatically. Pressing **Pause** keeps playback paused.
+3. When the whole book is ready, **Start listening** resumes your saved position. Finishing a preparation never starts playback by itself.
+
+You can keep using FastReader while a book prepares:
+
+- **Add more books** returns to **My library**. Choose **Prepare audio** on another book to add it to the queue.
+- **View audio queue** opens the preparations from your library. Use **Pause preparation**, **Resume** or **Cancel preparation** for each book. Closing this panel lets preparation continue.
+- Selecting **Listen** again on a book with a preparation reopens its existing queue entry, including after reloading the app. **Prepare with another voice** lets you explicitly choose a different voice.
+- If a preparation is paused or interrupted, the player directs you to the queue to resume it. Starting an unprepared book’s live listening takes priority over queued preparation; listening to saved passages allows preparation to continue.
+
+**Keep your audio available**
+
+- **Keep FastReader open.** Listening pauses when the app or tab is hidden or the screen is locked. Preparation pauses in the background and resumes when you return. After closing or reloading the app, completed passages in the preparation queue are kept; open **Audio preparation** and press **Resume** to continue. **Keep the screen on while reading** can prevent automatic sleep during preparation and listening where supported.
+- **Listen offline.** Once the app, book and voice are downloaded, the browser can prepare speech without a connection. Saved audio plays offline without generating the passages again; voice files are only needed to prepare more audio.
+- **Manage storage.** Prepared audio needs extra space beyond the voice download. An estimate appears before preparation and the actual size updates as it progresses. Use **Delete audio** in the queue, or remove a downloaded voice from the voice chooser, to free space. Your books stay in the library.
+- **Keep your library backed up.** Voice downloads and prepared audio are separate from library backups and can be lost if you clear browser data. Download voices and prepare audio again when moving to another device.
 
 ## Make reading comfortable
 
@@ -42,7 +79,7 @@ FastReader starts with a **sepia theme and Verdana**. Use the theme button to cy
 - **Choose your font:** Verdana, Arial, Georgia, Palatino, Trebuchet MS or your device’s default font.
 - **Keep your place:** saved progress, bookmarks, highlights and notes help you find a passage again.
 - **Read comfortably on a phone:** accessible controls, a fixed word display, an optional screen wake lock and a table of contents within reach.
-- **Use a keyboard:** Space plays or pauses Word by word, left and right arrows change chapters, and Escape closes the open panel. Shortcuts leave text fields and buttons available for normal use.
+- **Use a keyboard:** Space plays or pauses Word by word and Listen, left and right arrows change chapters, and Escape closes the open panel. Shortcuts leave text fields and buttons available for normal use.
 
 ## Bring your books anywhere
 
@@ -90,9 +127,9 @@ Book availability and copyright vary by country. Download only editions that are
 
 ## Need a hand?
 
-- **New to the reader?** Open **Home → Three modes: how do I get started?** for a short guide, or try the demonstration.
+- **New to the reader?** Open **Home → Read or listen: how do I get started?** for a short guide, or try the demonstration.
 - **An import failed?** Check that the file is an EPUB without DRM and below 30 MiB. The error message explains what FastReader could not open.
 - **A source is unavailable?** Refresh its status, try another catalogue or import a file you already have permission to read.
 - **Found a problem or have an idea?** [Tell us on GitHub](https://github.com/drslid/EPUB-FastReader/issues).
 
-FastReader is free and open source under the [MIT license](LICENSE). Books retain their own licenses.
+FastReader is free and open source under the [MIT license](LICENSE). Optional voice components retain [their own licenses](docs/THIRD-PARTY-VOICE.md). Books retain their own licenses.
