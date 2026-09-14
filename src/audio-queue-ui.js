@@ -40,6 +40,73 @@ export function audioQueueJobMarkup(job, { icon = () => "", busy = false, curren
   return `<article class="audio-queue-job${currentBook ? " is-current-book" : ""}" data-audio-job="${escape(job.id)}" data-audio-book="${escape(job.bookId)}" data-status="${escape(job.status)}" aria-busy="${busy}"><div class="audio-job-heading"><span class="audio-job-icon" aria-hidden="true">${glyph(ready ? "check" : "volume", ready ? "✓" : "♪")}</span><div><h3>${escape(job.title)}</h3><p class="audio-job-voice">${escape(voiceLabel)}</p></div><strong class="audio-job-percent">${escape(formatNumber(ready ? 100 : percent))}%</strong></div><p class="audio-job-status" tabindex="-1"><span class="sr-only">${escape(job.title)} — </span>${text(statuses[job.status] || "En attente")}</p><progress max="100" value="${ready ? 100 : percent}" aria-label="${escape(job.title)} — ${text(statuses[job.status] || "En attente")}"></progress><div class="audio-job-details"><span>${text("{completed} sur {total} chapitres préparés", { completed: formatNumber(job.completedChapters || 0), total: formatNumber(job.totalChapters || 0) })}</span><span>${text("{completed} sur {total} passages", { completed: formatNumber(job.completedSegments || 0), total: formatNumber(job.totalSegments || 0) })}</span>${job.audioBytes > 0 ? `<span>${text("Audio conservé : {size}", { size: formatVoiceBytes(job.audioBytes) })}</span>` : ""}</div>${job.error ? `<p class="audio-job-error">${escape(audioQueueErrorMessage(job.error))}</p>` : ""}${partialHint}<div class="audio-job-actions">${actions}</div>${chooseVoice}</article>`;
 }
 
+function updateAttributes(current, next) {
+  for (const attribute of [...current.attributes]) {
+    if (!next.hasAttribute(attribute.name)) current.removeAttribute(attribute.name);
+  }
+  for (const attribute of next.attributes) {
+    if (current.getAttribute(attribute.name) !== attribute.value) current.setAttribute(attribute.name, attribute.value);
+  }
+}
+
+function updateContent(current, next) {
+  updateAttributes(current, next);
+  if (current.innerHTML !== next.innerHTML) current.innerHTML = next.innerHTML;
+}
+
+function updateButton(current, next) {
+  updateAttributes(current, next);
+  // A pointer commonly lands on the label span or SVG inside the button.
+  // Keep those targets connected even when Cancel becomes Delete at completion.
+  [...next.childNodes].forEach((child, index) => {
+    const existing = current.childNodes[index];
+    if (!existing) current.append(child.cloneNode(true));
+    else if (existing.nodeType !== child.nodeType || existing.nodeName !== child.nodeName) existing.replaceWith(child.cloneNode(true));
+    else if (child.nodeType === 1) updateButton(existing, child);
+    else if (existing.nodeValue !== child.nodeValue) existing.nodeValue = child.nodeValue;
+  });
+  while (current.childNodes.length > next.childNodes.length) current.lastChild.remove();
+}
+
+function updateJobRow(current, next) {
+  updateAttributes(current, next);
+  // Progress events must not detach the row, its focused status or a button
+  // between pointerdown and click. Only the changing read-only fields update.
+  for (const selector of [".audio-job-heading", ".audio-job-status", "progress", ".audio-job-details"]) {
+    updateContent(current.querySelector(selector), next.querySelector(selector));
+  }
+  const actions = current.querySelector(".audio-job-actions");
+  for (const selector of [".audio-job-error", ".audio-job-partial"]) {
+    const existing = current.querySelector(selector), replacement = next.querySelector(selector);
+    if (existing && replacement) updateContent(existing, replacement);
+    else if (existing) existing.remove();
+    else if (replacement) current.insertBefore(replacement, selector === ".audio-job-error" ? current.querySelector(".audio-job-partial") || actions : actions);
+  }
+  const key = button => {
+    const action = button.dataset.audioQueueAction;
+    return ["pause", "resume"].includes(action) ? "pause-resume" : ["cancel", "remove"].includes(action) ? "delete" : action;
+  };
+  const existingActions = new Map([...actions.children].map(button => [key(button), button]));
+  const nextActions = [...next.querySelector(".audio-job-actions").children];
+  const nextKeys = new Set(nextActions.map(key));
+  for (const [actionKey, button] of existingActions) {
+    if (!nextKeys.has(actionKey)) { button.remove(); existingActions.delete(actionKey); }
+  }
+  let before = actions.firstElementChild;
+  for (const replacement of nextActions) {
+    const actionKey = key(replacement), button = existingActions.get(actionKey) || replacement;
+    if (button !== replacement) updateButton(button, replacement);
+    if (button !== before) actions.insertBefore(button, before);
+    before = button.nextElementSibling;
+    existingActions.delete(actionKey);
+  }
+  for (const button of existingActions.values()) button.remove();
+  const alternate = current.querySelector(".audio-job-alternate"), nextAlternate = next.querySelector(".audio-job-alternate");
+  if (alternate && nextAlternate) updateButton(alternate, nextAlternate);
+  else if (alternate) alternate.remove();
+  else if (nextAlternate) current.append(nextAlternate);
+}
+
 /** Closing this panel only closes its view; it never pauses the local queue. */
 export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () => {}, onChooseVoice = null, icon = () => "" }) {
   let dialog = null;
@@ -83,12 +150,29 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     const list = dialog.querySelector("[data-audio-queue-list]");
     const jobs = snapshot.jobs || [];
     list.setAttribute("aria-busy", String(loading));
-    list.innerHTML = jobs.map(job => audioQueueJobMarkup(job, { icon, busy: pending.has(job.id), currentBook: Boolean(currentBookId && job.bookId === currentBookId), canChooseVoice: typeof onChooseVoice === "function" })).join("");
+    const template = document.createElement("template");
+    template.innerHTML = jobs.map(job => audioQueueJobMarkup(job, { icon, busy: pending.has(job.id), currentBook: Boolean(currentBookId && job.bookId === currentBookId), canChooseVoice: typeof onChooseVoice === "function" })).join("");
+    const existingRows = new Map([...list.children].map(row => [row.dataset.audioJob, row]));
+    const nextRows = [...template.content.children];
+    const nextIds = new Set(nextRows.map(row => row.dataset.audioJob));
+    for (const [id, row] of existingRows) {
+      if (!nextIds.has(id)) { row.remove(); existingRows.delete(id); }
+    }
+    let before = list.firstElementChild;
+    for (const next of nextRows) {
+      const row = existingRows.get(next.dataset.audioJob) || next;
+      if (row !== next) updateJobRow(row, next);
+      if (row !== before) list.insertBefore(row, before);
+      before = row.nextElementSibling;
+      existingRows.delete(row.dataset.audioJob);
+    }
+    for (const row of existingRows.values()) row.remove();
     if ((action || statusFocused) && jobId) {
       const sameRow = [...list.querySelectorAll("[data-audio-job]")].find(row => row.dataset.audioJob === jobId);
       const nextAction = action === "pause" ? "resume" : action === "resume" ? "pause" : action;
-      const replacement = statusFocused ? sameRow?.querySelector(".audio-job-status") : sameRow?.querySelector(`[data-audio-queue-action="${action}"]`) || sameRow?.querySelector(`[data-audio-queue-action="${nextAction}"]`) || sameRow?.querySelector("button:not(:disabled)");
-      if (replacement && !replacement.disabled) replacement.focus({ preventScroll: true });
+      const replacement = active?.isConnected && sameRow?.contains(active) ? active
+        : statusFocused ? sameRow?.querySelector(".audio-job-status") : sameRow?.querySelector(`[data-audio-queue-action="${action}"]`) || sameRow?.querySelector(`[data-audio-queue-action="${nextAction}"]`) || sameRow?.querySelector("button:not(:disabled)");
+      if (replacement && !replacement.disabled && replacement !== document.activeElement) replacement.focus({ preventScroll: true });
       else if (!sameRow) dialog.querySelector("[data-audio-queue-close]").focus({ preventScroll: true });
     }
     dialog.querySelector("[data-audio-queue-empty]").hidden = loading || jobs.length > 0;

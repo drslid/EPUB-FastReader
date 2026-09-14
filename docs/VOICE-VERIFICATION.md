@@ -318,6 +318,17 @@ les dépendances de production nécessaires au serveur et s’exécute sous
 l’utilisateur `node`, sans modèle vocal ni dépendances de développement.
 Le pipeline vérifie désormais le démarrage de cette image avant de la publier.
 
+Le premier contrôle GitHub a ensuite révélé un clic perdu sur « Annuler »
+dans la file audio : une mise à jour de progression remplaçait le bouton
+entre l’appui et le relâchement. Les lignes, commandes et leurs descendants
+sont maintenant conservés, ainsi que le focus clavier. Un nouveau test
+maintient le pointeur enfoncé pendant la fin d’un passage : il reproduit
+l’échec sur les trois moteurs avant correction et réussit après correction.
+Les **81 contrôles navigateur audio** et **22 tests unitaires du panneau**
+ont été revalidés. Le simulateur de Worker retire aussi ses callbacks annulées
+afin qu’une ancienne préparation silencieuse ne soit plus confondue avec une
+génération active dans les tests manuels de changement de chapitre.
+
 ## Limites restant à vérifier
 
 Ces essais ne valident pas la fluidité, la mémoire, la batterie ou la stabilité

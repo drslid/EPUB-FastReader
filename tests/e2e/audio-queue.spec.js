@@ -55,11 +55,17 @@ async function setup(page) {
           this.onmessage?.({ data: { id: data.id, result: work ? { wav: new ArrayBuffer(100), duration: 3 } : {} } });
           return true;
         };
-        if (work && window.__manualGeneration) window.__pending.push(complete);
+        if (work && window.__manualGeneration) {
+          this.pendingCompletion = complete;
+          window.__pending.push(complete);
+        }
         else setTimeout(complete, work ? window.__delay : 5);
       }
       terminate() {
         this.stopped = true;
+        // A cancelled warm-up must not look like live queue work to tests
+        // waiting for a manually completable generation request.
+        window.__pending = window.__pending.filter(complete => complete !== this.pendingCompletion);
         if (this.busy) { this.busy = false; window.__generation.active--; }
       }
     };
@@ -251,6 +257,32 @@ test("partial listening waits across chapters and new audio cannot restart playb
   await expect(row).toContainText("2 sur 2 chapitres préparés");
   expect(await page.evaluate(() => window.__audio.paused)).toBe(true);
   expect(await page.evaluate(() => window.__generation.maximum)).toBe(1);
+});
+
+test("a progress update during a held pointer keeps the cancel control and completes the click", async ({ page }) => {
+  await setup(page);
+  await page.evaluate(() => { window.__manualGeneration = true; });
+  const row = await addBook(page, "Une préparation à annuler sans perdre le clic", 5);
+  await expect.poll(() => page.evaluate(() => window.__generation.calls)).toBe(1);
+  await page.evaluate(() => window.__finishOne());
+  await expect.poll(() => page.evaluate(() => window.__generation.calls)).toBe(2);
+  const progress = await row.locator("progress").getAttribute("value");
+  const cancel = row.locator('[data-audio-queue-action="cancel"]');
+  await cancel.scrollIntoViewIfNeeded();
+  const original = await cancel.elementHandle();
+  const label = await cancel.locator("span").last().elementHandle();
+  const box = await cancel.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  try {
+    await page.evaluate(() => window.__finishOne());
+    await expect.poll(() => row.locator("progress").getAttribute("value")).not.toBe(progress);
+    expect(await original.evaluate(element => element.isConnected)).toBe(true);
+    expect(await label.evaluate(element => element.isConnected)).toBe(true);
+  } finally {
+    await page.mouse.up();
+  }
+  await expect(row).toHaveCount(0);
 });
 
 test("partial audio survives reload, requires an explicit resume, and can be cancelled without deleting the book", async ({ page }) => {

@@ -37,6 +37,101 @@ afterEach(() => {
 });
 
 describe("local audio queue dialog", () => {
+  it("keeps rows, buttons and their pointer targets connected across progress updates", async () => {
+    const job = { ...makeJob("a", "preparing"), canListen: false, completedSegments: 0, progress: 0 };
+    snapshot.jobs = [job, makeJob("b", "paused")];
+    ui.open();
+    await settled();
+    const row = document.querySelector('[data-audio-job="a"]');
+    const status = row.querySelector(".audio-job-status");
+    const cancel = action("a", "cancel");
+    const label = cancel.lastElementChild;
+    const otherRow = document.querySelector('[data-audio-job="b"]');
+    const dialog = document.querySelector("dialog");
+    dialog.scrollTop = 120;
+    cancel.focus();
+    label.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    const disconnected = [];
+    const observer = new MutationObserver(records => {
+      for (const record of records) for (const removed of record.removedNodes) {
+        if ([row, cancel, label].some(target => removed === target || removed.contains?.(target))) disconnected.push(removed);
+      }
+    });
+    observer.observe(dialog, { childList: true, subtree: true });
+    for (let completed = 1; completed <= 4; completed++) {
+      Object.assign(job, { completedSegments: completed, readySegments: completed, canListen: true, progress: completed / 20, audioBytes: completed * 100 });
+      changed(snapshot);
+      expect(document.querySelector('[data-audio-job="a"]')).toBe(row);
+      expect(action("a", "cancel")).toBe(cancel);
+      expect(cancel.lastElementChild).toBe(label);
+      expect(row.querySelector(".audio-job-status")).toBe(status);
+      expect(document.querySelector('[data-audio-job="b"]')).toBe(otherRow);
+      expect(document.activeElement).toBe(cancel);
+      expect(dialog.scrollTop).toBe(120);
+    }
+    await Promise.resolve();
+    observer.disconnect();
+    expect(disconnected).toEqual([]);
+    expect(row.querySelector("progress").value).toBe(20);
+    expect(row.textContent).toContain("4 sur 20 passages");
+    label.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    label.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await vi.waitFor(() => expect(queue.cancel).toHaveBeenCalledExactlyOnceWith("a"));
+    expect(row.isConnected).toBe(false);
+    expect(otherRow.isConnected).toBe(true);
+  });
+
+  it("preserves a held cancel target when completion changes it to Delete audio", async () => {
+    const job = makeJob("a", "preparing");
+    snapshot.jobs = [job];
+    ui.open();
+    await settled();
+    const cancel = action("a", "cancel");
+    const label = cancel.lastElementChild;
+    cancel.focus();
+    label.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    const observer = new MutationObserver(() => {});
+    observer.observe(document.querySelector("dialog"), { childList: true, subtree: true });
+    Object.assign(job, { status: "ready", progress: 1, completedSegments: 20 });
+    changed(snapshot);
+    expect(action("a", "remove")).toBe(cancel);
+    expect(cancel.lastElementChild).toBe(label);
+    expect(label.textContent).toBe("Supprimer l’audio");
+    expect(document.activeElement).toBe(cancel);
+    expect(action("a", "pause")).toBeNull();
+    const removed = observer.takeRecords().flatMap(record => [...record.removedNodes]);
+    observer.disconnect();
+    expect(removed.some(node => [cancel, label].some(target => node === target || node.contains?.(target)))).toBe(false);
+    label.dispatchEvent(new Event("pointerup", { bubbles: true }));
+    label.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await vi.waitFor(() => expect(queue.remove).toHaveBeenCalledExactlyOnceWith("a"));
+    expect(document.querySelector('[data-audio-job="a"]')).toBeNull();
+  });
+
+  it("updates pause, errors and language without replacing the same action controls", async () => {
+    const job = makeJob("a", "preparing");
+    snapshot.jobs = [job];
+    ui.open();
+    await settled();
+    const pause = action("a", "pause");
+    const label = pause.lastElementChild;
+    pause.focus();
+    Object.assign(job, { status: "error", error: { code: "STORAGE_FULL" } });
+    changed(snapshot);
+    expect(action("a", "resume")).toBe(pause);
+    expect(pause.lastElementChild).toBe(label);
+    expect(label.textContent).toBe("Réessayer");
+    expect(document.querySelector(".audio-job-error").textContent).toContain("stockage");
+    job.status = "paused"; job.error = null;
+    setLocale("en");
+    window.dispatchEvent(new Event("languagechange"));
+    expect(action("a", "resume")).toBe(pause);
+    expect(pause.lastElementChild).toBe(label);
+    expect(label.textContent).toBe("Resume");
+    expect(document.querySelector(".audio-job-error")).toBeNull();
+    expect(document.activeElement).toBe(pause);
+  });
+
   it("does not let a delayed native close event dismiss a newly reopened queue", async () => {
     Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value() { this.removeAttribute("open"); } });
     snapshot.jobs = [makeJob("a"), makeJob("b")];
