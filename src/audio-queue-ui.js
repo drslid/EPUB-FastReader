@@ -12,13 +12,15 @@ export function canListenToAudioJob(job) {
   return job?.status === "ready" || (typeof job?.canListen === "boolean" ? job.canListen : Number(job?.readySegments ?? job?.completedSegments) > 0);
 }
 
+const missingVoice = error => ["VOICE_NOT_INSTALLED", "VOICE_NOT_READY", "VOICE_MISSING", "VOICE_ASSETS_MISSING"].includes(error?.code);
+
 export function audioQueueErrorMessage(error) {
   if (error?.code === "VOICE_RUNTIME_UPDATE_REQUIRED") return t("Connectez-vous à Internet pour mettre à jour la voix, puis reprenez.");
   if (error?.code === "VOICE_RETIRED") return t("Cette voix a été remplacée. Les passages enregistrés restent disponibles. Choisissez une nouvelle voix pour préparer le livre.");
   if (error?.code === "VOICE_EMPTY_TEXT") return t("Ce livre ne contient pas de texte à écouter.");
   if (error?.code === "COORDINATION_UNAVAILABLE") return t("Ce navigateur ne permet pas de préparer les livres en audio. Essayez un navigateur récent.");
   if (["STORAGE_FULL", "QuotaExceededError"].includes(error?.code) || error?.name === "QuotaExceededError") return t("L’espace disponible est insuffisant. Supprimez un audio préparé ou libérez du stockage, puis reprenez.");
-  if (["VOICE_NOT_INSTALLED", "VOICE_NOT_READY", "VOICE_MISSING", "VOICE_ASSETS_MISSING"].includes(error?.code)) return t("Cette voix n’est plus disponible sur l’appareil. Choisissez Écouter dans le livre pour la télécharger à nouveau.");
+  if (missingVoice(error)) return t("Cette voix n’est plus disponible sur l’appareil. Téléchargez-la à nouveau pour reprendre.");
   return t("Impossible de préparer ce livre. Les passages terminés sont conservés ; vous pouvez réessayer.");
 }
 
@@ -42,7 +44,7 @@ export function audioQueueJobMarkup(job, { icon = () => "", busy = false, curren
   if (!ready && !unavailable && ["paused", "error"].includes(job.status)) actions += button("resume", job.status === "error" ? "Réessayer" : "Reprendre", glyph("play", "▶"), !listenable);
   else if (!ready && !unavailable) actions += button("pause", "Mettre en pause", glyph("pause", "Ⅱ"));
   actions += button(ready ? "remove" : "cancel", ready ? "Supprimer l’audio" : "Annuler la préparation", glyph("close", "×"));
-  const chooseVoice = canChooseVoice ? `<button class="voice-text-button audio-job-alternate" data-audio-queue-action="choose-voice" ${busy ? 'aria-disabled="true"' : ""}>${glyph("volume", "♪")}<span>${text(unavailable ? "Préparer avec une nouvelle voix" : "Préparer avec une autre voix")}</span></button>` : "";
+  const chooseVoice = canChooseVoice ? `<button class="voice-text-button audio-job-alternate" data-audio-queue-action="choose-voice" ${busy ? 'aria-disabled="true"' : ""}>${glyph("volume", "♪")}<span>${text(missingVoice(job.error) ? "Choisir une voix" : unavailable ? "Préparer avec une nouvelle voix" : "Préparer avec une autre voix")}</span></button>` : "";
   return `<article class="audio-queue-job${currentBook ? " is-current-book" : ""}" data-audio-job="${escape(job.id)}" data-audio-book="${escape(job.bookId)}" data-status="${escape(job.status)}" aria-busy="${busy}"><div class="audio-job-heading"><span class="audio-job-icon" aria-hidden="true">${glyph(ready ? "check" : "volume", ready ? "✓" : "♪")}</span><div><h3>${escape(job.title)}</h3><p class="audio-job-voice">${escape(voiceLabel)}</p></div><strong class="audio-job-percent">${escape(formatNumber(ready ? 100 : percent))}%</strong></div><p class="audio-job-status" tabindex="-1"><span class="sr-only">${escape(job.title)} — </span>${text(statuses[job.status] || "En attente")}</p><progress max="100" value="${ready ? 100 : percent}" aria-label="${escape(job.title)} — ${text(statuses[job.status] || "En attente")}"></progress><div class="audio-job-details"><span>${text("{completed} sur {total} chapitres préparés", { completed: formatNumber(job.completedChapters || 0), total: formatNumber(job.totalChapters || 0) })}</span><span>${text("{completed} sur {total} passages", { completed: formatNumber(job.completedSegments || 0), total: formatNumber(job.totalSegments || 0) })}</span>${job.audioBytes > 0 ? `<span>${text("Audio conservé : {size}", { size: formatVoiceBytes(job.audioBytes) })}</span>` : ""}</div>${job.error && !unavailable ? `<p class="audio-job-error">${escape(audioQueueErrorMessage(job.error))}</p>` : ""}${skippedHint}${partialHint}<div class="audio-job-actions">${actions}</div>${chooseVoice}</article>`;
 }
 

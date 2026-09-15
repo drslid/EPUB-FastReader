@@ -107,4 +107,8 @@ test("resuming with a missing model requires choosing a voice without downloadin
   await expect(row).toContainText("Cette voix n’est plus disponible");
   expect(await page.evaluate(() => window.__runtimeWorkers)).toBe(workers);
   expect(requests).toEqual([]);
+  await row.getByRole("button", { name: "Choisir une voix", exact: true }).click();
+  await expect(page.locator(".voice-dialog")).toBeVisible();
+  await expect(page.locator("[data-voice-prepare]")).toContainText("Télécharger et préparer");
+  expect(requests).toEqual([]);
 });
