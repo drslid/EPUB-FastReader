@@ -47,6 +47,30 @@ function setup({ online = true, estimate, cacheError } = {}) {
 }
 
 describe("voice downloads", () => {
+  it("reports real per-voice storage, counts shared files once and excludes other deployments", async () => {
+    const { downloads, assetProvider, cache, stores, fetcher } = setup();
+    const french = VOICES.find(voice => voice.language === "fr").id;
+    const english = VOICES.find(voice => voice.language === "en").id;
+    await downloads.download(french);
+    await downloads.download(english);
+    await cache.put("https://reader.example/other/voice-runtime/v2/worker.js", new Response("other", { headers: { "Content-Length": "9999" } }));
+    stores.set(LEGACY_VOICE_CACHE_NAME, new Map([
+      ["https://reader.example/app/voice-runtime/v1/worker.js", new Response("old", { headers: { "Content-Length": "7" } })],
+      ["https://reader.example/other/voice-runtime/v1/worker.js", new Response("other", { headers: { "Content-Length": "9999" } })],
+    ]));
+    fetcher.mockClear();
+    const own = id => assetProvider(id).filter(asset => asset.voiceId).reduce((sum, asset) => sum + asset.bytes, 0);
+    const shared = assetProvider(french).filter(asset => !asset.voiceId).reduce((sum, asset) => sum + asset.bytes, 0);
+    expect(await downloads.storageStatus()).toMatchObject({
+      voices: expect.arrayContaining([{ id: french, name: "Siwis", language: "fr", bytes: own(french) }, { id: english, name: "LJ Speech", language: "en", bytes: own(english) }]),
+      sharedBytes: shared, unusedBytes: 7, totalBytes: shared + own(french) + own(english) + 7,
+    });
+    expect((await downloads.storageStatus()).voices).toHaveLength(2);
+    expect(fetcher).not.toHaveBeenCalled();
+    await downloads.removeVoice(french);
+    expect((await downloads.storageStatus()).voices.map(voice => voice.id)).toEqual([english]);
+  });
+
   it("does not request any assets before explicit download and reports the exact missing bytes", async () => {
     const { downloads, fetcher, assetProvider } = setup();
     const status = await downloads.status("piper-fr_FR-siwis-medium");

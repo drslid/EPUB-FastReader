@@ -10,6 +10,8 @@ let ui;
 let chosen;
 let activated;
 let warmup;
+let closed;
+let manageStorage;
 const field = (name) => document.querySelector(`[data-voice-${name}]`);
 const settled = () => vi.waitFor(() => expect(field("list").getAttribute("aria-busy")).toBe("false"));
 const selectLanguage = (value) => { field("language").value = value; field("language").dispatchEvent(new Event("change", { bubbles: true })); };
@@ -26,12 +28,13 @@ beforeEach(() => {
   downloads = {
     list: vi.fn(async () => VOICES.map(({ id }) => status(id))),
     download: vi.fn(async (id) => { ready.add(id); return status(id); }),
-    removeVoice: vi.fn(async (id) => { ready.delete(id); }),
   };
   chosen = vi.fn();
   activated = vi.fn();
   warmup = vi.fn();
-  ui = createVoiceUI({ downloads, onChoose: chosen, onActivate: activated, onReady: warmup });
+  closed = vi.fn();
+  manageStorage = vi.fn();
+  ui = createVoiceUI({ downloads, onChoose: chosen, onActivate: activated, onReady: warmup, onClose: closed, onManageStorage: manageStorage });
 });
 afterEach(() => { ui?.dispose(); document.body.innerHTML = ""; setLocale("fr"); vi.restoreAllMocks(); delete HTMLDialogElement.prototype.showModal; delete HTMLDialogElement.prototype.close; });
 
@@ -50,38 +53,37 @@ describe("optional voice selection", () => {
     expect(warmup).not.toHaveBeenCalled();
   });
 
-  it("only removes a previous runtime after its separate action and keeps current voices", async () => {
+  it("opens audio storage after closing the chooser without starting playback", async () => {
     ready.add("piper-fr_FR-siwis-medium");
-    downloads.legacyStatus = vi.fn(async () => ({ storedBytes: 117_000_000 }));
-    downloads.removeLegacy = vi.fn(async () => { downloads.legacyStatus.mockResolvedValue({ storedBytes: 0 }); });
+    manageStorage.mockImplementation(() => {
+      expect(document.querySelector(".voice-dialog")).toBeNull();
+      expect(closed).toHaveBeenCalledWith({ reason: "storage" });
+    });
     ui.open({ bookLanguage: "fr" });
     await settled();
-    expect(field("legacy").hidden).toBe(false);
-    expect(field("legacy-size").textContent).toContain("117");
-    expect(field("legacy-size").textContent).toContain("audios préparés restent disponibles");
-    expect(downloads.removeLegacy).not.toHaveBeenCalled();
-    field("remove-legacy").focus();
-    field("remove-legacy").click();
-    await vi.waitFor(() => expect(field("status").textContent).toContain("Ancien moteur retiré"));
-    await settled();
-    expect(downloads.removeLegacy).toHaveBeenCalledTimes(1);
-    expect(downloads.removeVoice).not.toHaveBeenCalled();
-    expect(field("legacy").hidden).toBe(true);
-    expect(field("start").textContent).toContain("Lancer l’écoute");
-    expect(document.activeElement).toBe(field("start"));
+    expect(manageStorage).not.toHaveBeenCalled();
+    field("storage").click();
+    expect(manageStorage).toHaveBeenCalledExactlyOnceWith();
+    expect(downloads.download).not.toHaveBeenCalled();
+    expect(chosen).not.toHaveBeenCalled();
+    expect(activated).not.toHaveBeenCalled();
   });
 
-  it("does not let a late legacy storage check alter another voice dialog", async () => {
-    let finish;
-    downloads.legacyStatus = vi.fn().mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockResolvedValue({ storedBytes: 0 });
+  it("cancels a pending download before opening audio storage", async () => {
+    let signal;
+    downloads.download.mockImplementation((id, options) => new Promise((resolve, reject) => {
+      signal = options.signal;
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    }));
     ui.open({ bookLanguage: "fr" });
-    ui.close();
-    ui.open({ bookLanguage: "de" });
     await settled();
-    finish({ storedBytes: 117_000_000 });
-    await Promise.resolve(); await Promise.resolve();
-    expect(field("language").value).toBe("de");
-    expect(field("legacy").hidden).toBe(true);
+    field("start").click();
+    field("storage").click();
+    expect(signal.aborted).toBe(true);
+    expect(manageStorage).toHaveBeenCalledTimes(1);
+    expect(closed).toHaveBeenCalledWith({ reason: "storage" });
+    await Promise.resolve();
+    expect(chosen).not.toHaveBeenCalled();
   });
 
   it("warms only a verified installed selection, once until that selection changes", async () => {
@@ -115,18 +117,6 @@ describe("optional voice selection", () => {
     expect(warmup).toHaveBeenCalledTimes(count + 2);
   });
 
-  it("cancels warmup before removing a voice and never warms an unavailable choice", async () => {
-    ready.add("piper-fr_FR-siwis-medium");
-    ui.open({ bookLanguage: "fr" });
-    await settled();
-    field("remove").click();
-    expect(warmup).toHaveBeenLastCalledWith(null);
-    await settled();
-    selectLanguage("es");
-    expect(warmup).toHaveBeenCalledTimes(2);
-    expect(downloads.download).not.toHaveBeenCalled();
-  });
-
   it("notifies readiness after download verification without awaiting speculative preparation", async () => {
     warmup.mockImplementation(() => new Promise(() => {}));
     ui.open({ bookLanguage: "fr" });
@@ -157,10 +147,9 @@ describe("optional voice selection", () => {
   it("prepares an already downloaded voice offline without unlocking or starting audio", async () => {
     ready.add("piper-fr_FR-siwis-medium");
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
-    ui.open({ bookLanguage: "fr", estimatedAudioBytes: 300_000_000 });
+    ui.open({ bookLanguage: "fr" });
     await settled();
     expect(field("prepare").disabled).toBe(false);
-    expect(field("audio-size").textContent).toContain("300");
     field("prepare").click();
     expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }), { intent: "prepare" });
     expect(activated).not.toHaveBeenCalled();
@@ -282,31 +271,29 @@ describe("optional voice selection", () => {
     await vi.waitFor(() => expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ language: "es" }), { intent: "listen" }));
   });
 
-  it("removes only the selected voice and refreshes its offline availability", async () => {
+  it("refreshes offline availability when reopening after storage management", async () => {
     ready.add("piper-fr_FR-siwis-medium");
     ready.add("piper-en_US-ljspeech-medium");
     ui.open({ bookLanguage: "fr" });
     await settled();
-    expect(field("remove").hidden).toBe(false);
-    field("remove").click();
-    await vi.waitFor(() => expect(field("status").textContent).toContain("Voix retirée"));
+    expect(field("start").textContent).toContain("Lancer l’écoute");
+    field("storage").click();
+    ready.delete("piper-fr_FR-siwis-medium");
+    ui.open({ bookLanguage: "fr" });
     await settled();
-    expect(downloads.removeVoice).toHaveBeenCalledWith("piper-fr_FR-siwis-medium");
     expect(ready.has("piper-en_US-ljspeech-medium")).toBe(true);
-    expect(field("remove").hidden).toBe(true);
     expect(field("start").textContent).toContain("Télécharger et écouter");
+    expect(field("ready").textContent).toBe("À télécharger");
   });
 
-  it("can clear a partial download before a voice is ready", async () => {
+  it("shows the remaining download size and offers storage management for a partial voice", async () => {
     downloads.list.mockResolvedValueOnce(VOICES.map(({ id }) => ({ voiceId: id, ready: false, totalBytes: 117_000_000, downloadBytes: 1_000_000, bytesRemaining: 1_000_000, storedBytes: id === "piper-fr_FR-siwis-medium" ? 116_000_000 : 0 })));
     ui.open({ bookLanguage: "fr" });
     await settled();
-    expect(field("remove").hidden).toBe(false);
     expect(field("size").textContent).toContain("Encore 1");
-    field("remove").click();
-    await vi.waitFor(() => expect(downloads.removeVoice).toHaveBeenCalledWith("piper-fr_FR-siwis-medium"));
-    await settled();
-    expect(field("remove").hidden).toBe(true);
+    field("storage").click();
+    expect(manageStorage).toHaveBeenCalledTimes(1);
+    expect(downloads.download).not.toHaveBeenCalled();
   });
 
   it("closes on Escape, aborts the download and restores focus without starting playback", async () => {
@@ -352,6 +339,7 @@ describe("optional voice selection", () => {
       setLocale(code);
       window.dispatchEvent(new Event("languagechange"));
       expect(field("start").textContent).toContain(label);
+      expect(field("storage").textContent).toContain(t("Gérer le stockage audio"));
       expect(document.activeElement).toBe(language);
     }
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);

@@ -69,13 +69,14 @@ test("voice is optional, language follows the book, and downloading needs a conn
   expect(requests).toEqual([]);
 });
 
-test("German is available and the voice chooser fits a small phone", async ({ page }) => {
+test("German is available and the voice chooser fits a small phone", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await openBook(page, "de");
   await page.getByRole("button", { name: "Écouter", exact: true }).click();
   await expect(page.locator("[data-voice-language]")).toHaveValue("de");
   await expect(page.locator("[data-voice-list]")).toContainText("Thorsten");
   await expect(page.locator("[data-voice-start]")).toBeEnabled();
+  await page.screenshot({ path: testInfo.outputPath("friendly-voice-picker.png"), fullPage: true });
   await page.locator("[data-voice-language]").selectOption("fr");
   await expect(page.locator("[data-voice-start]")).toBeEnabled();
   expect(await page.locator("dialog").evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -154,9 +155,18 @@ test("preparation can be paused and removing a downloaded voice restores online 
   })).toBe(true);
   await page.locator("[data-voice-action=choose]").click();
   await expect(page.locator(".voice-dialog")).toBeVisible();
-  await page.locator("[data-voice-remove]").click();
+  await page.locator("[data-voice-storage]").click();
+  await expect(page.locator(".voice-dialog")).toHaveCount(0);
+  await expect(page.locator(".audio-storage-dialog")).toHaveAttribute("aria-busy", "false");
+  await page.locator('[data-storage-voice="piper-fr_FR-siwis-medium"] [data-storage-action="voice"]').click();
+  await expect(page.locator("[data-storage-confirmation]")).toContainText("audios déjà préparés restent disponibles");
+  await page.locator('[data-storage-action="confirm"]').click();
+  await expect(page.locator("[data-storage-notice]")).toHaveText("Espace libéré.");
+  await expect(page.locator('[data-storage-voice="piper-fr_FR-siwis-medium"]')).toHaveCount(0);
+  await page.locator('[data-storage-action="close"]').click();
+  await page.locator('[data-mode="audio"]').click();
   await expect(page.locator("[data-voice-start]")).toContainText("Télécharger et écouter");
-  await expect(page.locator("[data-voice-remove]")).toBeHidden();
+  await expect(page.locator("[data-voice-remove]")).toHaveCount(0);
 });
 
 test("listening continues to the next chapter and marks the finished book", async ({ page }) => {

@@ -21,7 +21,7 @@ Le téléchargement peut être annulé. Les fichiers terminés sont conservés ;
 
 **Retirer cette voix** libère ses fichiers devenus inutiles en conservant ceux requis par d’autres voix et en gardant les livres. Les téléchargements vocaux ne font pas partie des sauvegardes ZIP de la bibliothèque. Effacer les données du navigateur ou changer d’appareil impose de retélécharger les voix. Le navigateur peut aussi récupérer de l’espace lorsque le stockage manque.
 
-Les audios déjà préparés avec l’ancien moteur Kokoro restent disponibles. Si ses fichiers sont encore présents, **Libérer l’espace de l’ancien moteur** permet de les supprimer sans effacer les livres ni les audios terminés. Une préparation Kokoro inachevée ne reçoit pas de nouvelles phrases Piper : elle reste écoutable sur sa partie terminée ; préparer avec une voix Piper crée une nouvelle préparation cohérente.
+Les audios déjà préparés avec l’ancien moteur Kokoro restent disponibles. Si ses fichiers sont encore présents, **Gérer le stockage audio → Fichiers inutilisés** permet de les supprimer sans effacer les livres ni les audios terminés. Une préparation Kokoro inachevée ne reçoit pas de nouvelles phrases Piper : elle reste écoutable sur sa partie terminée ; préparer avec une voix Piper crée une nouvelle préparation cohérente.
 
 ## Pendant l’écoute
 
@@ -57,21 +57,24 @@ Gardez FastReader ouvert : la préparation se met en pause en arrière-plan et r
 
 Un livre **Prêt à écouter** propose **Lancer l’écoute**. Son audio est déjà conservé sur l’appareil : aucune nouvelle génération n’est nécessaire entre les passages, et les fichiers du modèle vocal ne sont plus nécessaires pour écouter cet audio. La connexion n’est requise que pour les téléchargements manquants. Le livre ne démarre jamais tout seul lorsque sa préparation se termine.
 
-La préparation complète prend davantage de place que le modèle vocal seul. Une estimation apparaît avant le lancement ; la taille réellement enregistrée est visible pendant le traitement. En cas de stockage insuffisant, libérez de la place puis reprenez. **Supprimer l’audio** conserve l’EPUB et ses repères. Les audios préparés ne sont pas inclus dans la sauvegarde ZIP ; supprimer les données locales du navigateur peut les effacer.
+La préparation complète prend davantage de place que le modèle vocal seul. La taille réellement enregistrée est visible pendant le traitement et dans le stockage audio. En cas de stockage insuffisant, libérez de la place puis reprenez. **Supprimer l’audio** conserve l’EPUB et ses repères. Les audios préparés ne sont pas inclus dans la sauvegarde ZIP ; supprimer les données locales du navigateur peut les effacer.
 
 ## Libérer la place des audios générés
 
-Dans **Préparations audio**, **Vider les audios** affiche une confirmation avant
-la suppression globale. La taille indiquée correspond aux fichiers audio déjà
-conservés. Confirmer arrête l’écoute, annule les préparations et supprime tous
-les enregistrements générés sur cet appareil, y compris les anciens audios.
-Les autres onglets sont avertis pour arrêter leur travail et leur écoute.
+**Gérer le stockage audio**, accessible depuis le choix de voix et la file,
+regroupe les enregistrements par livre et les voix téléchargées. Les tailles
+proviennent des fichiers conservés ; les fichiers partagés sont comptés une
+seule fois. Les fichiers devenus inutiles peuvent être nettoyés séparément.
 
-Les EPUBs, positions, notes, réglages et voix téléchargées restent disponibles.
-Vous pourrez préparer à nouveau un livre avec une voix déjà installée. Pour
-retirer uniquement un livre audio, sa commande **Supprimer l’audio** reste
-accessible sur sa ligne. Pour retirer les modèles de voix, utilisez le choix
-de voix : leur stockage est distinct des enregistrements générés.
+Chaque suppression demande confirmation. Supprimer un livre audio retire ses
+versions vocales et annule leur préparation ; supprimer une voix conserve les
+enregistrements et met ses préparations inachevées en pause. Les extractions
+en cours sont invalidées seulement pour le livre ou la voix concernés.
+
+**Supprimer tous les audios** conserve les voix téléchargées. **Tout libérer**
+retire aussi les téléchargements vocaux et les fichiers inutilisés. L’écoute
+et les préparations s’arrêtent lors du nettoyage global, y compris dans les
+autres onglets. Les EPUBs, positions, notes et réglages sont conservés.
 
 ## Accélérer la préparation
 

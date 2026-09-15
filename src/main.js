@@ -66,6 +66,8 @@ import { createPreparedVoiceSource } from "./prepared-voice.js";
 import { createExclusiveVoiceEngine } from "./exclusive-voice-engine.js";
 import { createAudioQueue } from "./audio-queue.js";
 import { createAudioQueueUI, audioQueueErrorMessage } from "./audio-queue-ui.js";
+import { createAudioStorage } from "./audio-storage.js";
+import { createAudioStorageUI } from "./audio-storage-ui.js";
 
 const icons = {
   queue: '<path d="M9 5h12M9 12h12M9 19h12M3 3l3 2-3 2zM3 12h1M3 19h1"/>',
@@ -86,6 +88,8 @@ const icons = {
   check: '<path d="m5 12 4 4L19 6"/>',
   download: '<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
   archive: '<rect x="3" y="3" width="18" height="5" rx="1"/><path d="M5 8v12h14V8M10 12h4"/>',
+  storage: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 13h18M7 16h.01M11 16h.01"/>',
+  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/>',
   install: '<rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8m-4-4v4M12 6v7m-3-3 3 3 3-3"/>',
   settings:
     '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="16" cy="17" r="3"/>',
@@ -170,6 +174,7 @@ let preparedListening = false;
 let preparedJobId = null;
 let preparedJobVoice = null;
 const bookPreparationRevision = new Map();
+const voicePreparationRevision = new Map();
 const pendingBookPreparations = new Map();
 let audioQueueSnapshot = { jobs: [], activeJobId: null };
 function canPrepareVoice(voice) {
@@ -184,6 +189,7 @@ const audioQueue = createAudioQueue({
 });
 const audioQueueUI = createAudioQueueUI({
   queue: audioQueue, icon, onListen: listenPreparedBook,
+  onManageStorage: options => audioStorageUI.open(options),
   onBrowse: () => {
     if (location.hash !== "#library") history.pushState(null, "", "#library");
     void navigate();
@@ -210,6 +216,7 @@ const voicePlayback = createVoicePlayback({
 const voiceUI = createVoiceUI({
   downloads: voiceDownloads,
   icon,
+  onManageStorage: () => audioStorageUI.open(),
   onActivate: () => voicePlayback.activate(),
   onReady: prepareVoiceStart,
   onChoose: async (voice, { intent = "listen" } = {}) => {
@@ -218,6 +225,9 @@ const voiceUI = createVoiceUI({
       cancelVoiceWarmup();
       const book = state.book;
       const revision = bookPreparationRevision.get(book.id) || 0;
+      const voiceRevision = voicePreparationRevision.get(voice.id) || 0;
+      const cancelled = () => revision !== (bookPreparationRevision.get(book.id) || 0)
+        || voiceRevision !== (voicePreparationRevision.get(voice.id) || 0);
       pendingBookPreparations.set(book.id, (pendingBookPreparations.get(book.id) || 0) + 1);
       pause();
       audioQueueUI.open({ bookId: book.id });
@@ -225,15 +235,16 @@ const voiceUI = createVoiceUI({
         toast("Préparation du livre…");
         const chapters = [];
         for (const chapter of book.chapters) {
+          if (cancelled()) return;
           const root = document.createElement("article");
           root.innerHTML = chapter.html;
           chapters.push({ id: chapter.id, title: chapter.title, text: getTextContent(root) });
           // Keep the dialog and navigation responsive for books with many chapters.
           await new Promise(resolve => setTimeout(resolve, 0));
         }
-        if (revision !== (bookPreparationRevision.get(book.id) || 0)) return;
+        if (cancelled()) return;
         const job = await audioQueue.enqueue({ bookId: book.id, title: book.title, voice, chapters });
-        if (revision !== (bookPreparationRevision.get(book.id) || 0)) await audioQueue.delete(job.id);
+        if (cancelled()) await audioQueue.delete(job.id);
       } catch (error) { if (error.code !== "AUDIO_CLEARED") toast(audioQueueErrorMessage(error), true); }
       finally {
         const remaining = (pendingBookPreparations.get(book.id) || 1) - 1;
@@ -256,18 +267,38 @@ const voiceUI = createVoiceUI({
   },
 });
 
+const audioStorage = createAudioStorage({
+  queue: audioQueue,
+  downloads: voiceDownloads,
+  beforeRemoveBook: id => {
+    bookPreparationRevision.set(id, (bookPreparationRevision.get(id) || 0) + 1);
+    if (voiceSessionContext?.bookId === id || (state.book?.id === id && state.settings.mode === "audio")) clearVoiceSession(id);
+  },
+  beforeRemoveVoice: id => {
+    voicePreparationRevision.set(id, (voicePreparationRevision.get(id) || 0) + 1);
+    cancelVoiceWarmup();
+    if (!preparedListening && (voiceSessionContext?.voiceId === id || pendingVoiceStart?.voice.id === id)) stopVoiceSession();
+  },
+});
+const audioStorageUI = createAudioStorageUI({ ...audioStorage, icon });
+
 function cancelVoiceWarmup() {
   ++voiceWarmupRevision;
   if (voiceWarmupContext) voicePlayback.stop();
   voiceWarmupContext = null;
 }
 
-function clearVoiceSession() {
+function clearVoiceSession(bookId = null) {
   // This also runs after another tab clears audio. Cancel extraction, downloads,
   // warm-up and in-memory playback before any late result can restart listening.
   for (const id of pendingBookPreparations.keys()) {
+    if (bookId && id !== bookId) continue;
     bookPreparationRevision.set(id, (bookPreparationRevision.get(id) || 0) + 1);
   }
+  stopVoiceSession();
+}
+
+function stopVoiceSession() {
   ++voiceStartEpoch;
   pendingVoiceStart = null;
   voiceChoiceContext = null;
@@ -399,7 +430,7 @@ async function startVoice(voice = preparedListening && preparedJobVoice || voice
   ++voiceWarmupRevision;
   voiceWarmupContext = null;
   if (!stored) void audioQueue.suspend("live");
-  voiceSessionContext = { bookId: state.book.id, chapter: state.position.chapterIndex, route: routeVersion };
+  voiceSessionContext = { bookId: state.book.id, chapter: state.position.chapterIndex, route: routeVersion, voiceId: voice.id };
   voicePlayback.start({ text, voice, offset, rate: state.settings.voiceRate,
     prepared: stored ? createPreparedVoiceSource(audioQueue, stored, { bookId, chapterId, text }) : undefined,
   });
@@ -449,7 +480,7 @@ async function chooseVoice({ force = false } = {}) {
       return;
     }
   }
-  voiceUI.open({ bookLanguage: state.book.language, lastVoiceId: state.settings.voiceId, estimatedAudioBytes: Math.ceil(state.book.totalWords / 160 * 60 * 44100) });
+  voiceUI.open({ bookLanguage: state.book.language, lastVoiceId: state.settings.voiceId });
 }
 
 function toggleVoice() {

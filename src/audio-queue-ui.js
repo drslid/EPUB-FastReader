@@ -111,7 +111,7 @@ function updateJobRow(current, next) {
 }
 
 /** Closing this panel only closes its view; it never pauses the local queue. */
-export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () => {}, onChooseVoice = null, icon = () => "" }) {
+export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () => {}, onManageStorage = () => {}, onChooseVoice = null, icon = () => "" }) {
   let dialog = null;
   let returnFocus = null;
   let unsubscribe = null;
@@ -122,8 +122,6 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   let currentBookId = "";
   let focusBookPending = false;
   let headerObserver = null;
-  let confirmingClear = false;
-  let clearing = false;
   const pending = new Set();
   const glyph = (name, fallback) => icon(name) || `<span aria-hidden="true">${fallback}</span>`;
   const copy = (source) => `<span data-audio-queue-copy="${escape(source)}">${escape(t(source))}</span>`;
@@ -161,7 +159,7 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     const jobs = snapshot.jobs || [];
     list.setAttribute("aria-busy", String(loading));
     const template = document.createElement("template");
-    template.innerHTML = jobs.map(job => audioQueueJobMarkup(job, { icon, busy: clearing || pending.has(job.id), currentBook: Boolean(currentBookId && job.bookId === currentBookId), canChooseVoice: typeof onChooseVoice === "function" })).join("");
+    template.innerHTML = jobs.map(job => audioQueueJobMarkup(job, { icon, busy: pending.has(job.id), currentBook: Boolean(currentBookId && job.bookId === currentBookId), canChooseVoice: typeof onChooseVoice === "function" })).join("");
     const existingRows = new Map([...list.children].map(row => [row.dataset.audioJob, row]));
     const nextRows = [...template.content.children];
     const nextIds = new Set(nextRows.map(row => row.dataset.audioJob));
@@ -190,18 +188,6 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     const status = dialog.querySelector("[data-audio-queue-notice]");
     status.textContent = notice ? t(notice) : "";
     status.dataset.error = String(notice !== "Les audios ont été supprimés. Vos livres et vos voix sont conservés.");
-    const storage = dialog.querySelector("[data-audio-queue-storage]");
-    storage.hidden = typeof queue.clearAll !== "function";
-    storage.setAttribute("aria-busy", String(clearing));
-    const bytes = jobs.reduce((sum, job) => sum + Math.max(0, Number(job.audioBytes) || 0), 0);
-    dialog.querySelector("[data-audio-queue-size]").textContent = t("Audio généré : {size}", { size: formatVoiceBytes(bytes) });
-    dialog.querySelector("[data-audio-queue-clear]").disabled = loading || clearing || confirmingClear || pending.size > 0 || jobs.length === 0;
-    dialog.querySelector("[data-audio-queue-clear-confirmation]").hidden = !confirmingClear;
-    dialog.querySelector("[data-audio-queue-clear-confirm]").disabled = clearing || pending.size > 0;
-    dialog.querySelector("[data-audio-queue-clear-cancel]").disabled = clearing;
-    dialog.querySelector("[data-audio-queue-clearing]").hidden = !clearing;
-    dialog.querySelector("[data-audio-queue-close]").disabled = clearing;
-    dialog.querySelector("[data-audio-queue-browse]").disabled = clearing;
     const suspended = Array.isArray(snapshot.suspended) ? snapshot.suspended : [];
     const listening = suspended.some(reason => ["live", "listening", "playback", "direct-playback"].includes(reason));
     dialog.querySelector("[data-audio-queue-suspended]").hidden = !listening || !jobs.some(job => ["queued", "preparing"].includes(job.status));
@@ -217,7 +203,7 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   }
 
   function close() {
-    if (!dialog || clearing) return;
+    if (!dialog) return;
     ++revision;
     unsubscribe?.();
     unsubscribe = null;
@@ -235,7 +221,6 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   }
 
   async function act(event) {
-    if (clearing) return;
     const button = event.target.closest("[data-audio-queue-action]");
     if (!button || button.disabled) return;
     const jobId = button.closest("[data-audio-job]")?.dataset.audioJob;
@@ -269,33 +254,6 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     }
   }
 
-  function cancelClear() {
-    if (clearing) return;
-    confirmingClear = false;
-    render();
-    const button = dialog?.querySelector("[data-audio-queue-clear]");
-    (button && !button.disabled ? button : dialog?.querySelector("[data-audio-queue-close]"))?.focus({ preventScroll: true });
-  }
-
-  async function clearAudio() {
-    if (!confirmingClear || clearing || pending.size || typeof queue.clearAll !== "function") return;
-    clearing = true;
-    notice = "";
-    render();
-    try {
-      await queue.clearAll();
-      notice = "Les audios ont été supprimés. Vos livres et vos voix sont conservés.";
-      confirmingClear = false;
-    } catch {
-      notice = "Impossible de supprimer les audios. Réessayez.";
-    } finally {
-      clearing = false;
-      snapshot = queue.snapshot();
-      render();
-      dialog?.querySelector(confirmingClear ? "[data-audio-queue-clear-cancel]" : "[data-audio-queue-close]").focus({ preventScroll: true });
-    }
-  }
-
   function open({ bookId = "" } = {}) {
     currentBookId = String(bookId || "");
     focusBookPending = Boolean(currentBookId);
@@ -308,7 +266,6 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     returnFocus = document.activeElement;
     snapshot = queue.snapshot();
     notice = "";
-    confirmingClear = false;
     loading = true;
     dialog = document.createElement("dialog");
     dialog.className = "audio-queue-dialog";
@@ -331,26 +288,21 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     help.innerHTML = `<summary>${copy("Préparation sur cet appareil")}</summary>`;
     foreground.replaceWith(help);
     help.append(foreground);
-    const storage = document.createElement("section");
-    storage.className = "audio-queue-storage";
+    const storage = document.createElement("button");
+    storage.className = "voice-text-button audio-queue-storage-link";
     storage.dataset.audioQueueStorage = "";
-    storage.setAttribute("aria-labelledby", "audio-queue-storage-title");
-    storage.innerHTML = `<div class="audio-queue-storage-heading"><div><h3 id="audio-queue-storage-title">${copy("Espace audio")}</h3><p data-audio-queue-size></p></div><button class="button secondary" data-audio-queue-clear>${copy("Vider les audios")}</button></div><div class="audio-queue-clear-confirmation" data-audio-queue-clear-confirmation hidden><p>${copy("Supprimer tous les audios et annuler les préparations ? L’écoute en cours s’arrêtera. Vos livres et les voix téléchargées seront conservés.")}</p><div class="audio-queue-clear-actions"><button class="button secondary" data-audio-queue-clear-cancel>${copy("Annuler")}</button><button class="button secondary" data-audio-queue-clear-confirm>${copy("Supprimer tous les audios")}</button></div><p role="status" data-audio-queue-clearing hidden>${copy("Suppression des audios…")}</p></div>`;
+    storage.innerHTML = `${glyph("storage", "▤")}${copy("Gérer le stockage audio")}`;
     help.after(storage);
-    storage.querySelector("[data-audio-queue-clear]").onclick = () => {
-      if (loading || clearing || pending.size || !(snapshot.jobs || []).length) return;
-      confirmingClear = true;
-      render();
-      storage.querySelector("[data-audio-queue-clear-cancel]").focus({ preventScroll: true });
-      storage.querySelector("[data-audio-queue-clear-confirmation]").scrollIntoView?.({ block: "nearest", behavior: "instant" });
+    storage.onclick = () => {
+      const bookId = currentBookId;
+      close();
+      onManageStorage({ bookId });
     };
-    storage.querySelector("[data-audio-queue-clear-cancel]").onclick = cancelClear;
-    storage.querySelector("[data-audio-queue-clear-confirm]").onclick = () => { void clearAudio(); };
     dialog.addEventListener("click", event => { void act(event); });
     // A delayed new job must not take focus after the reader starts interacting
     // with another part of the queue.
     for (const type of ["pointerdown", "keydown"]) dialog.addEventListener(type, () => { focusBookPending = false; });
-    dialog.addEventListener("cancel", event => { event.preventDefault(); if (confirmingClear) cancelClear(); else close(); });
+    dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
     dialog.addEventListener("close", event => { if (event.currentTarget === dialog) close(); });
     window.addEventListener("languagechange", localize);
     window.addEventListener("resize", measureHeader);

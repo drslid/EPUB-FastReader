@@ -254,5 +254,27 @@ export function createVoiceDownloads({
     finally { active = false; }
   }
 
-  return { status, list, download, ensure: download, removeVoice, remove: removeVoice, clearAll, legacyStatus, removeLegacy };
+  async function storageStatus() {
+    const cache = await openCache();
+    const prefix = new URL(VOICE_RUNTIME_PATH, voiceBaseUrl(baseUrl)).href;
+    const owners = new Map(VOICES.flatMap(voice => assets(voice.id).filter(asset => asset.voiceId === voice.id).map(asset => [asset.url, voice.id])));
+    const stored = new Map();
+    let sharedBytes = 0;
+    try {
+      for (const request of await cache.keys()) {
+        if (!request.url.startsWith(prefix)) continue;
+        const response = await cache.match(request.url);
+        const bytes = Number(response?.headers.get("Content-Length"));
+        if (!Number.isFinite(bytes) || bytes <= 0) continue;
+        const owner = owners.get(request.url);
+        if (owner) stored.set(owner, (stored.get(owner) || 0) + bytes);
+        else sharedBytes += bytes;
+      }
+      const unusedBytes = (await legacyStatus()).storedBytes;
+      const voices = VOICES.filter(voice => stored.has(voice.id)).map(voice => ({ id: voice.id, name: voice.name, language: voice.language, bytes: stored.get(voice.id) }));
+      return { voices, sharedBytes, unusedBytes, totalBytes: sharedBytes + unusedBytes + voices.reduce((sum, voice) => sum + voice.bytes, 0) };
+    } catch (error) { throw storageError(error); }
+  }
+
+  return { status, list, download, ensure: download, removeVoice, remove: removeVoice, clearAll, legacyStatus, removeLegacy, storageStatus };
 }

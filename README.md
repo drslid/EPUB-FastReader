@@ -51,9 +51,13 @@ FastReader prepares upcoming sentences while you listen and automatically uses p
 
 FastReader uses **Piper Medium**, with one selected voice for each language: **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. Each voice needs approximately **63 MB**, plus **30 MB of shared files** on first use. Adding a language downloads its own voice model; the app shows the actual download size before you start. New voice downloads require an internet connection.
 
-**Already prepared audio is kept when voices change.** You can still listen to saved passages from an earlier voice. To prepare the rest of an unfinished book, choose **Prepare with a new voice** in the audio queue; this creates a separate preparation and keeps the previous recordings. The voice chooser also lets you remove the old voice engine to free storage without deleting your books or prepared audio.
+**Manage your audio storage:** choose **Manage audio storage** from the voice chooser or the audio queue. See the space used by each book and downloaded voice, then choose what to remove:
 
-**Free up audio storage:** open **Audio preparation → Clear audio** to see the saved audio size and remove all generated recordings. Confirming stops listening and cancels queued preparations, including those in another open tab. Your EPUBs, reading progress and downloaded voices are kept; you can prepare books again later.
+- Delete a book’s audio to remove all its recordings and cancel its preparation.
+- Delete a voice to free its download while keeping prepared recordings.
+- **Delete all audio** keeps downloaded voices; **Free up all space** removes both audio and voice downloads.
+
+Every deletion asks for confirmation. Your EPUBs and reading progress are kept, and you can download voices and prepare audio again whenever you need them.
 
 **Prepare a book and listen before it finishes**
 

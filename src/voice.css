@@ -10,13 +10,11 @@
   box-shadow: 0 20px 80px #0003;
 }
 .voice-dialog::backdrop { background: #102322a6; }
-.voice-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.voice-dialog-heading > div { min-width: 0; }
+.voice-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .voice-dialog-heading h2 { margin: 7px 0 0; font-size: clamp(1.15rem, 4vw, 1.5rem); line-height: 1.25; overflow-wrap: anywhere; }
 .voice-dialog-heading .round-button { flex-shrink: 0; }
 .voice-eyebrow { color: var(--accent); font-size: .74rem; font-weight: 700; letter-spacing: .035em; }
 .voice-dialog p { font-size: .84rem; line-height: 1.6; color: var(--muted); }
-.voice-dialog #voice-dialog-intro { margin: 16px 0 22px; }
 .voice-language-label { display: block; margin: 0 0 8px; font-size: .82rem; font-weight: 700; }
 .voice-dialog select { display: block; width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-raised); color: var(--text); font: inherit; font-size: .92rem; }
 .voice-options { min-width: 0; margin: 14px 0 0; padding: 0; border: 0; }
@@ -38,14 +36,12 @@
 .voice-status:empty { display: none; }
 .voice-dialog .voice-status[data-error="true"] { color: var(--danger); }
 .voice-start { width: 100%; min-height: 48px; margin-top: 16px; justify-content: center; }
-.voice-prepare-option .voice-start { margin-top: 10px; white-space: normal; }
-.voice-prepare-option p { margin: 6px 2px 0; font-size: .74rem; }
+.voice-actions { display: grid; gap: 10px; margin-top: 16px; }
+.voice-actions .voice-start { margin: 0; white-space: normal; }
 .voice-text-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 6px 8px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: .78rem; cursor: pointer; text-underline-offset: 3px; }
 .voice-text-button:hover { text-decoration: underline; }
 .voice-text-button svg { width: 18px; height: 18px; flex-shrink: 0; }
-.voice-remove { display: flex; margin: 8px auto 0; color: var(--muted); }
-.voice-dialog .voice-privacy { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--border); font-size: .76rem; }
-.voice-dialog .voice-device-hint { margin: 6px 0 0; font-size: .74rem; }
+.voice-storage-link { display: flex; margin: 12px auto 0; color: var(--muted); }
 .voice-download-progress { margin-top: 20px; }
 .voice-download-progress > strong { display: block; font-size: .82rem; }
 .voice-download-progress progress { display: block; width: 100%; height: 9px; margin-top: 12px; border: 0; border-radius: 8px; accent-color: var(--accent); background: var(--surface-raised); overflow: hidden; }

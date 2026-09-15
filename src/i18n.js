@@ -6,6 +6,7 @@ import sourceSettings from "./locales/source-settings.js";
 import loyalSearch from "./locales/loyal-search.js";
 import voice from "./locales/voice.js";
 import audioQueue from "./locales/audio-queue.js";
+import audioStorage from "./locales/audio-storage.js";
 
 export const languages = Object.freeze([
   { code: "fr", name: "Français", flag: "🇫🇷" },
@@ -29,7 +30,7 @@ export function setLocale(value) {
 // Catalogs contain UI copy only. Book text, titles and personal notes never pass
 // through this function. HTML callers escape user data before interpolation.
 const dictionaries = Object.fromEntries(languages.map(({ code }) => [code, {
-  ...system[code], ...views[code], ...main[code], ...sources[code], ...sourceSettings[code], ...loyalSearch[code], ...voice[code], ...audioQueue[code],
+  ...system[code], ...views[code], ...main[code], ...sources[code], ...sourceSettings[code], ...loyalSearch[code], ...voice[code], ...audioQueue[code], ...audioStorage[code],
 }]));
 export function translate(language, source, parameters = {}) {
   const dictionary = dictionaries[language];
