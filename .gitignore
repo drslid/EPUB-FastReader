@@ -1,19 +1,42 @@
+# Dependencies, builds and local caches
 node_modules/
 .cache/
+.npm/
+.vite/
+.vitest/
 dist/
 dist-pages/
+
+# Test and coverage output (keep the tests themselves in Git)
 coverage/
 playwright-report/
 test-results/
 test-results-*/
+playwright/.auth/
+
+# Local configuration and credentials
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Editor, operating system and script-generated files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 *.log
 .DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
 
 # Local Cloudflare build and runtime state
 .wrangler/
 
 # Reproducible optional speech runtime, generated from pinned dependencies.
+# Downloaded voice models and benchmark audio belong in .cache/.
 public/voice-runtime/

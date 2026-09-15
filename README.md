@@ -1,6 +1,6 @@
 # FastReader
 
-**Read faster. Finish the books you start.** FastReader turns your EPUBs into a focused reading experience: one word at a time, at the pace you choose. Make progress through your reading list on your phone, tablet or computer.
+**Read faster. Finish the books you start.** FastReader turns your EPUBs into a focused reading experience: one word at a time, at the pace you choose. Switch to **Listen** to hear your book read aloud, with a voice that runs on your device. Read or listen on your phone, tablet or computer.
 
 ## [Start reading →](https://drslid.github.io/EPUB-FastReader/en.html)
 
@@ -8,16 +8,18 @@
 
 [🇬🇧 English](https://drslid.github.io/EPUB-FastReader/en.html) · [🇫🇷 Français](https://drslid.github.io/EPUB-FastReader/?lang=fr) · [🇪🇸 Español](https://drslid.github.io/EPUB-FastReader/es.html) · [🇮🇹 Italiano](https://drslid.github.io/EPUB-FastReader/it.html) · [🇩🇪 Deutsch](https://drslid.github.io/EPUB-FastReader/de.html) · [🇵🇹 Português](https://drslid.github.io/EPUB-FastReader/pt.html)
 
-[![FastReader showing Word by word reading controls and an excerpt](docs/images/fastreader-reader.png)](https://drslid.github.io/EPUB-FastReader/en.html)
+[![FastReader's reader with Word by word, Focus, Classic and Listen modes, playback controls and a book excerpt](docs/images/fastreader-reader.png)](https://drslid.github.io/EPUB-FastReader/en.html)
 
-*Word by word mode, shown with the built-in demonstration.*
+*Four modes within reach: Word by word, Focus, Classic and Listen. Shown with the built-in English demonstration.*
+
+[Explore the reading modes](#four-ways-to-keep-reading) · [See how listening works](#listen-with-a-voice-on-your-device) · [Find a book](#find-your-next-book)
 
 ## From your reading list to the last page
 
 1. **Try it:** open FastReader and tap **Try the reader** for an instant demonstration.
 2. **Choose your book:** browse **Discover**, search by title or author, or tap **Import an EPUB** to open a file you already have.
 3. **Start reading:** tap **Read** on a supported catalogue result. The book opens in the reader and joins **My library** automatically.
-4. **Find your pace:** press play in **Word by word**, adjust the speed, and pause or go back whenever you need to.
+4. **Find your pace:** press play in **Word by word**, adjust the speed, or choose **Listen** to have the book read aloud.
 5. **Pick up later:** open the book from **My library** to return to your reading position.
 
 Search looks through your own books and the catalogues together. Your books come first; catalogue results arrive as each source responds. All book languages are included by default, and you can narrow the search with the language and source filters.
@@ -39,21 +41,23 @@ The aim is to help you spend more time reading and make steady progress. Choose 
 
 **Start listening while the next passages prepare, or save a whole book’s audio for later.** Listening is optional, free, and needs no account, subscription or paid voice service. Your book text stays on your device.
 
+[![FastReader in Listen mode, showing the spoken passage and audio playback controls](docs/images/fastreader-listen.png)](https://drslid.github.io/EPUB-FastReader/en.html)
+
+*Listen to the English demonstration with LJ Speech, follow the current passage and adjust the listening speed.*
+
 **Start from your current passage**
 
 1. Open a book and select **Listen**, then choose the language of its text and a voice.
 2. On first use, choose **Download and listen**. The app shows the download size and progress; you can cancel and resume without losing completed files. With an installed voice, choose **Start listening**.
 3. Follow the text while listening. Use **Pause**, the passage controls and the listening speed slider whenever you need them.
 
-Selecting an installed voice quietly prepares the first passage while you choose, unless another book is already being prepared. Nothing is spoken before you press **Start listening**. The player then shows the current preparation stage, the number of sentences ready and the seconds of audio available. Listening starts automatically as soon as the first complete sentence is ready.
+The player shows preparation progress and starts speaking as soon as the first complete sentence is ready. FastReader prepares upcoming sentences while you listen. On slower devices, an initial wait or pauses between passages are possible; preparing the whole book first avoids these generation waits.
 
 Long web addresses are read as their domain, and invisible formatting characters are cleaned up for speech. If a passage still cannot be spoken, FastReader skips it, tells you how many passages were skipped, and continues. Your book’s text stays unchanged. Interrupted preparations resume from the saved audio instead of starting over.
 
-FastReader prepares upcoming sentences while you listen and automatically uses parallel processing on capable desktop computers. Longer sentences stay together and may take more time to prepare. An initial wait or pauses between passages are still possible, especially on slower devices. Preparing the whole book first avoids these generation waits during listening.
+Choose from six voices: **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. Each voice needs approximately **63 MB**, plus **30 MB of shared files** on first use. The app shows the download size before you start. Download a voice while connected to the internet, then use it offline. These are the Piper Medium voices currently available in FastReader.
 
-FastReader uses **Piper Medium**, with one selected voice for each language: **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. Each voice needs approximately **63 MB**, plus **30 MB of shared files** on first use. Adding a language downloads its own voice model; the app shows the actual download size before you start. New voice downloads require an internet connection.
-
-**Manage your audio storage:** choose **Manage audio storage** from the voice chooser or the audio queue. See the space used by each book and downloaded voice, then choose what to remove:
+**Free up space:** choose **Manage audio storage** from the voice chooser or the audio queue. See the space used by each book and downloaded voice, then choose what to remove:
 
 - Delete a book’s audio to remove all its recordings and cancel its preparation.
 - Delete a voice to free its download while keeping prepared recordings.
