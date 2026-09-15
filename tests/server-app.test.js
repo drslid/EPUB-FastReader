@@ -36,14 +36,14 @@ function request(pathname, method = "GET") {
 beforeAll(async () => {
   temporary = await mkdtemp(path.join(os.tmpdir(), "fastreader-server-"));
   const root = path.join(temporary, "public");
-  for (const directory of [root, "assets", "catalog", "books", "voice-runtime/v1/vendor"].map((name, index) => index ? path.join(root, name) : name))
+  for (const directory of [root, "assets", "catalog", "books", "voice-runtime/v2/vendor"].map((name, index) => index ? path.join(root, name) : name))
     await mkdir(directory, { recursive: true });
   await Promise.all([
     writeFile(path.join(root, "index.html"), "<!doctype html><title>FastReader fixture</title>"),
     writeFile(path.join(root, "assets/main-abcdef12.js"), "export const reader = true;"),
     writeFile(path.join(root, "assets/main-abcdef12.css"), "body { color: #eee; }"),
-    writeFile(path.join(root, "voice-runtime/v1/vendor/runtime.mjs"), "export const runtime = true;"),
-    writeFile(path.join(root, "voice-runtime/v1/vendor/runtime.wasm"), Buffer.from([0, 97, 115, 109, 1, 0, 0, 0])),
+    writeFile(path.join(root, "voice-runtime/v2/vendor/runtime.mjs"), "export const runtime = true;"),
+    writeFile(path.join(root, "voice-runtime/v2/vendor/runtime.wasm"), Buffer.from([0, 97, 115, 109, 1, 0, 0, 0])),
     writeFile(path.join(root, "catalog/fr-1-abcdef123456.json"), '[{"title":"Candide"}]'),
     writeFile(path.join(root, "books/candide.epub"), Buffer.from([0x50, 0x4b, 3, 4, 0, 1, 2, 3])),
     writeFile(path.join(root, "sw.js"), 'self.addEventListener("fetch", () => {});'),
@@ -85,8 +85,8 @@ describe("production HTTP server", () => {
   it.each([
     ["/assets/main-abcdef12.js", "text/javascript"],
     ["/assets/main-abcdef12.css", "text/css"],
-    ["/voice-runtime/v1/vendor/runtime.mjs", "text/javascript"],
-    ["/voice-runtime/v1/vendor/runtime.wasm", "application/wasm"],
+    ["/voice-runtime/v2/vendor/runtime.mjs", "text/javascript"],
+    ["/voice-runtime/v2/vendor/runtime.wasm", "application/wasm"],
     ["/catalog/fr-1-abcdef123456.json", "application/json"],
     ["/books/candide.epub", "application/epub+zip"],
     ["/manifest.webmanifest", "application/manifest+json"],

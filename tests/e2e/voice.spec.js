@@ -13,7 +13,7 @@ async function openBook(page, language = "fr") {
 
 // Deterministic UI fixtures only: synthesis and already-verified cache entries
 // are mocked. The real model/browser/offline checks are documented separately.
-async function readyVoice(page, voiceId = "ff_siwis") {
+async function readyVoice(page, voiceId = "piper-fr_FR-siwis-medium") {
   await page.evaluate(async ({ assets, cacheName }) => {
     const cache = await caches.open(cacheName);
     for (const asset of assets) await cache.put(asset.url, new Response("test fixture", { headers: {
@@ -58,8 +58,8 @@ test("voice is optional, language follows the book, and downloading needs a conn
   const dialog = page.getByRole("dialog");
   await expect(dialog.locator("[data-voice-language]")).toHaveValue("es");
   await expect(dialog.locator("[data-voice-start]")).toBeEnabled();
-  await expect(dialog).toContainText("Dora");
-  await expect(dialog).toContainText("117");
+  await expect(dialog).toContainText("Davefx");
+  await expect(dialog.locator("[data-voice-size]")).toContainText("Premier téléchargement");
   expect(requests).toEqual([]);
   await context.setOffline(true);
   await expect(dialog.locator("[data-voice-start]")).toBeDisabled();
@@ -69,13 +69,13 @@ test("voice is optional, language follows the book, and downloading needs a conn
   expect(requests).toEqual([]);
 });
 
-test("unsupported German stays explicit and the chooser fits a small phone", async ({ page }) => {
+test("German is available and the voice chooser fits a small phone", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await openBook(page, "de");
   await page.getByRole("button", { name: "Écouter", exact: true }).click();
   await expect(page.locator("[data-voice-language]")).toHaveValue("de");
-  await expect(page.locator("[data-voice-empty]")).toContainText("Aucune voix");
-  await expect(page.locator("[data-voice-start]")).toBeDisabled();
+  await expect(page.locator("[data-voice-list]")).toContainText("Thorsten");
+  await expect(page.locator("[data-voice-start]")).toBeEnabled();
   await page.locator("[data-voice-language]").selectOption("fr");
   await expect(page.locator("[data-voice-start]")).toBeEnabled();
   expect(await page.locator("dialog").evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -167,11 +167,21 @@ test("listening continues to the next chapter and marks the finished book", asyn
   await readyVoice(page);
   await page.getByRole("button", { name: "Écouter", exact: true }).click();
   await page.locator("[data-voice-start]").click();
-  for (let i = 0; i < 8 && await page.locator("#voice-controls").count(); i++) {
-    await expect(page.locator("[data-voice-action=toggle]")).toContainText("Pause");
-    const oldSource = await page.evaluate(() => window.__voiceAudio.src);
-    await page.evaluate(() => window.__voiceAudio.dispatchEvent(new Event("ended")));
-    await expect.poll(() => page.evaluate(() => window.__voiceAudio.src)).not.toBe(oldSource);
+  for (let i = 0; i < 8; i++) {
+    // Pause is also offered while loading. Dispatch a media-ended event only
+    // after actual playback starts, or stop once the last chapter is finished.
+    await expect.poll(() => page.evaluate(() => location.hash === "#library" || Boolean(
+      document.querySelector("#voice-controls")?.dataset.status === "playing"
+      && window.__voiceAudio.src && !window.__voiceAudio.paused,
+    ))).toBe(true);
+    if (new URL(page.url()).hash === "#library") break;
+    const oldSource = await page.evaluate(() => {
+      const audio = window.__voiceAudio, source = audio.src;
+      audio.dispatchEvent(new Event("ended"));
+      return source;
+    });
+    expect(oldSource).toMatch(/^blob:/);
+    await expect.poll(() => page.evaluate(source => location.hash === "#library" || window.__voiceAudio.src !== source, oldSource)).toBe(true);
   }
   await expect(page).toHaveURL(/#library$/);
   await expect.poll(async () => (await storedRows(page, "positions"))[0]?.completed).toBe(true);

@@ -5,7 +5,7 @@ import "./audio-queue.css";
 const escape = (value) => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 const statuses = {
   queued: "En attente", preparing: "Préparation en cours", paused: "En pause",
-  ready: "Prêt à écouter", error: "Préparation interrompue",
+  ready: "Prêt à écouter", error: "Préparation interrompue", unavailable: "Voix précédente",
 };
 
 export function canListenToAudioJob(job) {
@@ -13,6 +13,7 @@ export function canListenToAudioJob(job) {
 }
 
 export function audioQueueErrorMessage(error) {
+  if (error?.code === "VOICE_RETIRED") return t("Cette voix a été remplacée. Les passages enregistrés restent disponibles. Choisissez une nouvelle voix pour préparer le livre.");
   if (error?.code === "VOICE_EMPTY_TEXT") return t("Ce livre ne contient pas de texte à écouter.");
   if (error?.code === "COORDINATION_UNAVAILABLE") return t("Ce navigateur ne permet pas de préparer les livres en audio. Essayez un navigateur récent.");
   if (["STORAGE_FULL", "QuotaExceededError"].includes(error?.code) || error?.name === "QuotaExceededError") return t("L’espace disponible est insuffisant. Supprimez un audio préparé ou libérez du stockage, puis reprenez.");
@@ -24,20 +25,22 @@ export function audioQueueJobMarkup(job, { icon = () => "", busy = false, curren
   const glyph = (name, fallback) => icon(name) || `<span aria-hidden="true">${fallback}</span>`;
   const percent = Math.min(100, Math.max(0, Math.floor((Number(job.progress) || 0) * 100)));
   const ready = job.status === "ready";
+  const unavailable = job.canPrepare === false && !ready || job.status === "unavailable";
   const listenable = canListenToAudioJob(job);
   let language = job.voice?.language || "";
   try { if (language) language = new Intl.DisplayNames(locale, { type: "language" }).of(language); } catch { /* Keep an unknown language code readable. */ }
   const voiceLabel = [job.voice?.name || job.voice?.id, language].filter(Boolean).join(" · ");
   const text = (source, params) => escape(t(source, params));
-  const partialHint = !ready && listenable ? `<p class="audio-job-partial">${text("Écoutez les passages déjà prêts. Une attente est possible si vous rattrapez la préparation.")}</p>` : "";
+  const partialHint = unavailable ? `<p class="audio-job-partial">${text("Cette voix a été remplacée. Les passages enregistrés restent disponibles. Choisissez une nouvelle voix pour préparer le livre.")}</p>`
+    : !ready && listenable ? `<p class="audio-job-partial">${text("Écoutez les passages déjà prêts. Une attente est possible si vous rattrapez la préparation.")}</p>` : "";
   const button = (action, label, symbol, primary = false) => `<button class="button ${primary ? "primary" : "secondary"}" data-audio-queue-action="${action}" ${busy ? 'aria-disabled="true"' : ""}>${symbol}<span>${text(label)}</span></button>`;
   let actions = "";
   if (listenable) actions += button("listen", ready ? "Lancer l’écoute" : "Écouter le début", glyph("play", "▶"), true);
-  if (!ready && ["paused", "error"].includes(job.status)) actions += button("resume", job.status === "error" ? "Réessayer" : "Reprendre", glyph("play", "▶"), !listenable);
-  else if (!ready) actions += button("pause", "Mettre en pause", glyph("pause", "Ⅱ"));
+  if (!ready && !unavailable && ["paused", "error"].includes(job.status)) actions += button("resume", job.status === "error" ? "Réessayer" : "Reprendre", glyph("play", "▶"), !listenable);
+  else if (!ready && !unavailable) actions += button("pause", "Mettre en pause", glyph("pause", "Ⅱ"));
   actions += button(ready ? "remove" : "cancel", ready ? "Supprimer l’audio" : "Annuler la préparation", glyph("close", "×"));
-  const chooseVoice = canChooseVoice ? `<button class="voice-text-button audio-job-alternate" data-audio-queue-action="choose-voice" ${busy ? 'aria-disabled="true"' : ""}>${glyph("volume", "♪")}<span>${text("Préparer avec une autre voix")}</span></button>` : "";
-  return `<article class="audio-queue-job${currentBook ? " is-current-book" : ""}" data-audio-job="${escape(job.id)}" data-audio-book="${escape(job.bookId)}" data-status="${escape(job.status)}" aria-busy="${busy}"><div class="audio-job-heading"><span class="audio-job-icon" aria-hidden="true">${glyph(ready ? "check" : "volume", ready ? "✓" : "♪")}</span><div><h3>${escape(job.title)}</h3><p class="audio-job-voice">${escape(voiceLabel)}</p></div><strong class="audio-job-percent">${escape(formatNumber(ready ? 100 : percent))}%</strong></div><p class="audio-job-status" tabindex="-1"><span class="sr-only">${escape(job.title)} — </span>${text(statuses[job.status] || "En attente")}</p><progress max="100" value="${ready ? 100 : percent}" aria-label="${escape(job.title)} — ${text(statuses[job.status] || "En attente")}"></progress><div class="audio-job-details"><span>${text("{completed} sur {total} chapitres préparés", { completed: formatNumber(job.completedChapters || 0), total: formatNumber(job.totalChapters || 0) })}</span><span>${text("{completed} sur {total} passages", { completed: formatNumber(job.completedSegments || 0), total: formatNumber(job.totalSegments || 0) })}</span>${job.audioBytes > 0 ? `<span>${text("Audio conservé : {size}", { size: formatVoiceBytes(job.audioBytes) })}</span>` : ""}</div>${job.error ? `<p class="audio-job-error">${escape(audioQueueErrorMessage(job.error))}</p>` : ""}${partialHint}<div class="audio-job-actions">${actions}</div>${chooseVoice}</article>`;
+  const chooseVoice = canChooseVoice ? `<button class="voice-text-button audio-job-alternate" data-audio-queue-action="choose-voice" ${busy ? 'aria-disabled="true"' : ""}>${glyph("volume", "♪")}<span>${text(unavailable ? "Préparer avec une nouvelle voix" : "Préparer avec une autre voix")}</span></button>` : "";
+  return `<article class="audio-queue-job${currentBook ? " is-current-book" : ""}" data-audio-job="${escape(job.id)}" data-audio-book="${escape(job.bookId)}" data-status="${escape(job.status)}" aria-busy="${busy}"><div class="audio-job-heading"><span class="audio-job-icon" aria-hidden="true">${glyph(ready ? "check" : "volume", ready ? "✓" : "♪")}</span><div><h3>${escape(job.title)}</h3><p class="audio-job-voice">${escape(voiceLabel)}</p></div><strong class="audio-job-percent">${escape(formatNumber(ready ? 100 : percent))}%</strong></div><p class="audio-job-status" tabindex="-1"><span class="sr-only">${escape(job.title)} — </span>${text(statuses[job.status] || "En attente")}</p><progress max="100" value="${ready ? 100 : percent}" aria-label="${escape(job.title)} — ${text(statuses[job.status] || "En attente")}"></progress><div class="audio-job-details"><span>${text("{completed} sur {total} chapitres préparés", { completed: formatNumber(job.completedChapters || 0), total: formatNumber(job.totalChapters || 0) })}</span><span>${text("{completed} sur {total} passages", { completed: formatNumber(job.completedSegments || 0), total: formatNumber(job.totalSegments || 0) })}</span>${job.audioBytes > 0 ? `<span>${text("Audio conservé : {size}", { size: formatVoiceBytes(job.audioBytes) })}</span>` : ""}</div>${job.error && !unavailable ? `<p class="audio-job-error">${escape(audioQueueErrorMessage(job.error))}</p>` : ""}${partialHint}<div class="audio-job-actions">${actions}</div>${chooseVoice}</article>`;
 }
 
 function updateAttributes(current, next) {
@@ -119,6 +122,8 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   let currentBookId = "";
   let focusBookPending = false;
   let headerObserver = null;
+  let confirmingClear = false;
+  let clearing = false;
   const pending = new Set();
   const glyph = (name, fallback) => icon(name) || `<span aria-hidden="true">${fallback}</span>`;
   const copy = (source) => `<span data-audio-queue-copy="${escape(source)}">${escape(t(source))}</span>`;
@@ -151,7 +156,7 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     const jobs = snapshot.jobs || [];
     list.setAttribute("aria-busy", String(loading));
     const template = document.createElement("template");
-    template.innerHTML = jobs.map(job => audioQueueJobMarkup(job, { icon, busy: pending.has(job.id), currentBook: Boolean(currentBookId && job.bookId === currentBookId), canChooseVoice: typeof onChooseVoice === "function" })).join("");
+    template.innerHTML = jobs.map(job => audioQueueJobMarkup(job, { icon, busy: clearing || pending.has(job.id), currentBook: Boolean(currentBookId && job.bookId === currentBookId), canChooseVoice: typeof onChooseVoice === "function" })).join("");
     const existingRows = new Map([...list.children].map(row => [row.dataset.audioJob, row]));
     const nextRows = [...template.content.children];
     const nextIds = new Set(nextRows.map(row => row.dataset.audioJob));
@@ -179,6 +184,19 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     dialog.querySelector("[data-audio-queue-loading]").hidden = !loading;
     const status = dialog.querySelector("[data-audio-queue-notice]");
     status.textContent = notice ? t(notice) : "";
+    status.dataset.error = String(notice !== "Les audios ont été supprimés. Vos livres et vos voix sont conservés.");
+    const storage = dialog.querySelector("[data-audio-queue-storage]");
+    storage.hidden = typeof queue.clearAll !== "function";
+    storage.setAttribute("aria-busy", String(clearing));
+    const bytes = jobs.reduce((sum, job) => sum + Math.max(0, Number(job.audioBytes) || 0), 0);
+    dialog.querySelector("[data-audio-queue-size]").textContent = t("Audio généré : {size}", { size: formatVoiceBytes(bytes) });
+    dialog.querySelector("[data-audio-queue-clear]").disabled = loading || clearing || confirmingClear || pending.size > 0 || jobs.length === 0;
+    dialog.querySelector("[data-audio-queue-clear-confirmation]").hidden = !confirmingClear;
+    dialog.querySelector("[data-audio-queue-clear-confirm]").disabled = clearing || pending.size > 0;
+    dialog.querySelector("[data-audio-queue-clear-cancel]").disabled = clearing;
+    dialog.querySelector("[data-audio-queue-clearing]").hidden = !clearing;
+    dialog.querySelector("[data-audio-queue-close]").disabled = clearing;
+    dialog.querySelector("[data-audio-queue-browse]").disabled = clearing;
     const suspended = Array.isArray(snapshot.suspended) ? snapshot.suspended : [];
     const listening = suspended.some(reason => ["live", "listening", "playback", "direct-playback"].includes(reason));
     dialog.querySelector("[data-audio-queue-suspended]").hidden = !listening || !jobs.some(job => ["queued", "preparing"].includes(job.status));
@@ -194,7 +212,7 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   }
 
   function close() {
-    if (!dialog) return;
+    if (!dialog || clearing) return;
     ++revision;
     unsubscribe?.();
     unsubscribe = null;
@@ -212,6 +230,7 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   }
 
   async function act(event) {
+    if (clearing) return;
     const button = event.target.closest("[data-audio-queue-action]");
     if (!button || button.disabled) return;
     const jobId = button.closest("[data-audio-job]")?.dataset.audioJob;
@@ -245,6 +264,33 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     }
   }
 
+  function cancelClear() {
+    if (clearing) return;
+    confirmingClear = false;
+    render();
+    const button = dialog?.querySelector("[data-audio-queue-clear]");
+    (button && !button.disabled ? button : dialog?.querySelector("[data-audio-queue-close]"))?.focus({ preventScroll: true });
+  }
+
+  async function clearAudio() {
+    if (!confirmingClear || clearing || pending.size || typeof queue.clearAll !== "function") return;
+    clearing = true;
+    notice = "";
+    render();
+    try {
+      await queue.clearAll();
+      notice = "Les audios ont été supprimés. Vos livres et vos voix sont conservés.";
+      confirmingClear = false;
+    } catch {
+      notice = "Impossible de supprimer les audios. Réessayez.";
+    } finally {
+      clearing = false;
+      snapshot = queue.snapshot();
+      render();
+      dialog?.querySelector(confirmingClear ? "[data-audio-queue-clear-cancel]" : "[data-audio-queue-close]").focus({ preventScroll: true });
+    }
+  }
+
   function open({ bookId = "" } = {}) {
     currentBookId = String(bookId || "");
     focusBookPending = Boolean(currentBookId);
@@ -257,6 +303,7 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     returnFocus = document.activeElement;
     snapshot = queue.snapshot();
     notice = "";
+    confirmingClear = false;
     loading = true;
     dialog = document.createElement("dialog");
     dialog.className = "audio-queue-dialog";
@@ -279,11 +326,26 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
     help.innerHTML = `<summary>${copy("Préparation sur cet appareil")}</summary>`;
     foreground.replaceWith(help);
     help.append(foreground);
+    const storage = document.createElement("section");
+    storage.className = "audio-queue-storage";
+    storage.dataset.audioQueueStorage = "";
+    storage.setAttribute("aria-labelledby", "audio-queue-storage-title");
+    storage.innerHTML = `<div class="audio-queue-storage-heading"><div><h3 id="audio-queue-storage-title">${copy("Espace audio")}</h3><p data-audio-queue-size></p></div><button class="button secondary" data-audio-queue-clear>${copy("Vider les audios")}</button></div><div class="audio-queue-clear-confirmation" data-audio-queue-clear-confirmation hidden><p>${copy("Supprimer tous les audios et annuler les préparations ? L’écoute en cours s’arrêtera. Vos livres et les voix téléchargées seront conservés.")}</p><div class="audio-queue-clear-actions"><button class="button secondary" data-audio-queue-clear-cancel>${copy("Annuler")}</button><button class="button secondary" data-audio-queue-clear-confirm>${copy("Supprimer tous les audios")}</button></div><p role="status" data-audio-queue-clearing hidden>${copy("Suppression des audios…")}</p></div>`;
+    help.after(storage);
+    storage.querySelector("[data-audio-queue-clear]").onclick = () => {
+      if (loading || clearing || pending.size || !(snapshot.jobs || []).length) return;
+      confirmingClear = true;
+      render();
+      storage.querySelector("[data-audio-queue-clear-cancel]").focus({ preventScroll: true });
+      storage.querySelector("[data-audio-queue-clear-confirmation]").scrollIntoView?.({ block: "nearest", behavior: "instant" });
+    };
+    storage.querySelector("[data-audio-queue-clear-cancel]").onclick = cancelClear;
+    storage.querySelector("[data-audio-queue-clear-confirm]").onclick = () => { void clearAudio(); };
     dialog.addEventListener("click", event => { void act(event); });
     // A delayed new job must not take focus after the reader starts interacting
     // with another part of the queue.
     for (const type of ["pointerdown", "keydown"]) dialog.addEventListener(type, () => { focusBookPending = false; });
-    dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
+    dialog.addEventListener("cancel", event => { event.preventDefault(); if (confirmingClear) cancelClear(); else close(); });
     dialog.addEventListener("close", event => { if (event.currentTarget === dialog) close(); });
     window.addEventListener("languagechange", localize);
     window.addEventListener("resize", measureHeader);

@@ -34,9 +34,10 @@ describe('local speech compute policy', () => {
       expect(voiceComputePolicy({ navigator, crossOriginIsolated: false }).concurrency).toBe(1);
     }
   });
-  it('allows capable Android devices but keeps smaller and unknown mobiles portable', () => {
+  it('keeps phones and tablets on one session even with ample memory and isolation', () => {
     const android = { ...capable, userAgent: 'Android Mobile' };
-    expect(voiceComputePolicy({ navigator: android }).concurrency).toBe(2);
+    expect(voiceComputePolicy({ navigator: android, crossOriginIsolated: true })).toEqual({ concurrency: 1, wasmThreads: 1, mode: 'portable' });
+    expect(voiceComputePolicy({ navigator: android }).concurrency).toBe(1);
     expect(voiceComputePolicy({ navigator: { ...android, hardwareConcurrency: 4 } }).concurrency).toBe(1);
     expect(voiceComputePolicy({ navigator: { hardwareConcurrency: 8, userAgent: 'iPhone' } }).concurrency).toBe(1);
     expect(voiceComputePolicy({ navigator: { ...capable, hardwareConcurrency: 4, platform: 'MacIntel', maxTouchPoints: 5 } }).concurrency).toBe(1);

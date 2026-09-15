@@ -29,15 +29,12 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
-    "@huggingface/transformers": "3.8.1",
+    "@diffusionstudio/piper-wasm": "1.0.0",
     "@playwright/test": "1.63.0",
-    "ephone": "1.0.2",
     "fake-indexeddb": "6.2.5",
     "jsdom": "29.1.1",
+    "onnxruntime-web": "1.22.0-dev.20250409-89f8206ba4",
     "vite": "8.3.0",
     "vitest": "5.0.0"
-  },
-  "overrides": {
-    "sharp": "0.35.4"
   }
 }

@@ -51,8 +51,8 @@ describe("optional local speech engine", () => {
     const worker = { postMessage: vi.fn(), terminate: vi.fn() };
     const workerFactory = vi.fn(() => worker);
     const engine = createVoiceEngine({ baseUrl: "/EPUB-FastReader/", workerFactory });
-    const loading = engine.load({ id: "ff_siwis" });
-    expect(workerFactory.mock.calls[0][0].pathname).toBe("/EPUB-FastReader/voice-runtime/v1/worker.js");
+    const loading = engine.load({ id: "piper-fr_FR-siwis-medium" });
+    expect(workerFactory.mock.calls[0][0].pathname).toBe("/EPUB-FastReader/voice-runtime/v2/worker.js");
     worker.onmessage({ data: { id: 1, result: { ready: true } } });
     await loading;
     engine.dispose();
@@ -61,8 +61,8 @@ describe("optional local speech engine", () => {
   it("does not create a worker or download anything before a voice is requested", async () => {
     const { engine, workers, workerFactory } = setup();
     expect(workerFactory).not.toHaveBeenCalled();
-    const loading = engine.load({ id: "ff_siwis" });
-    expect(workers[0].url.href).toBe("https://example.test/EPUB-FastReader/voice-runtime/v1/worker.js");
+    const loading = engine.load({ id: "piper-fr_FR-siwis-medium" });
+    expect(workers[0].url.href).toBe("https://example.test/EPUB-FastReader/voice-runtime/v2/worker.js");
     workers[0].onmessage({ data: { id: 1, result: { ready: true } } });
     await expect(loading).resolves.toEqual({ ready: true });
     engine.dispose();
@@ -70,8 +70,8 @@ describe("optional local speech engine", () => {
 
   it("returns playable WAV blobs and preserves the actual generated duration", async () => {
     const { engine, workers, onProgress } = setup();
-    const generating = engine.synthesize("Bonjour.", { voice: { id: "ff_siwis" }, speed: 1.25 });
-    expect(workers[0].postMessage).toHaveBeenCalledWith({ id: 1, type: "synthesize", text: "Bonjour.", voice: { id: "ff_siwis" }, speed: 1.25 });
+    const generating = engine.synthesize("Bonjour.", { voice: { id: "piper-fr_FR-siwis-medium" }, speed: 1.25 });
+    expect(workers[0].postMessage).toHaveBeenCalledWith({ id: 1, type: "synthesize", text: "Bonjour.", voice: { id: "piper-fr_FR-siwis-medium" }, speed: 1.25 });
     workers[0].onmessage({ data: { type: "progress", progress: { status: "loading" } } });
     workers[0].onmessage({ data: { id: 1, result: { wav: new ArrayBuffer(48), duration: 0.25 } } });
     const { blob, duration } = await generating;
@@ -85,13 +85,13 @@ describe("optional local speech engine", () => {
   it("aborts running and queued synthesis, releases WASM and can start again", async () => {
     const { engine, workers } = setup();
     const controller = new AbortController();
-    const first = engine.synthesize("Un passage.", { voice: { id: "ff_siwis" }, signal: controller.signal });
-    const queued = engine.synthesize("La suite.", { voice: { id: "ff_siwis" } });
+    const first = engine.synthesize("Un passage.", { voice: { id: "piper-fr_FR-siwis-medium" }, signal: controller.signal });
+    const queued = engine.synthesize("La suite.", { voice: { id: "piper-fr_FR-siwis-medium" } });
     const results = Promise.allSettled([first, queued]);
     controller.abort();
     for (const result of await results) expect(result.reason.name).toBe("AbortError");
     expect(workers[0].terminate).toHaveBeenCalledOnce();
-    const restarted = engine.load({ id: "af_heart" });
+    const restarted = engine.load({ id: "piper-en_US-ljspeech-medium" });
     expect(workers).toHaveLength(2);
     // Late responses from the terminated worker cannot resolve the new request.
     workers[0].onmessage({ data: { id: 1, result: { wav: new ArrayBuffer(2), duration: 10 } } });
@@ -105,27 +105,27 @@ describe("optional local speech engine", () => {
     const { engine, workerFactory } = setup();
     const controller = new AbortController();
     controller.abort();
-    await expect(engine.load({ id: "ff_siwis" }, { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    await expect(engine.load({ id: "piper-fr_FR-siwis-medium" }, { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
     expect(workerFactory).not.toHaveBeenCalled();
   });
 
-  it("assembles a complete sentence after the worker token limit, with one sequential worker", async () => {
+  it.each([22_050, 24_000])("assembles a complete sentence after the worker token limit at %i Hz", async sampleRate => {
     const text = "Une première proposition assez longue, puis une deuxième proposition complète.";
     const completed = [];
     const { engine, calls, workerFactory } = automatedEngine(message => {
       if (message.text === text) return { error: { code: "VOICE_TEXT_TOO_LONG" } };
       completed.push(message.text);
-      return { result: { wav: wav([completed.length, -completed.length]), duration: 2 / 24_000 } };
+      return { result: { wav: wav([completed.length, -completed.length], sampleRate), duration: 2 / sampleRate } };
     });
-    const result = await engine.synthesize(text, { voice: { id: "ff_siwis" }, speed: 1.1 });
+    const result = await engine.synthesize(text, { voice: { id: "piper-fr_FR-siwis-medium" }, speed: 1.1 });
     expect(completed).toHaveLength(2);
     expect(completed.join(" ")).toBe(text);
     expect(calls).toHaveLength(3);
-    expect(calls.every(call => call.voice.id === "ff_siwis" && call.speed === 1.1)).toBe(true);
+    expect(calls.every(call => call.voice.id === "piper-fr_FR-siwis-medium" && call.speed === 1.1)).toBe(true);
     expect(workerFactory).toHaveBeenCalledOnce();
     const buffer = await result.blob.arrayBuffer();
     expect([...new Int16Array(buffer, 44)]).toEqual([1, -1, 2, -2]);
-    expect(result.duration).toBe(4 / 24_000);
+    expect(result.duration).toBe(4 / sampleRate);
     expect(new DataView(buffer).getUint32(40, true)).toBe(8);
     engine.dispose();
   });
@@ -187,16 +187,16 @@ describe("optional local speech engine", () => {
 
   it("rejects pending operations after a worker crash or final disposal", async () => {
     const { engine, workers } = setup();
-    const loading = engine.load({ id: "ff_siwis" });
+    const loading = engine.load({ id: "piper-fr_FR-siwis-medium" });
     workers[0].onerror();
     await expect(loading).rejects.toMatchObject({ code: "VOICE_FAILED" });
     engine.dispose();
-    await expect(engine.load({ id: "ff_siwis" })).rejects.toThrow("disposed");
+    await expect(engine.load({ id: "piper-fr_FR-siwis-medium" })).rejects.toThrow("disposed");
   });
 
   it.each(["onerror", "onmessageerror"])("preserves VOICE_FAILED during a sentence after %s", async (event) => {
     const { engine, workers } = setup();
-    const generating = engine.synthesize("Une phrase entière.", { voice: { id: "ff_siwis" } });
+    const generating = engine.synthesize("Une phrase entière.", { voice: { id: "piper-fr_FR-siwis-medium" } });
     workers[0][event]({ message: "Worker crashed" });
     await expect(generating).rejects.toMatchObject({ code: "VOICE_FAILED", message: "Worker crashed" });
     expect(workers[0].terminate).toHaveBeenCalledOnce();
@@ -236,7 +236,7 @@ describe("optional local speech engine", () => {
   it("routes loading bytes and synthesis stages to the active operation without invented percentages", async () => {
     const { engine, workers } = setup();
     const onProgress = vi.fn();
-    const generating = engine.synthesize("Bonjour.", { voice: { id: "ff_siwis" }, onProgress });
+    const generating = engine.synthesize("Bonjour.", { voice: { id: "piper-fr_FR-siwis-medium" }, onProgress });
     workers[0].onmessage({ data: { id: 1, type: "progress", progress: { stage: "loading", loaded: 200, total: 1000 } } });
     workers[0].onmessage({ data: { id: 1, type: "progress", progress: { stage: "phonemizing" } } });
     workers[0].onmessage({ data: { id: 1, result: { wav: wav([1, 2]), duration: 2 / 24_000 } } });
@@ -262,13 +262,13 @@ describe("optional local speech engine", () => {
 });
 
 describe("sentence WAV assembly", () => {
-  it("also combines stored blobs with generated buffers using actual sample durations", async () => {
+  it.each([22_050, 24_000])("combines stored blobs with generated buffers at %i Hz using actual durations", async sampleRate => {
     const result = await concatenateVoiceAudio([
-      { blob: new Blob([wav([1, 2])]), duration: 99 },
-      { wav: wav([3, 4]), duration: 99 },
+      { blob: new Blob([wav([1, 2], sampleRate)]), duration: 99 },
+      { wav: wav([3, 4], sampleRate), duration: 99 },
     ]);
     expect(result.blob.type).toBe("audio/wav");
-    expect(result.duration).toBe(4 / 24_000);
+    expect(result.duration).toBe(4 / sampleRate);
     expect([...new Int16Array(await result.blob.arrayBuffer(), 44)]).toEqual([1, 2, 3, 4]);
   });
 
@@ -282,14 +282,14 @@ describe("sentence WAV assembly", () => {
     expect(unread.arrayBuffer).not.toHaveBeenCalled();
   });
 
-  it("keeps all PCM samples, including silent tails, and fixes the RIFF lengths", () => {
-    const result = concatenateVoiceWavs([wav([32767, -32768, 0]), wav([123, 0, 0])]);
+  it.each([22_050, 24_000])("keeps all PCM samples and silent tails at %i Hz, with correct RIFF lengths", sampleRate => {
+    const result = concatenateVoiceWavs([wav([32767, -32768, 0], sampleRate), wav([123, 0, 0], sampleRate)]);
     expect([...new Int16Array(result.wav, 44)]).toEqual([32767, -32768, 0, 123, 0, 0]);
-    expect(result.duration).toBe(6 / 24_000);
+    expect(result.duration).toBe(6 / sampleRate);
     const view = new DataView(result.wav);
     expect(view.getUint32(4, true)).toBe(48);
     expect(view.getUint32(40, true)).toBe(12);
-    expect(view.getUint32(24, true)).toBe(24_000);
+    expect(view.getUint32(24, true)).toBe(sampleRate);
   });
 
   it("rejects corrupt, incompatible or empty WAV fragments", () => {
@@ -297,6 +297,7 @@ describe("sentence WAV assembly", () => {
     expect(() => concatenateVoiceWavs([new ArrayBuffer(48)])).toThrow();
     expect(() => concatenateVoiceWavs([wav([])])).toThrow();
     expect(() => concatenateVoiceWavs([wav([1]), wav([2], 48_000)])).toThrow();
+    expect(() => concatenateVoiceWavs([wav([1], 22_050), wav([2], 24_000)])).toThrow();
     const truncated = wav([1, 2]).slice(0, 46);
     expect(() => concatenateVoiceWavs([truncated])).toThrow();
   });

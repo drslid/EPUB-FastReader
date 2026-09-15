@@ -44,7 +44,7 @@ test("partial listening keeps text and controls separate in a short landscape an
     for (const asset of assets) await cache.put(asset.url, new Response("verified fixture", { headers: {
       "Content-Length": String(asset.bytes), "X-Fastreader-Voice-SHA256": asset.sha256,
     } }));
-  }, { assets: assetsForVoice("ff_siwis", "http://127.0.0.1:4173/"), cacheName: VOICE_CACHE_NAME });
+  }, { assets: assetsForVoice("piper-fr_FR-siwis-medium", "http://127.0.0.1:4173/"), cacheName: VOICE_CACHE_NAME });
   await importEpub(page, await makeEpub({ title: "Un livre à écouter en paysage", chapters: 1,
     paragraphs: Array.from({ length: 8 }, () => "Camille suit le récit. Chaque passage raconte une nouvelle aventure.") }));
   await page.locator('[data-mode="audio"]').click();

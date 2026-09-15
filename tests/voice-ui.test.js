@@ -36,28 +36,76 @@ beforeEach(() => {
 afterEach(() => { ui?.dispose(); document.body.innerHTML = ""; setLocale("fr"); vi.restoreAllMocks(); delete HTMLDialogElement.prototype.showModal; delete HTMLDialogElement.prototype.close; });
 
 describe("optional voice selection", () => {
+  it("offers one current voice in each supported language and never downloads from an old preference", async () => {
+    for (const [language, id] of [["fr", "piper-fr_FR-siwis-medium"], ["en", "piper-en_US-ljspeech-medium"], ["es", "piper-es_ES-davefx-medium"], ["it", "piper-it_IT-paola-medium"], ["de", "piper-de_DE-thorsten-medium"], ["pt", "piper-pt_BR-faber-medium"]]) {
+      ui.open({ bookLanguage: language, lastVoiceId: "ff_siwis" });
+      await settled();
+      expect(document.querySelectorAll("[data-voice-choice]")).toHaveLength(1);
+      expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe(id);
+      expect(field("start").disabled).toBe(false);
+      ui.close();
+    }
+    expect(downloads.download).not.toHaveBeenCalled();
+    expect(chosen).not.toHaveBeenCalled();
+    expect(warmup).not.toHaveBeenCalled();
+  });
+
+  it("only removes a previous runtime after its separate action and keeps current voices", async () => {
+    ready.add("piper-fr_FR-siwis-medium");
+    downloads.legacyStatus = vi.fn(async () => ({ storedBytes: 117_000_000 }));
+    downloads.removeLegacy = vi.fn(async () => { downloads.legacyStatus.mockResolvedValue({ storedBytes: 0 }); });
+    ui.open({ bookLanguage: "fr" });
+    await settled();
+    expect(field("legacy").hidden).toBe(false);
+    expect(field("legacy-size").textContent).toContain("117");
+    expect(field("legacy-size").textContent).toContain("audios préparés restent disponibles");
+    expect(downloads.removeLegacy).not.toHaveBeenCalled();
+    field("remove-legacy").focus();
+    field("remove-legacy").click();
+    await vi.waitFor(() => expect(field("status").textContent).toContain("Ancien moteur retiré"));
+    await settled();
+    expect(downloads.removeLegacy).toHaveBeenCalledTimes(1);
+    expect(downloads.removeVoice).not.toHaveBeenCalled();
+    expect(field("legacy").hidden).toBe(true);
+    expect(field("start").textContent).toContain("Lancer l’écoute");
+    expect(document.activeElement).toBe(field("start"));
+  });
+
+  it("does not let a late legacy storage check alter another voice dialog", async () => {
+    let finish;
+    downloads.legacyStatus = vi.fn().mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockResolvedValue({ storedBytes: 0 });
+    ui.open({ bookLanguage: "fr" });
+    ui.close();
+    ui.open({ bookLanguage: "de" });
+    await settled();
+    finish({ storedBytes: 117_000_000 });
+    await Promise.resolve(); await Promise.resolve();
+    expect(field("language").value).toBe("de");
+    expect(field("legacy").hidden).toBe(true);
+  });
+
   it("warms only a verified installed selection, once until that selection changes", async () => {
-    ready.add("ff_siwis");
-    ready.add("af_heart");
+    ready.add("piper-fr_FR-siwis-medium");
+    ready.add("piper-en_US-ljspeech-medium");
     let verify;
     downloads.list.mockImplementationOnce(() => new Promise(resolve => { verify = resolve; }));
     ui.open({ bookLanguage: "fr" });
     expect(warmup).not.toHaveBeenCalled();
     verify(VOICES.map(({ id }) => ({ voiceId: id, ready: ready.has(id) })));
     await settled();
-    expect(warmup).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "ff_siwis" }));
+    expect(warmup).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }));
     window.dispatchEvent(new Event("online"));
     window.dispatchEvent(new Event("languagechange"));
     expect(warmup).toHaveBeenCalledTimes(1);
     selectLanguage("en");
-    expect(warmup).toHaveBeenLastCalledWith(expect.objectContaining({ id: "af_heart" }));
+    expect(warmup).toHaveBeenLastCalledWith(expect.objectContaining({ id: "piper-en_US-ljspeech-medium" }));
     selectLanguage("de");
     expect(warmup).toHaveBeenLastCalledWith(null);
     const count = warmup.mock.calls.length;
     window.dispatchEvent(new Event("offline"));
     expect(warmup).toHaveBeenCalledTimes(count);
     selectLanguage("fr");
-    expect(warmup).toHaveBeenLastCalledWith(expect.objectContaining({ id: "ff_siwis" }));
+    expect(warmup).toHaveBeenLastCalledWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }));
     expect(downloads.download).not.toHaveBeenCalled();
     expect(chosen).not.toHaveBeenCalled();
     expect(activated).not.toHaveBeenCalled();
@@ -68,7 +116,7 @@ describe("optional voice selection", () => {
   });
 
   it("cancels warmup before removing a voice and never warms an unavailable choice", async () => {
-    ready.add("ff_siwis");
+    ready.add("piper-fr_FR-siwis-medium");
     ui.open({ bookLanguage: "fr" });
     await settled();
     field("remove").click();
@@ -86,7 +134,7 @@ describe("optional voice selection", () => {
     expect(warmup).not.toHaveBeenCalled();
     field("start").click();
     await vi.waitFor(() => expect(chosen).toHaveBeenCalledTimes(1));
-    expect(warmup).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "ff_siwis" }));
+    expect(warmup).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }));
     expect(warmup.mock.invocationCallOrder[0]).toBeLessThan(chosen.mock.invocationCallOrder[0]);
   });
 
@@ -98,7 +146,7 @@ describe("optional voice selection", () => {
     ui.close();
     ui.open({ bookLanguage: "en" });
     await settled();
-    verify([{ voiceId: "ff_siwis", ready: true }]);
+    verify([{ voiceId: "piper-fr_FR-siwis-medium", ready: true }]);
     previous.dispatchEvent(new Event("close"));
     await Promise.resolve();
     expect(document.querySelector(".voice-dialog")).not.toBeNull();
@@ -107,14 +155,14 @@ describe("optional voice selection", () => {
   });
 
   it("prepares an already downloaded voice offline without unlocking or starting audio", async () => {
-    ready.add("ff_siwis");
+    ready.add("piper-fr_FR-siwis-medium");
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     ui.open({ bookLanguage: "fr", estimatedAudioBytes: 300_000_000 });
     await settled();
     expect(field("prepare").disabled).toBe(false);
     expect(field("audio-size").textContent).toContain("300");
     field("prepare").click();
-    expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "ff_siwis" }), { intent: "prepare" });
+    expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }), { intent: "prepare" });
     expect(activated).not.toHaveBeenCalled();
     expect(downloads.download).not.toHaveBeenCalled();
   });
@@ -133,31 +181,31 @@ describe("optional voice selection", () => {
     expect(chosen).not.toHaveBeenCalled();
     expect(activated).not.toHaveBeenCalled();
     complete();
-    await vi.waitFor(() => expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "ff_siwis" }), { intent: "prepare" }));
+    await vi.waitFor(() => expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }), { intent: "prepare" }));
   });
 
   it("opens on the book language without downloading or changing it to the interface language", async () => {
     setLocale("en");
-    ui.open({ bookLanguage: "fr-FR", lastVoiceId: "af_heart" });
+    ui.open({ bookLanguage: "fr-FR", lastVoiceId: "piper-en_US-ljspeech-medium" });
     await settled();
     expect(field("language").value).toBe("fr");
-    expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe("ff_siwis");
+    expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe("piper-fr_FR-siwis-medium");
     expect(downloads.download).not.toHaveBeenCalled();
     expect(field("size").textContent).toContain("117 MB");
     expect(field("start").textContent).toContain("Download and listen");
     expect(chosen).not.toHaveBeenCalled();
   });
 
-  it("does not silently substitute a different language for German or an unknown book", async () => {
-    ui.open({ bookLanguage: "deu", lastVoiceId: "ff_siwis" });
+  it("does not silently substitute a different language for an unsupported or unknown book", async () => {
+    ui.open({ bookLanguage: "ja", lastVoiceId: "piper-fr_FR-siwis-medium" });
     await settled();
-    expect(field("language").value).toBe("de");
+    expect(field("language").value).toBe("ja");
     expect(field("start").disabled).toBe(true);
     expect(field("empty").textContent).toContain("Aucune voix disponible");
     expect(document.querySelectorAll("[data-voice-choice]")).toHaveLength(0);
     selectLanguage("it");
     expect(field("start").disabled).toBe(false);
-    expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe("if_sara");
+    expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe("piper-it_IT-paola-medium");
     ui.close();
     ui.open({ bookLanguage: "" });
     await settled();
@@ -168,7 +216,7 @@ describe("optional voice selection", () => {
 
   it("disables new downloads offline while allowing a downloaded voice immediately", async () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
-    ready.add("ff_siwis");
+    ready.add("piper-fr_FR-siwis-medium");
     ui.open({ bookLanguage: "en" });
     await settled();
     expect(field("start").disabled).toBe(true);
@@ -178,7 +226,7 @@ describe("optional voice selection", () => {
     expect(field("start").textContent).toContain("Lancer l’écoute");
     field("start").click();
     expect(activated).toHaveBeenCalledTimes(1);
-    expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "ff_siwis" }), { intent: "listen" });
+    expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }), { intent: "listen" });
     expect(downloads.download).not.toHaveBeenCalled();
     expect(document.querySelector(".voice-dialog")).toBeNull();
   });
@@ -198,7 +246,7 @@ describe("optional voice selection", () => {
     expect(field("language").disabled).toBe(true);
     expect(chosen).not.toHaveBeenCalled();
     complete();
-    await vi.waitFor(() => expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "ff_siwis" }), { intent: "listen" }));
+    await vi.waitFor(() => expect(chosen).toHaveBeenCalledWith(expect.objectContaining({ id: "piper-fr_FR-siwis-medium" }), { intent: "listen" }));
     expect(document.querySelector(".voice-dialog")).toBeNull();
   });
 
@@ -235,28 +283,28 @@ describe("optional voice selection", () => {
   });
 
   it("removes only the selected voice and refreshes its offline availability", async () => {
-    ready.add("ff_siwis");
-    ready.add("af_heart");
+    ready.add("piper-fr_FR-siwis-medium");
+    ready.add("piper-en_US-ljspeech-medium");
     ui.open({ bookLanguage: "fr" });
     await settled();
     expect(field("remove").hidden).toBe(false);
     field("remove").click();
     await vi.waitFor(() => expect(field("status").textContent).toContain("Voix retirée"));
     await settled();
-    expect(downloads.removeVoice).toHaveBeenCalledWith("ff_siwis");
-    expect(ready.has("af_heart")).toBe(true);
+    expect(downloads.removeVoice).toHaveBeenCalledWith("piper-fr_FR-siwis-medium");
+    expect(ready.has("piper-en_US-ljspeech-medium")).toBe(true);
     expect(field("remove").hidden).toBe(true);
     expect(field("start").textContent).toContain("Télécharger et écouter");
   });
 
   it("can clear a partial download before a voice is ready", async () => {
-    downloads.list.mockResolvedValueOnce(VOICES.map(({ id }) => ({ voiceId: id, ready: false, totalBytes: 117_000_000, downloadBytes: 1_000_000, bytesRemaining: 1_000_000, storedBytes: id === "ff_siwis" ? 116_000_000 : 0 })));
+    downloads.list.mockResolvedValueOnce(VOICES.map(({ id }) => ({ voiceId: id, ready: false, totalBytes: 117_000_000, downloadBytes: 1_000_000, bytesRemaining: 1_000_000, storedBytes: id === "piper-fr_FR-siwis-medium" ? 116_000_000 : 0 })));
     ui.open({ bookLanguage: "fr" });
     await settled();
     expect(field("remove").hidden).toBe(false);
     expect(field("size").textContent).toContain("Encore 1");
     field("remove").click();
-    await vi.waitFor(() => expect(downloads.removeVoice).toHaveBeenCalledWith("ff_siwis"));
+    await vi.waitFor(() => expect(downloads.removeVoice).toHaveBeenCalledWith("piper-fr_FR-siwis-medium"));
     await settled();
     expect(field("remove").hidden).toBe(true);
   });

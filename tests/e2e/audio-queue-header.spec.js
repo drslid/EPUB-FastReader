@@ -37,7 +37,7 @@ for (const language of ["fr", "de"]) {
         for (const asset of assets) await cache.put(asset.url, new Response("verified fixture", { headers: {
           "Content-Length": String(asset.bytes), "X-Fastreader-Voice-SHA256": asset.sha256,
         } }));
-      }, { assets: assetsForVoice("ff_siwis", "http://127.0.0.1:4173/"), cacheName: VOICE_CACHE_NAME });
+      }, { assets: assetsForVoice("piper-fr_FR-siwis-medium", "http://127.0.0.1:4173/"), cacheName: VOICE_CACHE_NAME });
 
       await importEpub(page, await makeEpub({ title: "Le premier livre reste dans la file", chapters: 1 }));
       await page.locator('[data-mode="audio"]').click();

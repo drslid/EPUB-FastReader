@@ -51,6 +51,63 @@ beforeEach(() => { factory = new IDBFactory(); store = createAudioStore({ indexe
 afterEach(async () => { for (const item of queues) await item.dispose(); await waitFor(() => !locks.occupied); await store.close(); vi.restoreAllMocks(); });
 
 describe("local audiobook preparation queue", () => {
+  it("retains playable old audio and rejects resuming it with a replacement engine", async () => {
+    const oldEngine = controlledEngine(), previous = queue({ createEngine: oldEngine.create });
+    const input = book();
+    const old = await previous.enqueue(input);
+    await waitFor(() => oldEngine.pending.length === 1);
+    oldEngine.pending.shift().resolve();
+    await waitFor(() => oldEngine.pending.length === 1);
+    await previous.dispose();
+    await waitFor(() => !locks.occupied);
+    const original = await store.getJob(old.id);
+    const replacement = { id: "piper-fr_FR-siwis-medium", language: "fr", name: "Siwis", modelKey: "piper-medium-v1" };
+    const newEngine = controlledEngine();
+    const current = queue({ createEngine: newEngine.create, canPrepareVoice: item => item.id === replacement.id });
+    expect((await current.list()).jobs[0]).toMatchObject({ id: old.id, status: "unavailable", canPrepare: false, canListen: true, readySegments: 1 });
+    await expect(current.resume(old.id)).rejects.toHaveProperty("code", "VOICE_RETIRED");
+    await expect(current.enqueue(input)).rejects.toHaveProperty("code", "VOICE_RETIRED");
+    expect(newEngine.create).not.toHaveBeenCalled();
+    const manifest = await current.getPreparedChapter(input.bookId, voice.id, "one", input.chapters[0].text, { jobId: old.id });
+    expect(manifest).toMatchObject({ status: "unavailable", voice, readySegments: 1, complete: false });
+    expect(await (await current.readSegment(old.id, manifest.passages[0].segmentId)).arrayBuffer()).toEqual(await audio().blob.arrayBuffer());
+    const next = await current.enqueue({ ...input, voice: replacement });
+    expect(next.id).not.toBe(old.id);
+    await waitFor(() => newEngine.pending.length === 1);
+    expect(newEngine.calls).toEqual(["Bonjour le monde."]);
+    expect(await store.getJob(old.id)).toEqual(original);
+    expect((await current.list()).jobs).toHaveLength(2);
+  });
+
+  it("keeps a complete old audiobook available across chapters without loading any engine", async () => {
+    const previous = queue();
+    const input = { ...book(), chapters: [{ id: "one", text: "Le début." }, { id: "two", text: "La fin." }] };
+    const old = await previous.enqueue(input);
+    await waitFor(() => previous.snapshot().jobs[0]?.status === "ready");
+    await previous.dispose();
+    const createEngine = vi.fn();
+    const current = queue({ createEngine, canPrepareVoice: () => false });
+    expect((await current.list()).jobs[0]).toMatchObject({ status: "ready", canListen: true, canPrepare: false });
+    await current.resume(old.id);
+    for (const chapter of input.chapters) {
+      const saved = await current.getPreparedChapter(input.bookId, voice.id, chapter.id, chapter.text, { jobId: old.id });
+      expect(saved).toMatchObject({ complete: true, voice, readySegments: 1 });
+      expect((await current.readSegment(old.id, saved.passages[0].segmentId)).size).toBe(3);
+    }
+    expect(createEngine).not.toHaveBeenCalled();
+  });
+
+  it("keeps preparations from different model revisions separate", async () => {
+    const q = queue(); await q.suspend("test");
+    const current = { ...voice, modelKey: "piper-medium-v1", model: { sha256: "model-first-revision" }, config: { sha256: "config-first-revision" } };
+    const first = await q.enqueue({ ...book(), voice: current });
+    const second = await q.enqueue({ ...book(), voice: { ...current, model: { sha256: "model-second-revision" } } });
+    const third = await q.enqueue({ ...book(), voice: { ...current, config: { sha256: "config-second-revision" } } });
+    expect(first.id).not.toBe(second.id);
+    expect(third.id).not.toBe(first.id);
+    expect((await q.list()).jobs).toHaveLength(3);
+  });
+
   it("prepares two sentences concurrently while publishing the first without waiting for the second", async () => {
     const engine = controlledEngine(2), q = queue({ createEngine: engine.create });
     await q.enqueue(book());
@@ -417,6 +474,152 @@ describe("local audiobook preparation queue", () => {
     await waitFor(() => !locks.occupied);
     expect((await q.list()).jobs).toHaveLength(0);
     expect(await store.getJob(job.id)).toBeUndefined();
+  });
+
+  it("clears prepared and queued audio, stops conversion, and allows a fresh preparation", async () => {
+    const engine = controlledEngine(), onClear = vi.fn();
+    const q = queue({ createEngine: engine.create, onClear });
+    const first = await q.enqueue(book());
+    await waitFor(() => engine.pending.length === 1);
+    engine.pending.shift().resolve();
+    await waitFor(() => engine.pending.length === 1);
+    const saved = await q.getPreparedChapter("first", voice.id, "one", book().chapters[0].text);
+    expect(saved.readySegments).toBe(1);
+    await q.enqueue(book("queued", "Ce livre attend."));
+    const late = engine.pending.shift();
+    await q.clearAll();
+    late.resolve();
+    await waitFor(() => !locks.occupied);
+    expect(onClear).toHaveBeenCalledTimes(1);
+    expect(q.snapshot()).toMatchObject({ jobs: [], activeJobId: null });
+    expect(await store.listJobs()).toEqual([]);
+    expect(await q.readSegment(first.id, saved.passages[0].segmentId)).toBeNull();
+    expect(await q.getPreparedChapter("first", voice.id, "one", book().chapters[0].text)).toBeNull();
+
+    await q.enqueue(book("fresh", "Nouvelle lecture."));
+    await waitFor(() => engine.pending.length === 1);
+    expect(engine.pending[0].text).toBe("Nouvelle lecture.");
+    engine.pending.shift().resolve();
+    await waitFor(() => q.snapshot().jobs[0]?.status === "ready");
+    expect(q.snapshot().jobs.map(job => job.bookId)).toEqual(["fresh"]);
+    expect(engine.maximum).toBe(1);
+  });
+
+  it("invalidates an enqueue that is still hashing the book when audio is cleared", async () => {
+    const q = queue();
+    await q.suspend("test");
+    const original = globalThis.crypto.subtle.digest.bind(globalThis.crypto.subtle);
+    let releaseHash;
+    const gate = new Promise(resolve => { releaseHash = resolve; });
+    const hashing = vi.spyOn(globalThis.crypto.subtle, "digest").mockImplementationOnce(async (...args) => {
+      await gate;
+      return original(...args);
+    });
+    const enqueuing = q.enqueue(book("delayed"));
+    const result = enqueuing.then(value => ({ value }), error => ({ error }));
+    await waitFor(() => hashing.mock.calls.length === 1);
+    await q.clearAll();
+    releaseHash();
+    expect((await result).error).toBeInstanceOf(Error);
+    expect(await store.listJobs()).toEqual([]);
+    expect((await q.list()).jobs).toEqual([]);
+    await q.enqueue(book("new"));
+    expect((await q.list()).jobs.map(job => job.bookId)).toEqual(["new"]);
+  });
+
+  it("blocks a delayed cross-tab insertion even before a clear notification arrives", async () => {
+    const q = queue(), other = queue();
+    await q.suspend("test");
+    await other.suspend("test");
+    const original = store.putIfAbsent;
+    let releaseInsert;
+    const gate = new Promise(resolve => { releaseInsert = resolve; });
+    const inserting = vi.spyOn(store, "putIfAbsent").mockImplementationOnce(async (...args) => {
+      await gate;
+      return original(...args);
+    });
+    const result = q.enqueue(book("delayed")).then(value => ({ value }), error => ({ error }));
+    await waitFor(() => inserting.mock.calls.length === 1);
+    await other.clearAll();
+    releaseInsert();
+    expect((await result).error).toBeInstanceOf(Error);
+    expect(await store.listJobs()).toEqual([]);
+    expect((await q.list()).jobs).toEqual([]);
+    await q.enqueue(book("fresh"));
+    expect((await q.list()).jobs.map(job => job.bookId)).toEqual(["fresh"]);
+  });
+
+  it("notifies another open queue to stop conversion and release listening resources", async () => {
+    const channels = new Set(), messages = [];
+    const channelFactory = () => {
+      const channel = {
+        onmessage: null,
+        postMessage(message) {
+          messages.push(message);
+          for (const peer of channels) if (peer !== channel) {
+            queueMicrotask(() => peer.onmessage?.({ data: structuredClone(message) }));
+          }
+        },
+        close() { channels.delete(channel); },
+      };
+      channels.add(channel);
+      return channel;
+    };
+    const localCleared = vi.fn(), remoteCleared = vi.fn(), engine = controlledEngine();
+    const other = queue({ channelFactory, onClear: remoteCleared, createEngine: engine.create });
+    await other.enqueue(book());
+    await waitFor(() => engine.pending.length === 1);
+    const late = engine.pending.shift();
+    const q = queue({ channelFactory, onClear: localCleared });
+    await q.list();
+    await q.clearAll();
+    await waitFor(() => remoteCleared.mock.calls.length === 1 && !locks.occupied);
+    late.resolve();
+    expect(localCleared).toHaveBeenCalledTimes(1);
+    expect(messages.some(message => message.type === "cleared")).toBe(true);
+    expect(other.snapshot()).toMatchObject({ jobs: [], activeJobId: null });
+    expect((await other.list()).jobs).toEqual([]);
+    expect(await store.listJobs()).toEqual([]);
+  });
+
+  it("keeps saved audio recoverable and exposes a failed clear instead of claiming success", async () => {
+    const q = queue();
+    const first = await q.enqueue(book("keep", "Bonjour."));
+    await waitFor(() => q.snapshot().jobs[0]?.status === "ready");
+    const prepared = await q.getPreparedChapter("keep", voice.id, "one", "Bonjour.");
+    vi.spyOn(store, "clearAll").mockRejectedValueOnce(new DOMException("Storage unavailable", "UnknownError"));
+    await expect(q.clearAll()).rejects.toHaveProperty("name", "UnknownError");
+    expect((await q.list()).jobs).toMatchObject([{ id: first.id, status: "ready", audioBytes: 3 }]);
+    expect((await q.readSegment(first.id, prepared.passages[0].segmentId)).size).toBe(3);
+    await q.clearAll();
+    expect((await q.list()).jobs).toEqual([]);
+  });
+
+  it("never republishes an old refresh after the audio cache has been cleared", async () => {
+    const q = queue();
+    await q.enqueue(book("old", "Bonjour."));
+    await waitFor(() => q.snapshot().jobs[0]?.status === "ready" && !locks.occupied);
+    const original = store.listJobs;
+    let captured = false, releaseRead;
+    const gate = new Promise(resolve => { releaseRead = resolve; });
+    vi.spyOn(store, "listJobs").mockImplementationOnce(async () => {
+      const oldJobs = await original();
+      captured = true;
+      await gate;
+      return oldJobs;
+    });
+    const staleRefresh = q.list();
+    await waitFor(() => captured);
+    await q.clearAll();
+    expect(q.snapshot()).toMatchObject({ jobs: [], activeJobId: null });
+    const updates = [];
+    const unsubscribe = q.subscribe(snapshot => updates.push(snapshot.jobs.map(job => job.bookId)));
+    releaseRead();
+    expect((await staleRefresh).jobs).toEqual([]);
+    expect(q.snapshot()).toMatchObject({ jobs: [], activeJobId: null });
+    expect(updates.every(jobs => jobs.length === 0)).toBe(true);
+    expect(await store.listJobs()).toEqual([]);
+    unsubscribe();
   });
 
   it("filters punctuation-only chapters and rejects books with no pronounceable text", async () => {

@@ -30,7 +30,7 @@ describe("voice preferences and backups", () => {
     expect(settings).not.toHaveProperty("voiceEnabled");
   });
 
-  it.each(["ff_siwis", "af_heart", "ef_dora", "if_sara", "pf_dora"])("persists the supported voice %s and audio mode in IndexedDB", async (voiceId) => {
+  it.each(["piper-fr_FR-siwis-medium", "piper-en_US-ljspeech-medium", "piper-es_ES-davefx-medium", "piper-it_IT-paola-medium", "piper-de_DE-thorsten-medium", "piper-pt_BR-faber-medium", "ff_siwis", "af_heart", "ef_dora", "if_sara", "pf_dora"])("persists the supported voice %s and audio mode in IndexedDB", async (voiceId) => {
     const saved = await storage.writeSettings({ ...storage.defaultSettings, mode: "audio", voiceId, voiceRate: 1.25 });
     vi.resetModules();
     const reopened = await import("../src/storage.js");
@@ -67,14 +67,14 @@ describe("voice preferences and backups", () => {
     const caches = { open: vi.fn(() => { throw new Error("The vocal cache must not be exported"); }), keys: vi.fn(), delete: vi.fn() };
     vi.stubGlobal("caches", caches);
     const backup = await import("../src/backup.js");
-    const settings = await storage.writeSettings({ ...storage.defaultSettings, mode: "audio", voiceId: "if_sara", voiceRate: 1.4 });
+    const settings = await storage.writeSettings({ ...storage.defaultSettings, mode: "audio", voiceId: "piper-it_IT-paola-medium", voiceRate: 1.4 });
     const { blob, bookCount } = await backup.exportBackup();
     expect(bookCount).toBe(0);
     expect(blob.size).toBeLessThan(10000);
     const zip = await JSZip.loadAsync(await readBlob(blob));
     expect(Object.keys(zip.files)).toEqual(["manifest.json"]);
     const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
-    expect(manifest.preferences.find(({ id }) => id === "reader")).toMatchObject({ voiceId: "if_sara", voiceRate: 1.4, mode: "audio" });
+    expect(manifest.preferences.find(({ id }) => id === "reader")).toMatchObject({ voiceId: "piper-it_IT-paola-medium", voiceRate: 1.4, mode: "audio" });
     await storage.writeSettings(storage.defaultSettings);
     await backup.restoreBackup(blob, { restorePreferences: true });
     expect(await storage.readSettings()).toEqual(settings);

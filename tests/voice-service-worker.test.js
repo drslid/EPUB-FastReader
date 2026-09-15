@@ -8,7 +8,7 @@ const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8
 function setup(response) {
   const listeners = {};
   const cache = { match: vi.fn().mockResolvedValue(response), addAll: vi.fn().mockResolvedValue() };
-  const caches = { open: vi.fn().mockResolvedValue(cache), keys: vi.fn().mockResolvedValue(["fastreader-voice-v1", "fastreader:/reader/:old"]), delete: vi.fn().mockResolvedValue(true) };
+  const caches = { open: vi.fn().mockResolvedValue(cache), keys: vi.fn().mockResolvedValue(["fastreader-voice-v1", "fastreader-voice-v2", "fastreader:/reader/:old"]), delete: vi.fn().mockResolvedValue(true) };
   const fetch = vi.fn().mockResolvedValue(new Response("network"));
   const self = { registration: { scope: "https://example.test/reader/" }, addEventListener: (type, handler) => { listeners[type] = handler; }, clients: { claim: vi.fn() } };
   vm.runInNewContext(source, { self, caches, fetch, Request, Response, URL, Set });
@@ -23,28 +23,38 @@ function setup(response) {
 describe("persistent optional voice cache", () => {
   it("serves a downloaded model from its separate cache", async () => {
     const { request, caches, fetch } = setup(new Response("model"));
-    expect(await (await request("/reader/voice-runtime/v1/models/kokoro/onnx/model_quantized.onnx")).text()).toBe("model");
-    expect(caches.open).toHaveBeenCalledWith("fastreader-voice-v1");
+    expect(await (await request("/reader/voice-runtime/v2/models/fr_FR-siwis-medium/model.onnx")).text()).toBe("model");
+    expect(caches.open).toHaveBeenCalledWith("fastreader-voice-v2");
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("serves cached legacy runtime for open old tabs but never fetches missing retired files", async () => {
+    const saved = setup(new Response("legacy"));
+    expect(await (await saved.request("/reader/voice-runtime/v1/worker.js")).text()).toBe("legacy");
+    expect(saved.caches.open).toHaveBeenCalledWith("fastreader-voice-v1");
+    expect(saved.fetch).not.toHaveBeenCalled();
+    const missing = setup();
+    expect((await missing.request("/reader/voice-runtime/v1/worker.js")).status).toBe(404);
+    expect(missing.fetch).not.toHaveBeenCalled();
   });
 
   it("never downloads a missing model or substitutes the app shell", async () => {
     const { request, fetch } = setup();
-    const response = await request("/reader/voice-runtime/v1/models/kokoro/voices/ff_siwis.bin");
+    const response = await request("/reader/voice-runtime/v2/models/fr_FR-siwis-medium/config.json");
     expect(response.status).toBe(404);
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("allows explicit runtime installation without filling cache implicitly", async () => {
     const { request, fetch, cache } = setup();
-    expect(await (await request("/reader/voice-runtime/v1/vendor/ephone.js")).text()).toBe("network");
+    expect(await (await request("/reader/voice-runtime/v2/vendor/piper-phonemize.js")).text()).toBe("network");
     expect(fetch).toHaveBeenCalledOnce();
     expect(cache.addAll).not.toHaveBeenCalled();
   });
 
   it("repairs stale runtime bytes without serving the same cached worker again", async () => {
     const { request, fetch, cache } = setup(new Response("old worker"));
-    expect(await (await request("/reader/voice-runtime/v1/worker.js", { cache: "no-store" })).text()).toBe("network");
+    expect(await (await request("/reader/voice-runtime/v2/worker.js", { cache: "no-store" })).text()).toBe("network");
     expect(fetch).toHaveBeenCalledOnce();
     expect(cache.match).not.toHaveBeenCalled();
   });
@@ -55,6 +65,6 @@ describe("persistent optional voice cache", () => {
     listeners.activate({ waitUntil: (promise) => { activation = promise; } });
     await activation;
     expect(caches.delete).toHaveBeenCalledExactlyOnceWith("fastreader:/reader/:old");
-    expect(await request("/other/voice-runtime/v1/worker.js")).toBeUndefined();
+    expect(await request("/other/voice-runtime/v2/worker.js")).toBeUndefined();
   });
 });

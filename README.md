@@ -47,9 +47,13 @@ The aim is to help you spend more time reading and make steady progress. Choose 
 
 Selecting an installed voice quietly prepares the first passage while you choose, unless another book is already being prepared. Nothing is spoken before you press **Start listening**. The player then shows the current preparation stage, the number of sentences ready and the seconds of audio available. Listening starts automatically as soon as the first complete sentence is ready.
 
-FastReader prepares upcoming sentences while you listen and automatically uses parallel processing on capable devices. Longer sentences stay together and may take more time to prepare. An initial wait or pauses between passages are still possible, especially on slower devices. Preparing the whole book first avoids these generation waits during listening.
+FastReader prepares upcoming sentences while you listen and automatically uses parallel processing on capable desktop computers. Longer sentences stay together and may take more time to prepare. An initial wait or pauses between passages are still possible, especially on slower devices. Preparing the whole book first avoids these generation waits during listening.
 
-The first voice needs approximately **117 MB**, including shared files reused by other voices. Adding another language needs much less space. Voices are available in **French, English, Spanish, Italian and Brazilian Portuguese**. German voices are not available yet; books in German remain readable in the other modes. New voice downloads require an internet connection.
+FastReader uses **Piper Medium**, with one selected voice for each language: **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. Each voice needs approximately **63 MB**, plus **30 MB of shared files** on first use. Adding a language downloads its own voice model; the app shows the actual download size before you start. New voice downloads require an internet connection.
+
+**Already prepared audio is kept when voices change.** You can still listen to saved passages from an earlier voice. To prepare the rest of an unfinished book, choose **Prepare with a new voice** in the audio queue; this creates a separate preparation and keeps the previous recordings. The voice chooser also lets you remove the old voice engine to free storage without deleting your books or prepared audio.
+
+**Free up audio storage:** open **Audio preparation → Clear audio** to see the saved audio size and remove all generated recordings. Confirming stops listening and cancels queued preparations, including those in another open tab. Your EPUBs, reading progress and downloaded voices are kept; you can prepare books again later.
 
 **Prepare a book and listen before it finishes**
 

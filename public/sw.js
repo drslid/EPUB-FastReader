@@ -7,8 +7,11 @@ const SCOPE = new URL(self.registration.scope);
 const CACHE_PREFIX = `fastreader:${SCOPE.pathname}:`;
 const CACHE_NAME = `${CACHE_PREFIX}${VERSION}`;
 // Voice installations survive app updates and are managed explicitly by UI.
-const VOICE_CACHE_NAME = "fastreader-voice-v1";
-const VOICE_ROOT = new URL("voice-runtime/v1/", SCOPE).href;
+const VOICE_RUNTIMES = [
+  { cacheName: "fastreader-voice-v2", root: new URL("voice-runtime/v2/", SCOPE).href },
+  // A pre-upgrade tab may still use its installed old runtime until reloaded.
+  { cacheName: "fastreader-voice-v1", root: new URL("voice-runtime/v1/", SCOPE).href, retired: true },
+];
 const SHELL_URL = new URL("index.html", SCOPE).href;
 const PRECACHE_URLS = new Set(
   PRECACHE_FILES.map((file) => new URL(file, SCOPE).href),
@@ -65,18 +68,19 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname))
     return;
 
-  if (url.href.startsWith(VOICE_ROOT)) {
+  const voiceRuntime = VOICE_RUNTIMES.find(runtime => url.href.startsWith(runtime.root));
+  if (voiceRuntime) {
     event.respondWith((async () => {
-      const modelRequest = url.href.startsWith(`${VOICE_ROOT}models/`);
+      const modelRequest = url.href.startsWith(`${voiceRuntime.root}models/`);
       // An explicit repair/update must obtain the new runtime bytes rather
       // than receiving the old cached file it is trying to replace.
-      if (!modelRequest && request.cache === "no-store") return fetch(request);
-      const cache = await caches.open(VOICE_CACHE_NAME);
+      if (!voiceRuntime.retired && !modelRequest && request.cache === "no-store") return fetch(request);
+      const cache = await caches.open(voiceRuntime.cacheName);
       const cached = await cache.match(url.href, { ignoreVary: true });
       if (cached) return cached;
       // Model URLs are virtual cache entries. Never turn a missing model into
       // an app-shell response or contact a model provider from the worker.
-      if (modelRequest) {
+      if (modelRequest || voiceRuntime.retired) {
         return new Response("Voice asset not installed", { status: 404 });
       }
       // Runtime downloads are explicit; fetch does not populate this cache.

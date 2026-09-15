@@ -2,14 +2,14 @@ import { createVoiceEngine } from "./voice-engine.js";
 
 const aborted = () => new DOMException("Speech cancelled", "AbortError");
 
-/** Unknown memory stays portable; high-memory mobiles also need eight cores. */
+/** One portable session on phones/tablets avoids duplicating the model in RAM. */
 export function voiceComputePolicy({ navigator = globalThis.navigator, crossOriginIsolated = globalThis.crossOriginIsolated } = {}) {
   const cores = Number(navigator?.hardwareConcurrency) || 1;
   const memory = Number(navigator?.deviceMemory) || 0;
   const mobile = navigator?.userAgentData?.mobile === true
     || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator?.userAgent || "")
     || (navigator?.platform === "MacIntel" && navigator?.maxTouchPoints > 1);
-  const capable = cores >= (mobile ? 8 : 4) && memory >= 8;
+  const capable = !mobile && cores >= 4 && memory >= 8;
   if (capable && crossOriginIsolated === true) {
     return { concurrency: 1, wasmThreads: cores >= 8 ? 4 : 2, mode: "multithread" };
   }
@@ -26,7 +26,7 @@ export function createAcceleratedVoiceEngine({
 } = {}) {
   const policy = voiceComputePolicy({ navigator, crossOriginIsolated });
   const lifetime = new AbortController();
-  const slots = Array.from({ length: policy.concurrency }, (_, index) => ({ index, tail: Promise.resolve(), pending: 0, sentences: 0, engine: null, voice: null }));
+  const slots = Array.from({ length: policy.concurrency }, (_, index) => ({ index, tail: Promise.resolve(), sentences: 0, engine: null, voice: null }));
   let secondaryDisabled = false;
 
   const progress = (index, value, callback) => {
@@ -49,7 +49,6 @@ export function createAcceleratedVoiceEngine({
 
   function enqueue(slot, method, args, options = {}) {
     if (lifetime.signal.aborted || options.signal?.aborted) return Promise.reject(aborted());
-    slot.pending++;
     if (method === "synthesize") slot.sentences++;
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -83,7 +82,6 @@ export function createAcceleratedVoiceEngine({
         }
       });
       slot.tail = task.then(() => {}, () => {}).finally(() => {
-        slot.pending--;
         if (method === "synthesize") slot.sentences--;
       });
       void task.then(result => finish(resolve, result), error => finish(reject, error));

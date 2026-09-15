@@ -1,5 +1,5 @@
 // Offsets refer to the same canonical UTF-16 chapter text as reading-location.
-// This is the worker's defensive text bound, NOT Kokoro's phoneme-token limit.
+// This is the worker's defensive text bound, not the model's phoneme-token limit.
 // The engine checks the real 512-token context and joins smaller WAV fragments
 // before exposing a sentence to the player.
 export const VOICE_TEXT_MAXIMUM = 8000;

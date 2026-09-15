@@ -168,10 +168,20 @@ let voiceStartEpoch = 0;
 let pendingVoiceStart = null;
 let preparedListening = false;
 let preparedJobId = null;
+let preparedJobVoice = null;
 const bookPreparationRevision = new Map();
 const pendingBookPreparations = new Map();
 let audioQueueSnapshot = { jobs: [], activeJobId: null };
-const audioQueue = createAudioQueue({ createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }) });
+function canPrepareVoice(voice) {
+  const current = voiceForId(voice?.id);
+  return Boolean(current && current.modelKey === voice.modelKey
+    && current.model.sha256 === voice.model?.sha256 && current.config.sha256 === voice.config?.sha256);
+}
+const audioQueue = createAudioQueue({
+  createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }),
+  canPrepareVoice,
+  onClear: clearVoiceSession,
+});
 const audioQueueUI = createAudioQueueUI({
   queue: audioQueue, icon, onListen: listenPreparedBook,
   onBrowse: () => {
@@ -224,7 +234,7 @@ const voiceUI = createVoiceUI({
         if (revision !== (bookPreparationRevision.get(book.id) || 0)) return;
         const job = await audioQueue.enqueue({ bookId: book.id, title: book.title, voice, chapters });
         if (revision !== (bookPreparationRevision.get(book.id) || 0)) await audioQueue.delete(job.id);
-      } catch (error) { toast(audioQueueErrorMessage(error), true); }
+      } catch (error) { if (error.code !== "AUDIO_CLEARED") toast(audioQueueErrorMessage(error), true); }
       finally {
         const remaining = (pendingBookPreparations.get(book.id) || 1) - 1;
         if (remaining) pendingBookPreparations.set(book.id, remaining);
@@ -250,6 +260,24 @@ function cancelVoiceWarmup() {
   ++voiceWarmupRevision;
   if (voiceWarmupContext) voicePlayback.stop();
   voiceWarmupContext = null;
+}
+
+function clearVoiceSession() {
+  // This also runs after another tab clears audio. Cancel extraction, downloads,
+  // warm-up and in-memory playback before any late result can restart listening.
+  for (const id of pendingBookPreparations.keys()) {
+    bookPreparationRevision.set(id, (bookPreparationRevision.get(id) || 0) + 1);
+  }
+  ++voiceStartEpoch;
+  pendingVoiceStart = null;
+  voiceChoiceContext = null;
+  voiceUI.close("dispose");
+  cancelVoiceWarmup();
+  preparedListening = false;
+  preparedJobId = null;
+  preparedJobVoice = null;
+  voiceSessionContext = null;
+  voicePlayback.stop();
 }
 
 async function prepareVoiceStart(voice) {
@@ -327,9 +355,12 @@ function saveVoicePassage(passage) {
   scheduleSave();
 }
 
-async function startVoice(voice = voiceForId(state.settings.voiceId), { requirePrepared = preparedListening } = {}) {
+async function startVoice(voice = preparedListening && preparedJobVoice || voiceForId(state.settings.voiceId), { requirePrepared = preparedListening } = {}) {
   const root = document.getElementById("chapter-content");
   if (!root || !voice || !state.book) return;
+  // Stored audio retains its original voice across chapter changes. A retired
+  // voice may play saved passages, but must never fall back to a new engine.
+  requirePrepared ||= !canPrepareVoice(voice);
   const epoch = ++voiceStartEpoch;
   const bookId = state.book.id;
   const chapterIndex = state.position.chapterIndex;
@@ -364,6 +395,7 @@ async function startVoice(voice = voiceForId(state.settings.voiceId), { requireP
   }
   preparedListening = requirePrepared || Boolean(stored);
   preparedJobId = stored?.jobId || null;
+  preparedJobVoice = stored?.voice || null;
   ++voiceWarmupRevision;
   voiceWarmupContext = null;
   if (!stored) void audioQueue.suspend("live");
@@ -389,6 +421,7 @@ async function listenPreparedBook(job, { fromStart = job.status !== "ready" } = 
     Object.assign(state.position, { chapterIndex, wordIndex: 0, chapterProgress: 0, scrollRatio: 0, locator: null, completed: false });
   }
   preparedJobId = job.id;
+  preparedJobVoice = job.voice;
   state.settings.voiceId = job.voice.id;
   state.settings.mode = "audio";
   state.settingsOpen = false;
@@ -416,7 +449,7 @@ async function chooseVoice({ force = false } = {}) {
       return;
     }
   }
-  voiceUI.open({ bookLanguage: state.book.language, lastVoiceId: state.settings.voiceId, estimatedAudioBytes: Math.ceil(state.book.totalWords / 160 * 60 * 48000) });
+  voiceUI.open({ bookLanguage: state.book.language, lastVoiceId: state.settings.voiceId, estimatedAudioBytes: Math.ceil(state.book.totalWords / 160 * 60 * 44100) });
 }
 
 function toggleVoice() {
@@ -424,7 +457,7 @@ function toggleVoice() {
   if (pendingVoiceStart) pause();
   else if (["playing", "preparing", "loading", "buffering"].includes(snapshot.status)) voicePlayback.pause();
   else if (snapshot.voice && voiceSessionMatches()) { voicePlayback.activate(); voicePlayback.resume(); }
-  else if (state.settings.mode === "audio" && state.voiceState?.status === "paused" && voiceForId(state.settings.voiceId)) {
+  else if (state.settings.mode === "audio" && state.voiceState?.status === "paused" && (preparedListening && preparedJobVoice || voiceForId(state.settings.voiceId))) {
     voicePlayback.activate();
     void startVoice();
   }
@@ -448,6 +481,7 @@ audioQueue.subscribe(snapshot => {
   state.audioQueueCount = snapshot.jobs.filter(job => job.status !== "ready").length;
   if (preparedJobId && voiceSessionMatches() && !snapshot.jobs.some(job => job.id === preparedJobId)) {
     preparedJobId = null;
+    preparedJobVoice = null;
     voicePlayback.stop();
     updateVoiceControls({ status: "error", prepared: true, error: "AUDIO_MISSING", rate: state.settings.voiceRate });
   }
@@ -1045,6 +1079,7 @@ async function persistPosition() {
 async function openBook(id, setHash = true) {
   preparedListening = false;
   preparedJobId = null;
+  preparedJobVoice = null;
   voiceUI.close("dispose");
   readerMovement++;
   searchController?.abort();

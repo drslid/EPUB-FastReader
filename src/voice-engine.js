@@ -1,5 +1,6 @@
 import { concatenateVoiceWavs } from "./voice-audio.js";
 import { splitVoicePassage } from "./voice-text.js";
+import { VOICE_RUNTIME_PATH } from "./voice-assets.js";
 export { createAcceleratedVoiceEngine } from "./voice-compute.js";
 
 /** A lazy, disposable bridge to the optional local speech worker. */
@@ -36,7 +37,7 @@ export function createVoiceEngine({
 
   function ensureWorker() {
     if (worker) return worker;
-    worker = workerFactory(new URL("voice-runtime/v1/worker.js", rootUrl));
+    worker = workerFactory(new URL(`${VOICE_RUNTIME_PATH}worker.js`, rootUrl));
     const currentWorker = worker;
     worker.onmessage = ({ data }) => {
       if (worker !== currentWorker) return;

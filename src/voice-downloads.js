@@ -1,4 +1,4 @@
-import { assetsForVoice, voiceBaseUrl, voiceForId, VOICES, VOICE_CACHE_NAME, VOICE_RUNTIME_PATH } from "./voice-assets.js";
+import { assetsForVoice, voiceBaseUrl, voiceForId, VOICES, VOICE_CACHE_NAME, VOICE_RUNTIME_PATH, LEGACY_VOICE_CACHE_NAME, LEGACY_VOICE_RUNTIME_PATH } from "./voice-assets.js";
 
 const HASH_HEADER = "X-Fastreader-Voice-SHA256";
 
@@ -47,13 +47,13 @@ export function createVoiceDownloads({
     catch (error) { throw storageError(error); }
   }
 
-  async function inspect(voiceId, cache) {
+  async function inspect(voiceId, cache, match = url => cache.match(url)) {
     const all = assets(voiceId);
     const missing = [];
     let storedBytes = 0;
     try {
       for (const asset of all) {
-        if (validCachedResponse(await cache.match(asset.url), asset)) storedBytes += asset.bytes;
+        if (validCachedResponse(await match(asset.url), asset)) storedBytes += asset.bytes;
         else missing.push(asset);
       }
     } catch (error) { throw storageError(error); }
@@ -69,7 +69,14 @@ export function createVoiceDownloads({
 
   async function list() {
     const cache = await openCache();
-    return Promise.all(VOICES.map(async (voice) => (await inspect(voice.id, cache)).status));
+    // Shared runtime headers need one storage read per refresh, not one per
+    // language. Keep this snapshot local so the next refresh detects eviction.
+    const responses = new Map();
+    const match = url => {
+      if (!responses.has(url)) responses.set(url, cache.match(url));
+      return responses.get(url);
+    };
+    return Promise.all(VOICES.map(async (voice) => (await inspect(voice.id, cache, match)).status));
   }
 
   async function checkStorage(bytes) {
@@ -180,12 +187,15 @@ export function createVoiceDownloads({
       for (const voice of VOICES) {
         if (voice.id === voiceId) continue;
         const otherAssets = assets(voice.id);
-        const voiceAsset = otherAssets.find((asset) => asset.file.endsWith(`/voices/${voice.id}.bin`));
-        if (voiceAsset && validCachedResponse(await cache.match(voiceAsset.url), voiceAsset)) {
+        let installed = false;
+        for (const asset of otherAssets.filter(asset => asset.voiceId === voice.id)) {
+          if (validCachedResponse(await cache.match(asset.url), asset)) { installed = true; break; }
+        }
+        if (installed) {
           for (const asset of otherAssets) retained.add(asset.url);
         }
       }
-      // Shared model and pronunciation packs remain while another voice needs them.
+      // Shared runtime and pronunciation data remain while another voice needs them.
       for (const asset of ownAssets) {
         if (!retained.has(asset.url)) await cache.delete(asset.url);
       }
@@ -205,10 +215,44 @@ export function createVoiceDownloads({
       for (const request of await cache.keys()) {
         if (request.url.startsWith(prefix)) await cache.delete(request);
       }
+      await removeLegacyFiles();
     }
     catch (error) { throw storageError(error); }
     finally { active = false; }
   }
 
-  return { status, list, download, ensure: download, removeVoice, remove: removeVoice, clearAll };
+  async function legacyStatus() {
+    try {
+      if (!cacheStorage?.keys || !(await cacheStorage.keys()).includes(LEGACY_VOICE_CACHE_NAME)) return { storedBytes: 0 };
+      const cache = await cacheStorage.open(LEGACY_VOICE_CACHE_NAME);
+      const prefix = new URL(LEGACY_VOICE_RUNTIME_PATH, voiceBaseUrl(baseUrl)).href;
+      let storedBytes = 0;
+      for (const request of await cache.keys()) {
+        if (!request.url.startsWith(prefix)) continue;
+        const response = await cache.match(request.url);
+        const size = Number(response?.headers.get("Content-Length"));
+        if (Number.isFinite(size) && size > 0) storedBytes += size;
+      }
+      return { storedBytes };
+    } catch (error) { throw storageError(error); }
+  }
+
+  async function removeLegacyFiles() {
+    if (!cacheStorage?.keys || !(await cacheStorage.keys()).includes(LEGACY_VOICE_CACHE_NAME)) return;
+    const cache = await cacheStorage.open(LEGACY_VOICE_CACHE_NAME);
+    const prefix = new URL(LEGACY_VOICE_RUNTIME_PATH, voiceBaseUrl(baseUrl)).href;
+    for (const request of await cache.keys()) {
+      if (request.url.startsWith(prefix)) await cache.delete(request);
+    }
+  }
+
+  async function removeLegacy() {
+    if (active) throw new VoiceDownloadError("BUSY", "A voice download is running");
+    active = true;
+    try { await removeLegacyFiles(); return { storedBytes: 0 }; }
+    catch (error) { throw storageError(error); }
+    finally { active = false; }
+  }
+
+  return { status, list, download, ensure: download, removeVoice, remove: removeVoice, clearAll, legacyStatus, removeLegacy };
 }

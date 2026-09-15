@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures.js";
 import JSZip from "jszip";
 import { makeEpub, importEpub, storedRows } from "./helpers/fixtures.js";
-import { voiceForId } from "../../src/voice-assets.js";
+import { legacyVoiceForId } from "../../src/voice-assets.js";
 
 test.use({ serviceWorkers: "block" });
 
@@ -9,8 +9,8 @@ const sentence = "Cette phrase doit rester entière même lorsque deux anciens e
 const firstSamples = [101, -102, 103];
 const secondSamples = [201, -202, 203, -204];
 
-async function storedFragment(page, { book, complete = false }) {
-  return page.evaluate(async ({ book, complete, sentence, firstSamples, secondSamples, voice }) => {
+async function storedFragment(page, { book, complete = false, allChapters = false }) {
+  return page.evaluate(async ({ book, complete, allChapters, sentence, firstSamples, secondSamples, voice }) => {
     const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(sentence)))].map(byte => byte.toString(16).padStart(2, "0")).join("");
     const split = sentence.indexOf(" anciens");
     const pcm = samples => {
@@ -43,6 +43,12 @@ async function storedFragment(page, { book, complete = false }) {
       chapters: [{ id: book.chapters[0].id, index: 0, title: book.chapters[0].title, text: sentence, digest,
         complete, completedSegments: ready, audioDuration: durations.slice(0, ready).reduce((total, duration) => total + duration, 0), passages }],
     };
+    if (allChapters) {
+      const firstChapter = job.chapters[0];
+      job.chapters = book.chapters.map((chapter, index) => ({ ...firstChapter, id: chapter.id, title: chapter.title, index,
+        passages: passages.map(passage => ({ ...passage, segmentId: `${index}:${passage.segmentId}` })) }));
+      for (const key of ["totalSegments", "completedSegments", "totalChars", "completedChars", "completedChapters", "audioBytes", "audioDuration"]) job[key] *= book.chapters.length;
+    }
     await new Promise((resolve, reject) => {
       const open = indexedDB.open("fastreader-audio", 1);
       open.onupgradeneeded = () => {
@@ -55,8 +61,8 @@ async function storedFragment(page, { book, complete = false }) {
       open.onsuccess = () => {
         const db = open.result, tx = db.transaction(["jobs", "segments"], "readwrite");
         tx.objectStore("jobs").put(job);
-        for (let index = 0; index < ready; index++) {
-          tx.objectStore("segments").put({ jobId: id, chapterId: book.chapters[0].id, segmentId: passages[index].segmentId,
+        for (const chapter of job.chapters) for (let index = 0; index < ready; index++) {
+          tx.objectStore("segments").put({ jobId: id, chapterId: chapter.id, segmentId: chapter.passages[index].segmentId,
             bytes: buffers[index], mimeType: "audio/wav", duration: durations[index] });
         }
         tx.oncomplete = () => { db.close(); resolve(); };
@@ -66,7 +72,7 @@ async function storedFragment(page, { book, complete = false }) {
     const changes = new BroadcastChannel("fastreader-audio-queue");
     changes.postMessage({ type: "changed" }); changes.close();
     return id;
-  }, { book, complete, sentence, firstSamples, secondSamples, voice: voiceForId("ff_siwis") });
+  }, { book, complete, allChapters, sentence, firstSamples, secondSamples, voice: legacyVoiceForId("ff_siwis") });
 }
 
 test("legacy fragments wait for the complete sentence, then play one intact WAV without another voice worker", async ({ page, context, browserName }) => {
@@ -113,7 +119,9 @@ test("legacy fragments wait for the complete sentence, then play one intact WAV 
   else await context.setOffline(true);
   await page.getByRole("button", { name: "Écouter", exact: true }).click();
   const job = page.locator(`[data-audio-job="${id}"]`);
-  await expect(job).toHaveAttribute("data-status", "paused");
+  await expect(job).toHaveAttribute("data-status", "unavailable");
+  await expect(job.locator('[data-audio-queue-action="resume"]')).toHaveCount(0);
+  await expect(job.locator('[data-audio-queue-action="choose-voice"]')).toContainText("nouvelle voix");
   await job.locator('[data-audio-queue-action="listen"]').click();
   await expect(page.locator("#voice-controls")).toHaveAttribute("data-status", "buffering");
   expect(await page.evaluate(() => window.__legacyAudioPlays)).toEqual([]);
@@ -125,5 +133,53 @@ test("legacy fragments wait for the complete sentence, then play one intact WAV 
   expect(await page.evaluate(() => window.__legacyAudioPlays.map(play => play.samples))).toEqual([[...firstSamples, ...secondSamples]]);
   expect(await page.evaluate(() => window.__legacyAudio.paused)).toBe(false);
   expect(await page.evaluate(() => window.__legacyWorkers)).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test("a complete retired-voice audiobook continues through chapters without downloading or synthesizing", async ({ page }) => {
+  const errors = [], voiceRequests = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("request", request => { if (/voice-runtime|huggingface/.test(request.url())) voiceRequests.push(request.url()); });
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    window.__legacyPlays = [];
+    window.__legacyWorkers = 0;
+    window.Worker = class {
+      constructor(url, options) {
+        if (String(url).includes("voice-runtime/")) { window.__legacyWorkers++; throw new Error("Saved audio must not synthesize"); }
+        return new NativeWorker(url, options);
+      }
+    };
+    window.Audio = class extends EventTarget {
+      constructor() { super(); this.src = ""; this.paused = true; window.__legacyAudio = this; }
+      async play() {
+        this.paused = false;
+        const samples = [...new Int16Array(await (await fetch(this.src)).arrayBuffer(), 44)];
+        if (samples.some(sample => sample !== 0)) window.__legacyPlays.push(samples);
+      }
+      pause() { this.paused = true; }
+      removeAttribute() { this.src = ""; }
+      load() {}
+    };
+  });
+  await page.goto("/");
+  const epub = await JSZip.loadAsync(await makeEpub({ title: "Deux anciens chapitres", chapters: 2, paragraphs: [sentence] }));
+  for (let index = 0; index < 2; index++) epub.file(`chapter${index}.xhtml`, `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapitre</title></head><body><p>${sentence}</p></body></html>`);
+  await importEpub(page, await epub.generateAsync({ type: "nodebuffer" }));
+  await expect(page.locator("#rsvp")).toBeVisible();
+  const [book] = await storedRows(page, "books");
+  const id = await storedFragment(page, { book, complete: true, allChapters: true });
+  await page.getByRole("button", { name: "Écouter", exact: true }).click();
+  await page.locator(`[data-audio-job="${id}"] [data-audio-queue-action="listen"]`).click();
+  await expect(page.locator("#voice-controls")).toHaveAttribute("data-status", "playing");
+  await expect.poll(() => page.evaluate(() => window.__legacyPlays.length)).toBe(1);
+  await page.evaluate(() => window.__legacyAudio.dispatchEvent(new Event("ended")));
+  await expect.poll(() => page.evaluate(() => window.__legacyPlays.length)).toBe(2);
+  await expect(page.locator("#voice-controls")).toHaveAttribute("data-status", "playing");
+  expect(await page.evaluate(() => window.__legacyPlays)).toEqual([[...firstSamples, ...secondSamples], [...firstSamples, ...secondSamples]]);
+  await page.evaluate(() => window.__legacyAudio.dispatchEvent(new Event("ended")));
+  await expect(page).toHaveURL(/#library$/);
+  expect(await page.evaluate(() => window.__legacyWorkers)).toBe(0);
+  expect(voiceRequests).toEqual([]);
   expect(errors).toEqual([]);
 });

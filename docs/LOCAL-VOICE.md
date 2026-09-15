@@ -9,9 +9,9 @@ Le quatrième mode, **Écouter**, est facultatif. Il prépare la voix directemen
 3. Choisir la voix proposée, puis **Télécharger et écouter**. L’ouverture du dialogue ne télécharge rien automatiquement.
 4. Suivre le téléchargement, puis la préparation du passage actuel. L’écoute démarre lorsque le son est prêt. Si le navigateur bloque le démarrage automatique, utiliser le bouton de lecture.
 
-Le premier téléchargement représente environ **117 Mo**. Le modèle principal et les composants communs sont réutilisés lorsqu’on ajoute une voix. La taille réellement manquante est affichée avant chaque téléchargement ; elle dépend des fichiers déjà présents.
+Le premier téléchargement représente environ **93 Mo** : un modèle Piper Medium d’environ **63 Mo** et un moteur commun d’environ **30 Mo**. Chaque langue possède son propre modèle ; ajouter une autre voix télécharge environ 63 Mo, et réutilise le moteur commun. La taille réellement manquante est affichée avant chaque téléchargement, selon les fichiers déjà présents.
 
-La sélection volontairement courte comprend Siwis en français, Heart en anglais, Dora en espagnol, Sara en italien et Dora en portugais brésilien. Il n’y a pas de voix allemande dans ce modèle. FastReader ne remplace pas automatiquement une langue sans voix par une autre langue.
+La sélection comprend une voix Piper Medium par langue : **Siwis en français, LJ Speech en anglais américain, Davefx en espagnol, Paola en italien, Thorsten en allemand et Faber en portugais brésilien**. FastReader ne remplace pas automatiquement une langue sans voix par une autre langue.
 
 ## Connexion et stockage
 
@@ -20,6 +20,8 @@ Une connexion est nécessaire pour télécharger une voix manquante. Le bouton r
 Le téléchargement peut être annulé. Les fichiers terminés sont conservés ; un fichier interrompu doit être retéléchargé. Une erreur de réseau ou un manque de place donne une explication et permet de réessayer. Une vérification de l’intégrité des fichiers précède leur mise à disposition.
 
 **Retirer cette voix** libère ses fichiers devenus inutiles en conservant ceux requis par d’autres voix et en gardant les livres. Les téléchargements vocaux ne font pas partie des sauvegardes ZIP de la bibliothèque. Effacer les données du navigateur ou changer d’appareil impose de retélécharger les voix. Le navigateur peut aussi récupérer de l’espace lorsque le stockage manque.
+
+Les audios déjà préparés avec l’ancien moteur Kokoro restent disponibles. Si ses fichiers sont encore présents, **Libérer l’espace de l’ancien moteur** permet de les supprimer sans effacer les livres ni les audios terminés. Une préparation Kokoro inachevée ne reçoit pas de nouvelles phrases Piper : elle reste écoutable sur sa partie terminée ; préparer avec une voix Piper crée une nouvelle préparation cohérente.
 
 ## Pendant l’écoute
 
@@ -49,7 +51,7 @@ Recliquer sur **Écouter** dans un livre déjà préparé ou en préparation ouv
 
 Gardez FastReader ouvert : la préparation se met en pause en arrière-plan et reprend au retour dans l’application. Après une fermeture ou un rechargement, les préparations inachevées sont conservées en pause ; utilisez **Reprendre**. La PWA ne promet pas de continuer une longue conversion lorsque le navigateur est fermé ou l’écran verrouillé.
 
-**Écouter le début** apparaît dès que les premiers passages sont prêts, même si le reste du livre est encore en préparation. L’écoute et la préparation continuent ensemble ; sur un appareil compatible, deux phrases du même livre peuvent être générées en parallèle puis enregistrées dans l’ordre de lecture. Les livres de la file restent traités l’un après l’autre. Si l’écoute rattrape la préparation, le lecteur affiche une attente et reprend lorsque la suite est prête, y compris au changement de chapitre. **Pause** arrête cette reprise automatique. Si la préparation est en pause ou interrompue, le lecteur le précise et permet de rouvrir la file pour la reprendre.
+**Écouter le début** apparaît dès que les premiers passages sont prêts, même si le reste du livre est encore en préparation. L’écoute et la préparation continuent ensemble ; sur un ordinateur compatible, deux phrases du même livre peuvent être générées en parallèle puis enregistrées dans l’ordre de lecture. Sur téléphone et tablette, une seule session prépare les phrases successivement pour limiter la mémoire et la charge de calcul. Les livres de la file restent traités l’un après l’autre. Si l’écoute rattrape la préparation, le lecteur affiche une attente et reprend lorsque la suite est prête, y compris au changement de chapitre. **Pause** arrête cette reprise automatique. Si la préparation est en pause ou interrompue, le lecteur le précise et permet de rouvrir la file pour la reprendre.
 
 **Écouter le début** démarre explicitement au début du livre ; une fois le livre entièrement préparé, **Lancer l’écoute** reprend à la position enregistrée. Annuler une préparation en cours d’écoute arrête aussi cet audio.
 
@@ -57,16 +59,32 @@ Un livre **Prêt à écouter** propose **Lancer l’écoute**. Son audio est dé
 
 La préparation complète prend davantage de place que le modèle vocal seul. Une estimation apparaît avant le lancement ; la taille réellement enregistrée est visible pendant le traitement. En cas de stockage insuffisant, libérez de la place puis reprenez. **Supprimer l’audio** conserve l’EPUB et ses repères. Les audios préparés ne sont pas inclus dans la sauvegarde ZIP ; supprimer les données locales du navigateur peut les effacer.
 
+## Libérer la place des audios générés
+
+Dans **Préparations audio**, **Vider les audios** affiche une confirmation avant
+la suppression globale. La taille indiquée correspond aux fichiers audio déjà
+conservés. Confirmer arrête l’écoute, annule les préparations et supprime tous
+les enregistrements générés sur cet appareil, y compris les anciens audios.
+Les autres onglets sont avertis pour arrêter leur travail et leur écoute.
+
+Les EPUBs, positions, notes, réglages et voix téléchargées restent disponibles.
+Vous pourrez préparer à nouveau un livre avec une voix déjà installée. Pour
+retirer uniquement un livre audio, sa commande **Supprimer l’audio** reste
+accessible sur sa ligne. Pour retirer les modèles de voix, utilisez le choix
+de voix : leur stockage est distinct des enregistrements générés.
+
 ## Accélérer la préparation
 
-L’accélération est automatique : deux moteurs peuvent préparer les phrases en parallèle lorsque le navigateur indique au moins 8 Gio de mémoire et quatre processeurs logiques sur ordinateur, ou huit sur mobile. Si la mémoire est inconnue ou inférieure, un seul moteur est utilisé. Sur un hébergement correctement isolé, un modèle peut utiliser deux ou quatre threads à la place ; GitHub Pages utilise le chemin portable ou parallèle. Aucun nouveau modèle n’est nécessaire. Si le second moteur échoue, sa phrase est reprise intégralement sur le premier.
+Sur téléphone et tablette, Piper utilise **une session et un thread WASM**. Le gain recherché vient du modèle plus léger et de son débit, sans charger deux copies du modèle en mémoire. Un changement de langue libère la session précédente avant de charger la suivante.
 
-Le [rapport de performance](VOICE-PERFORMANCE.md) contient les mesures sur le moteur intégré. L’anticipation réduit l’attente au clic et le parallèle augmente le débit, mais un premier passage non préparé demande toujours un calcul. Ces améliorations ne promettent pas une génération plus rapide que la lecture sur tous les appareils : préparer le livre entièrement reste utile pour une écoute sans attente de conversion.
+Sur ordinateur, le navigateur peut utiliser deux sessions si les capacités déclarées atteignent 8 Gio de mémoire et quatre processeurs logiques. Avec l’isolation interorigines vérifiée, une seule session utilise plutôt deux ou quatre threads. Les appareils aux capacités inconnues ou inférieures restent sur une session et un thread. GitHub Pages ne fournit pas cette isolation par défaut. Si la seconde session échoue, sa phrase est reprise intégralement sur la première.
+
+Le [rapport Piper](PIPER-VERIFICATION.md) présente les vérifications du nouveau moteur. L’anticipation réduit l’attente au clic, mais un premier passage non préparé demande toujours un calcul. Le débit observé sur ordinateur ne garantit pas celui d’un téléphone : la chauffe, le navigateur et la longueur des phrases interviennent. Préparer le livre entièrement reste utile pour une écoute sans attente de conversion.
 
 ## Vérifications et limites
 
-Le moteur intégré a généré les cinq langues proposées sur Chromium et du français sur Firefox et WebKit, à partir des fichiers conservés localement, sans réseau disponible pour la synthèse. Le [rapport de vérification](VOICE-VERIFICATION.md) détaille les méthodes, les mesures et les limites de ces essais, distincts du prototype préalable.
+Les mesures et contrôles du moteur Piper sont réunis dans le [rapport de vérification Piper](PIPER-VERIFICATION.md). Les anciens rapports [Kokoro — vérification](VOICE-VERIFICATION.md) et [Kokoro — performance](VOICE-PERFORMANCE.md) sont des archives ; leurs mesures ne décrivent pas Piper.
 
-L’interface a été vérifiée sur six langues, trois thèmes et deux formats d’écran. Les tests couvrent le choix de langue, le téléchargement explicite, la progression, l’annulation, la reprise, le retrait, le stockage insuffisant et le mode hors ligne. Ces résultats ne constituent pas une mesure de fluidité, de batterie ou de mémoire sur de vrais iPhone et Android ; ces essais physiques restent à réaliser.
+Les tests de l’interface couvrent le choix de langue, le téléchargement explicite, la progression, l’annulation, la reprise, le retrait, le stockage insuffisant et le mode hors ligne. Ils ne constituent pas une mesure de fluidité, de batterie ou de mémoire sur de vrais iPhone et Android ; ces essais physiques restent à réaliser.
 
-La qualité sonore n’a pas encore été évaluée par une écoute humaine. Pour juger le naturel avant de généraliser l’écoute, comparer les voix avec de la narration, des dialogues, des noms propres, des nombres et de longs chapitres. Le modèle utilisé est [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M), et la sélection se limite aux langues dont les voix sont disponibles.
+La qualité sonore doit également être comparée à l’écoute : narration, dialogues, noms propres, nombres et longs chapitres. Une synthèse réussie ne suffit pas à démontrer une voix naturelle. Les [modèles Piper sélectionnés](https://huggingface.co/rhasspy/piper-voices) et leurs attributions sont détaillés dans [les composants vocaux](THIRD-PARTY-VOICE.md).

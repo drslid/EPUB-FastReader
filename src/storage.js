@@ -1,6 +1,7 @@
 import { t } from "./i18n.js";
 import { normalizePosition } from "./reading-state.js";
 import { readingFonts } from "./reading-preferences.js";
+import { voiceForId, isLegacyVoiceId } from "./voice-assets.js";
 
 const DATABASE = "fastreader";
 let connection;
@@ -200,7 +201,7 @@ export function normalizeSettings(value) {
     mode: ["classic", "focus", "rsvp", "audio"].includes(source.mode)
       ? source.mode
       : defaultSettings.mode,
-    voiceId: ["ff_siwis", "af_heart", "ef_dora", "if_sara", "pf_dora"].includes(source.voiceId) ? source.voiceId : "",
+    voiceId: voiceForId(source.voiceId) || isLegacyVoiceId(source.voiceId) ? source.voiceId : "",
     voiceRate: Math.min(1.75, Math.max(0.75, Number(source.voiceRate) || 1)),
     speed: Math.min(800, Math.max(100, Number(source.speed) || 300)),
     lineHeight: Math.min(2.4, Math.max(1.4, Number(source.lineHeight) || 1.85)),

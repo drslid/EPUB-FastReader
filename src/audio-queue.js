@@ -25,6 +25,8 @@ function splitPassage(passage, text) {
 /** Persistent preparation is deliberately opt-in after every page reload. */
 export function createAudioQueue({
   createEngine,
+  canPrepareVoice = () => true,
+  onClear = () => {},
   store = createAudioStore(),
   storage = globalThis.navigator?.storage,
   locks = globalThis.navigator?.locks,
@@ -34,17 +36,21 @@ export function createAudioQueue({
   const owner = globalThis.crypto.randomUUID();
   const listeners = new Set(), eligible = new Set(), suspensions = new Set(), failures = new Map();
   let records = [], lease = null, active = null, pumping = false, disposed = false, retryTimer = null, lockCycle = null, speechLockHeld = null;
+  let clearing = null;
+  let refreshRevision = 0;
   const channel = channelFactory("fastreader-audio-queue");
   channel?.unref?.();
 
   function summary(job) {
     let status = job.status;
+    const canPrepare = canPrepareVoice(job.voice);
     if (failures.has(job.id)) status = "error";
     if (["queued", "preparing"].includes(status)) {
       const isLocal = eligible.has(job.id) || active?.jobId === job.id;
       const isRemote = speechLockHeld !== false && lease?.owner === job.controlOwner && lease.expires > now();
       if (!isLocal && !isRemote) status = "paused";
     }
+    if (job.status !== "ready" && !canPrepare) status = "unavailable";
     const chapters = job.chapters.map(chapter => ({ id: chapter.id, title: chapter.title, complete: chapter.complete,
       completedSegments: chapter.completedSegments, totalSegments: chapter.passages.length, audioDuration: chapter.audioDuration,
       readySegments: readyPrefix(chapter).length }));
@@ -57,7 +63,7 @@ export function createAudioQueue({
       id: job.id, bookId: job.bookId, title: job.title, voice: job.voice, status, segmentationVersion: job.segmentationVersion || 1,
       progress: job.totalChars ? Math.min(1, job.completedChars / job.totalChars) : 0,
       completedSegments: job.completedSegments, totalSegments: job.totalSegments,
-      readySegments, canListen: readySegments > 0,
+      readySegments, canListen: readySegments > 0, canPrepare,
       completedChars: job.completedChars, totalChars: job.totalChars,
       completedChapters: job.completedChapters, totalChapters: job.chapters.length,
       audioBytes: job.audioBytes, audioDuration: job.audioDuration, error: failures.get(job.id) || job.error || null,
@@ -70,11 +76,18 @@ export function createAudioQueue({
   }
   function emit() { const value = snapshot(); for (const listener of listeners) listener(value); }
   async function refresh(broadcast = false) {
-    [records, lease] = await Promise.all([store.listJobs(), store.getLease()]);
+    const revision = ++refreshRevision;
+    const [nextRecords, nextLease] = await Promise.all([store.listJobs(), store.getLease()]);
+    let nextSpeechLockHeld = null;
     if (locks?.query) {
-      try { speechLockHeld = (await locks.query()).held.some(lock => lock.name === AUDIO_CONVERSION_LOCK); }
-      catch { speechLockHeld = null; }
+      try { nextSpeechLockHeld = (await locks.query()).held.some(lock => lock.name === AUDIO_CONVERSION_LOCK); }
+      catch { /* Unknown lock state does not prove that another tab is idle. */ }
     }
+    if (revision !== refreshRevision) {
+      if (broadcast && !disposed) channel?.postMessage({ type: "changed" });
+      return snapshot();
+    }
+    records = nextRecords; lease = nextLease; speechLockHeld = nextSpeechLockHeld;
     records.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
     if (active) {
       const current = records.find(job => job.id === active.jobId);
@@ -88,11 +101,21 @@ export function createAudioQueue({
     return snapshot();
   }
   const initialized = refresh().catch(() => {});
-  if (channel) channel.onmessage = () => { void refresh().catch(() => {}); };
+  if (channel) channel.onmessage = ({ data }) => {
+    if (data?.type === "cleared") stopForClear();
+    void refresh().catch(() => {});
+  };
 
   function abortActive() {
     active?.controller.abort();
     active?.engine?.dispose();
+  }
+  function stopForClear() {
+    ++refreshRevision;
+    eligible.clear(); failures.clear();
+    clearTimeout(retryTimer); retryTimer = null;
+    abortActive();
+    onClear();
   }
   async function checkSpace(required) {
     if (!storage?.estimate) return;
@@ -116,14 +139,16 @@ export function createAudioQueue({
     try {
       let job = await store.mutateJob(jobId, current => {
         if (!current || current.status === "ready" || !eligible.has(jobId) || suspensions.size || disposed) return current;
+        if (!canPrepareVoice(current.voice)) throw failure("VOICE_RETIRED", "Choose a current voice to prepare new audio");
         return { ...current, status: "preparing", controlOwner: owner, error: null, updatedAt: now() };
       });
       if (!job || job.status !== "preparing" || job.controlOwner !== owner || signal.aborted) return;
+      session.generation = job.generation || 0;
       await refresh(true);
-      // PCM mono 24 kHz / 16 bit: 48,000 bytes per second. This is a rough
+      // PCM mono / 16 bit, at the selected voice's sample rate. This is a rough
       // preflight only; each actual audio chunk is checked again before commit.
       const remainingChars = job.totalChars - job.completedChars;
-      await checkSpace(remainingChars / 6 / 160 * 60 * 48000);
+      await checkSpace(remainingChars / 6 / 160 * 60 * (job.voice.sampleRate || 24000) * 2);
       if (signal.aborted) return;
       heartbeat = setInterval(() => {
         void store.acquireLease(owner, now()).then(ok => { if (!ok) abortActive(); }).catch(() => abortActive());
@@ -168,7 +193,7 @@ export function createAudioQueue({
           if (!generated?.blob || !Number.isFinite(generated.duration) || generated.duration <= 0) throw failure("VOICE_FAILED", "The voice produced no audio");
           await checkSpace(generated.blob.size);
           if (signal.aborted || disposed) break;
-          const committed = await store.commitSegment(jobId, { ...generated, chapterId: chapter.id, segmentId: passage.segmentId }, owner, now());
+          const committed = await store.commitSegment(jobId, { ...generated, chapterId: chapter.id, segmentId: passage.segmentId }, owner, now(), session.generation);
           if (!committed) { finished = true; break; }
           await refresh(true);
           if (committed.status === "ready") { eligible.delete(jobId); finished = true; break; }
@@ -190,7 +215,7 @@ export function createAudioQueue({
       if (active === session) active = null;
       try {
         await store.mutateJob(jobId, job => {
-          if (!job || job.status !== "preparing" || job.controlOwner !== owner) return job;
+          if (!job || job.status !== "preparing" || job.controlOwner !== owner || (job.generation || 0) !== session.generation) return job;
           return { ...job, status: eligible.has(jobId) && !disposed ? "queued" : "paused", updatedAt: now() };
         });
       } catch { /* Do not retain the cross-tab lock if storage is unavailable. */ }
@@ -208,7 +233,7 @@ export function createAudioQueue({
       while (!disposed && !suspensions.size && eligible.size) {
         const jobId = [...eligible][0];
         const job = await store.getJob(jobId);
-        if (!job || job.status === "ready" || job.controlOwner !== owner) { eligible.delete(jobId); continue; }
+        if (!job || job.status === "ready" || job.controlOwner !== owner || !canPrepareVoice(job.voice)) { eligible.delete(jobId); continue; }
         // Web Locks is supported by current Safari, Firefox and Chromium.
         // Without it, refusing background conversion is safer than an expiring
         // lease that can run two workers when another tab is suspended.
@@ -238,7 +263,10 @@ export function createAudioQueue({
 
   async function enqueue({ bookId, title, voice, chapters }) {
     if (disposed) throw failure("QUEUE_CLOSED", "Audio preparation is closed");
+    if (clearing) throw failure("AUDIO_CLEARED", "Audio storage is being cleared");
     if (!bookId || !voice?.id || !Array.isArray(chapters)) throw failure("INVALID_BOOK", "A book, voice and chapters are required");
+    if (!canPrepareVoice(voice)) throw failure("VOICE_RETIRED", "Choose a current voice to prepare new audio");
+    const generation = await store.getGeneration();
     const seen = new Set();
     const prepared = await Promise.all(chapters.map(async (chapter, index) => {
       const id = String(chapter.id ?? index);
@@ -251,16 +279,22 @@ export function createAudioQueue({
     }));
     const totalSegments = prepared.reduce((sum, chapter) => sum + chapter.passages.length, 0);
     if (!totalSegments) throw failure("VOICE_EMPTY_TEXT", "This book has no text to prepare");
-    const id = await digest(JSON.stringify(["kokoro-q8-natural-v2", bookId, voice.id, prepared.map(chapter => [chapter.id, chapter.digest])]));
+    const engineIdentity = voice.model?.sha256
+      ? ["piper-medium-v1", voice.modelKey, voice.model.sha256, voice.config?.sha256 || ""]
+      : voice.modelKey || "kokoro-q8-natural-v2";
+    const id = await digest(JSON.stringify([engineIdentity, bookId, voice.id, prepared.map(chapter => [chapter.id, chapter.digest])]));
     if (disposed) throw failure("QUEUE_CLOSED", "Audio preparation is closed");
     const timestamp = now();
     const job = await store.putIfAbsent({ id, bookId, title: title || "", voice: structuredClone(voice), chapters: prepared, segmentationVersion: 2,
       totalSegments, completedSegments: 0, totalChars: prepared.reduce((sum, chapter) => sum + chapter.passages.reduce((count, passage) => count + passage.end - passage.start, 0), 0),
       completedChars: 0, completedChapters: prepared.filter(chapter => chapter.complete).length,
-      audioBytes: 0, audioDuration: 0, status: "queued", controlOwner: owner, error: null, createdAt: timestamp, updatedAt: timestamp });
+      audioBytes: 0, audioDuration: 0, status: "queued", controlOwner: owner, error: null, createdAt: timestamp, updatedAt: timestamp }, { generation });
+    if (!job) throw failure("AUDIO_CLEARED", "Audio preparation was cancelled when storage was cleared");
     if (job.status !== "ready") await resume(id);
     else await refresh();
-    return summary((await store.getJob(id)) || job);
+    const saved = await store.getJob(id);
+    if (!saved || saved.generation !== job.generation) throw failure("AUDIO_CLEARED", "Audio preparation was cancelled when storage was cleared");
+    return summary(saved);
   }
   async function pause(id) {
     eligible.delete(id);
@@ -270,9 +304,18 @@ export function createAudioQueue({
   }
   async function resume(id) {
     if (disposed) return;
+    if (clearing) throw failure("AUDIO_CLEARED", "Audio storage is being cleared");
+    const stored = await store.getJob(id);
+    if (!stored || stored.status === "ready") { await refresh(); return; }
+    if (!canPrepareVoice(stored.voice)) throw failure("VOICE_RETIRED", "Choose a current voice to prepare new audio");
     failures.delete(id);
     eligible.add(id);
-    await store.mutateJob(id, job => job && job.status !== "ready" ? { ...job, status: "queued", controlOwner: owner, error: null, updatedAt: now() } : job);
+    const resumed = await store.mutateJob(id, job => job && job.status !== "ready" && (job.generation || 0) === (stored.generation || 0)
+      ? { ...job, status: "queued", controlOwner: owner, error: null, updatedAt: now() } : job);
+    if (!resumed || (resumed.generation || 0) !== (stored.generation || 0)) {
+      eligible.delete(id);
+      throw failure("AUDIO_CLEARED", "Audio preparation was cancelled when storage was cleared");
+    }
     await refresh(true);
     kick();
   }
@@ -282,6 +325,24 @@ export function createAudioQueue({
     if (active?.jobId === id) abortActive();
     await store.removeJob(id);
     await refresh(true);
+  }
+  function clearAll() {
+    if (disposed) return Promise.reject(failure("QUEUE_CLOSED", "Audio preparation is closed"));
+    if (clearing) return clearing;
+    suspensions.add("clearing");
+    clearing = (async () => {
+      await initialized;
+      stopForClear();
+      await store.clearAll();
+      channel?.postMessage({ type: "cleared" });
+      await lockCycle;
+      return refresh(true);
+    })().finally(() => {
+      clearing = null;
+      suspensions.delete("clearing");
+      emit();
+    });
+    return clearing;
   }
   function suspend(reason) { suspensions.add(reason); abortActive(); emit(); return lockCycle || Promise.resolve(); }
   function unsuspend(reason) { suspensions.delete(reason); emit(); kick(); }
@@ -319,7 +380,7 @@ export function createAudioQueue({
       channel?.close(); listeners.clear();
     }
   }
-  return { enqueue, pause, resume, cancel: remove, delete: remove, remove, suspend, unsuspend, snapshot,
+  return { enqueue, pause, resume, cancel: remove, delete: remove, remove, clearAll, suspend, unsuspend, snapshot,
     async list() { await initialized; return refresh(); },
     subscribe(listener) { listeners.add(listener); listener(snapshot()); void initialized.then(() => { if (listeners.has(listener)) listener(snapshot()); }); return () => listeners.delete(listener); },
     getPreparedChapter, readSegment: (jobId, segmentId) => store.readSegment(jobId, segmentId), dispose };

@@ -1,5 +1,7 @@
 # Préparation vocale : performance et continuité des phrases
 
+> **Archive — ancien moteur Kokoro.** Ces essais décrivent l’implémentation précédente, avant le passage à Piper Medium. Les noms de voix, tailles, politiques mobiles et mesures ci-dessous ne décrivent pas le moteur actuel. Voir [les vérifications Piper](PIPER-VERIFICATION.md) et [le guide de la lecture vocale](LOCAL-VOICE.md).
+
 Vérification du 14 septembre 2026. **L’accélération est activée automatiquement lorsque les capacités déclarées du navigateur le permettent.** Le modèle Kokoro q8 et les voix restent identiques ; seul le petit fichier du Worker est mis à jour. Le moteur choisit deux sessions parallèles ou plusieurs threads dans une session, avec un mode portable sur les autres appareils. Aucun gain GPU ni gain mesuré sur téléphone n’est annoncé.
 
 ## Politique activée

@@ -43,6 +43,7 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
   let revision = 0;
   let session = 0;
   let notifiedVoiceId = null;
+  let legacyBytes = 0;
 
   const selectedVoice = () => VOICES.find((voice) => voice.id === selectedId && voice.language === language);
   const online = () => navigator.onLine !== false;
@@ -110,6 +111,10 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
     const remove = dialog.querySelector("[data-voice-remove]");
     remove.hidden = checking || (!ready && !(status?.storedBytes > 0));
     remove.disabled = pending;
+    const legacy = dialog.querySelector("[data-voice-legacy]");
+    legacy.hidden = checking || legacyBytes <= 0;
+    legacy.querySelector("button").disabled = pending;
+    setText("[data-voice-legacy-size]", t("Ancien moteur vocal : {size}. Les audios préparés restent disponibles après sa suppression.", { size: formatVoiceBytes(legacyBytes) }));
     const statusRegion = dialog.querySelector("[data-voice-status]");
     statusRegion.textContent = error ? voiceErrorMessage(error) : notice ? t(notice) : "";
     statusRegion.dataset.error = String(Boolean(error));
@@ -131,9 +136,10 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
     checking = true;
     render();
     try {
-      const result = await downloads.list();
+      const [result, legacy] = await Promise.all([downloads.list(), Promise.resolve(downloads.legacyStatus?.()).catch(() => ({ storedBytes: 0 }))]);
       if (!dialog || token !== revision) return;
       statuses = new Map(result.map((status) => [status.voiceId, status]));
+      legacyBytes = Number(legacy?.storedBytes) || 0;
     } catch (failure) {
       if (!dialog || token !== revision) return;
       error = failure;
@@ -232,6 +238,36 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
     finally { if (dialog && session === currentSession) { pending = false; await refresh(); } }
   }
 
+  async function removeLegacy() {
+    if (!dialog || pending || checking || !downloads.removeLegacy) return;
+    const currentSession = session;
+    const action = dialog.querySelector("[data-voice-remove-legacy]");
+    const heldFocus = document.activeElement === action;
+    let removed = false;
+    pending = true;
+    error = null;
+    notice = "";
+    render();
+    dialog.querySelector("[data-voice-progress]").hidden = true;
+    try {
+      await downloads.removeLegacy();
+      if (!dialog || session !== currentSession) return;
+      removed = true;
+      notice = "Ancien moteur retiré. Vos livres et vos audios préparés sont conservés.";
+    } catch (failure) { if (dialog && session === currentSession) error = failure; }
+    finally {
+      if (dialog && session === currentSession) {
+        pending = false;
+        await refresh();
+        if (removed && heldFocus && dialog && session === currentSession
+          && [action, document.body].includes(document.activeElement)) {
+          const start = dialog.querySelector("[data-voice-start]");
+          (start.disabled ? dialog.querySelector("[data-voice-language]") : start).focus({ preventScroll: true });
+        }
+      }
+    }
+  }
+
   function open({ bookLanguage = "", lastVoiceId = "", estimatedAudioBytes = 0 } = {}) {
     if (dialog) { dialog.querySelector("[data-voice-language]").focus(); return; }
     ++session;
@@ -241,6 +277,7 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
     const previous = VOICES.find((voice) => voice.id === lastVoiceId && voice.language === language);
     selectedId = previous?.id || "";
     statuses = new Map();
+    legacyBytes = 0;
     error = null;
     notice = "";
     interrupted = false;
@@ -258,6 +295,13 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
     }
     dialog.innerHTML = `<div class="voice-dialog-heading"><div><span class="voice-eyebrow">${copy("Lecture vocale")}</span><h2 id="voice-dialog-title">${copy("Une voix pour votre livre")}</h2></div><button class="round-button" data-voice-close aria-label="${escape(t("Fermer"))}">${glyph("close", "×")}</button></div><p id="voice-dialog-intro">${copy("Choisissez la langue du texte, puis une voix. L’écoute commence à votre passage actuel.")}</p><label class="voice-language-label" for="voice-language">${copy("Langue du livre")}</label><select id="voice-language" data-voice-language><option value="" ${language ? "" : "selected"}>${escape(t("Choisir une langue"))}</option>${languageOptions}</select><fieldset class="voice-options"><legend class="sr-only">${copy("Choisir une voix")}</legend><div class="voice-list" data-voice-list></div></fieldset><p class="voice-empty" data-voice-empty></p><p class="voice-size" data-voice-size></p><p class="voice-offline" data-voice-offline hidden></p><div class="voice-download-progress" data-voice-progress hidden><strong>${copy("Téléchargement de la voix…")}</strong><progress max="100" aria-label="${escape(t("Téléchargement de la voix…"))}"></progress><div class="voice-progress-bottom"><span data-voice-progress-size></span><button class="voice-text-button" data-voice-cancel>${copy("Annuler le téléchargement")}</button></div></div><p class="voice-status" data-voice-status role="status" aria-live="polite" aria-atomic="true"></p><button class="button primary voice-start" data-voice-start disabled>${glyph("play", "▶")}<span data-voice-start-label></span></button><button class="voice-text-button voice-remove" data-voice-remove hidden>${copy("Retirer cette voix")}</button><p class="voice-privacy">${copy("Votre texte reste sur cet appareil. Aucun compte ni abonnement.")}</p><p class="voice-device-hint">${copy("L’écoute peut demander un temps de préparation selon votre appareil.")} ${copy("Gardez FastReader ouvert pendant l’écoute.")}</p>`;
     dialog.querySelector("[data-voice-close]").onclick = () => close();
+    const legacy = document.createElement("div");
+    legacy.className = "voice-prepare-option";
+    legacy.dataset.voiceLegacy = "";
+    legacy.hidden = true;
+    legacy.innerHTML = `<p data-voice-legacy-size></p><button class="voice-text-button" data-voice-remove-legacy>${copy("Libérer l’espace de l’ancien moteur")}</button>`;
+    dialog.querySelector(".voice-privacy").after(legacy);
+    legacy.querySelector("button").onclick = () => { void removeLegacy(); };
     const prepareAction = document.createElement("div");
     prepareAction.className = "voice-prepare-option";
     prepareAction.innerHTML = `<button class="button secondary voice-start" data-voice-prepare disabled>${glyph("download", "↓")}<span data-voice-prepare-label></span></button><p>${copy("Pour écouter ensuite sans attendre entre les passages. Une préparation à la fois, avec un suivi de progression.")}</p>`;
@@ -304,7 +348,8 @@ export function audioControlsMarkup({ status = "idle", voiceLabel = "", rate = 1
   const label = playing || busy ? "Pause" : status === "paused" ? "Reprendre" : "Lancer l’écoute";
   let defaultMessage = status === "loading" ? "Préparation de la voix…" : status === "preparing" ? "Préparation du passage…" : status === "buffering" ? "Préparation du prochain passage…" : status === "ended" ? "Écoute terminée" : status === "paused" ? "Lecture vocale en pause" : "";
   if (prepared && status === "buffering") {
-    defaultMessage = preparationStatus === "paused" ? "La préparation est en pause. Reprenez-la dans la file audio."
+    defaultMessage = preparationStatus === "unavailable" ? "Fin des passages enregistrés avec cette voix. Ouvrez la file audio pour préparer le livre avec une nouvelle voix."
+      : preparationStatus === "paused" ? "La préparation est en pause. Reprenez-la dans la file audio."
       : preparationStatus === "error" ? "La préparation est interrompue. Ouvrez la file audio pour la reprendre."
         : preparationStatus === "queued" ? "Ce livre attend son tour. L’écoute reprendra quand la suite sera prête."
           : "Vous avez rejoint la préparation. L’écoute reprend dès que la suite est prête.";

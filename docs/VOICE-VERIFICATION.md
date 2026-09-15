@@ -1,5 +1,7 @@
 # Vérifications de la lecture vocale locale
 
+> **Archive — ancien moteur Kokoro.** Ces essais décrivent l’implémentation précédente, avant le passage à Piper Medium. Les noms de voix, tailles, politiques mobiles et mesures ci-dessous ne décrivent pas le moteur actuel. Voir [les vérifications Piper](PIPER-VERIFICATION.md) et [le guide de la lecture vocale](LOCAL-VOICE.md).
+
 Essais vocaux : 14 septembre 2026. Contrôle avant publication : 15 septembre 2026.
 
 Ce rapport porte sur le moteur réellement intégré dans

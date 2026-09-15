@@ -58,12 +58,32 @@ export function createAudioStore({ indexedDB = globalThis.indexedDB, name = DATA
   return {
     getJob: id => get("jobs", id),
     getLease: () => get("locks", "conversion"),
+    async getGeneration() { return (await get("locks", "generation"))?.version || 0; },
     mutateJob,
     listJobs: () => transaction(["jobs"], "readonly", (tx, set) => {
       const request = tx.objectStore("jobs").getAll();
       request.onsuccess = () => set(request.result);
     }),
-    putIfAbsent: job => mutateJob(job.id, existing => existing || job),
+    putIfAbsent(job, { generation } = {}) {
+      return transaction(["jobs", "locks"], "readwrite", (tx, set, fail) => {
+        const jobs = tx.objectStore("jobs");
+        const revision = tx.objectStore("locks").get("generation");
+        revision.onsuccess = () => {
+          try {
+            const current = revision.result?.version || 0;
+            if (generation !== undefined && generation !== current) { set(null); return; }
+            const request = jobs.get(job.id);
+            request.onsuccess = () => {
+              try {
+                const saved = request.result || { ...job, generation: current };
+                if (!request.result) jobs.put(saved);
+                set(saved);
+              } catch (error) { fail(error); }
+            };
+          } catch (error) { fail(error); }
+        };
+      });
+    },
     acquireLease(owner, now, lifetime = 60000, exclusiveLockHeld = false) {
       return transaction(["locks"], "readwrite", (tx, set) => {
         const table = tx.objectStore("locks"), request = table.get("conversion");
@@ -82,7 +102,7 @@ export function createAudioStore({ indexedDB = globalThis.indexedDB, name = DATA
       });
     },
     /** Audio and its ready flag are committed together, or both roll back. */
-    async commitSegment(jobId, segment, owner, now) {
+    async commitSegment(jobId, segment, owner, now, generation) {
       // Some WebKit storage contexts reject native Blob/File values. Store
       // portable bytes instead, reading them before the transaction starts so
       // its writes remain atomic and never await an external promise.
@@ -95,7 +115,8 @@ export function createAudioStore({ indexedDB = globalThis.indexedDB, name = DATA
         leaseRequest.onsuccess = () => {
           try {
             const job = jobRequest.result, lease = leaseRequest.result;
-            if (!job || job.status !== "preparing" || job.controlOwner !== owner || lease?.owner !== owner || lease.expires <= now) {
+            if (!job || job.status !== "preparing" || job.controlOwner !== owner || lease?.owner !== owner || lease.expires <= now
+              || (generation !== undefined && (job.generation || 0) !== generation)) {
               set(null); return;
             }
             const chapter = job.chapters.find(item => item.id === segment.chapterId);
@@ -133,6 +154,24 @@ export function createAudioStore({ indexedDB = globalThis.indexedDB, name = DATA
         request.onsuccess = () => {
           const cursor = request.result;
           if (cursor) { cursor.delete(); cursor.continue(); }
+        };
+      });
+    },
+    clearAll() {
+      // Clearing the stores avoids loading large WAVs and also removes orphaned
+      // segments. The revision invalidates imports/conversions already in flight.
+      return transaction(["jobs", "segments", "locks"], "readwrite", (tx, set, fail) => {
+        const locks = tx.objectStore("locks");
+        const request = locks.get("generation");
+        request.onsuccess = () => {
+          try {
+            const generation = (request.result?.version || 0) + 1;
+            tx.objectStore("jobs").clear();
+            tx.objectStore("segments").clear();
+            locks.clear();
+            locks.put({ id: "generation", version: generation });
+            set({ generation });
+          } catch (error) { fail(error); }
         };
       });
     },

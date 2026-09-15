@@ -1,5 +1,8 @@
 // Voice controls share the interface locale; book language and voice stay independent.
 const rows = [
+  ["Ancien moteur vocal : {size}. Les audios préparés restent disponibles après sa suppression.", "Previous voice engine: {size}. Prepared audio remains available after removing it.", "Motor de voz anterior: {size}. El audio preparado seguirá disponible después de eliminarlo.", "Motore vocale precedente: {size}. L’audio preparato resta disponibile dopo la rimozione.", "Vorherige Sprachengine: {size}. Vorbereitetes Audio bleibt nach dem Entfernen verfügbar.", "Motor de voz anterior: {size}. O áudio preparado continua disponível após a remoção."],
+  ["Libérer l’espace de l’ancien moteur", "Free up the previous engine’s storage", "Liberar el espacio del motor anterior", "Libera lo spazio del motore precedente", "Speicher der vorherigen Engine freigeben", "Libertar o espaço do motor anterior"],
+  ["Ancien moteur retiré. Vos livres et vos audios préparés sont conservés.", "Previous engine removed. Your books and prepared audio are kept.", "Motor anterior eliminado. Tus libros y el audio preparado se conservan.", "Motore precedente rimosso. I tuoi libri e l’audio preparato vengono conservati.", "Vorherige Engine entfernt. Deine Bücher und vorbereitetes Audio bleiben erhalten.", "Motor anterior removido. Os teus livros e o áudio preparado foram conservados."],
   ["Écouter", "Listen", "Escuchar", "Ascolta", "Anhören", "Ouvir"],
   ["Choisir une voix", "Choose a voice", "Elegir una voz", "Scegli una voce", "Stimme wählen", "Escolher uma voz"],
   ["Lecture vocale", "Read aloud", "Lectura en voz alta", "Lettura ad alta voce", "Vorlesen", "Leitura em voz alta"],

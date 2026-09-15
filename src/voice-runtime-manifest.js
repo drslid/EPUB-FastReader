@@ -2,39 +2,47 @@
 export const RUNTIME_ASSETS = Object.freeze([
   {
     "file": "worker.js",
-    "bytes": 7350,
-    "sha256": "f740837aeb63b8248b0e31557633013ec50e9fdae8159eaf65f3de7acf957f5f"
+    "bytes": 9572,
+    "sha256": "73d489d11c919cdefc9f3cab5449c3de85bd92215e91509c6e37c6df52d59809"
   },
   {
-    "file": "vendor/transformers.min.js",
-    "bytes": 888173,
-    "sha256": "aa5002b70e789798da263f5f99c62bd3e8fcd0c119258a493c40c180648365fa"
+    "file": "piper-voices.js",
+    "bytes": 10113,
+    "sha256": "487dddefa2925f3d80e69438aa4dd0a3078134f4cceba8186530261bb4baa22f"
   },
   {
-    "file": "vendor/ort-wasm-simd-threaded.jsep.mjs",
-    "bytes": 44484,
-    "sha256": "08fb86ec433c78bfb032c5d84a68b8e8e5a8d81268fa39e24314179a5767a5b9"
+    "file": "piper-phoneme-map.js",
+    "bytes": 3620,
+    "sha256": "97b1dafe0b293a3524a7129fb1dae5e90ce408d1c189f2f36b2aa59cfd0a57dc"
   },
   {
-    "file": "vendor/ort-wasm-simd-threaded.jsep.wasm",
-    "bytes": 21596019,
-    "sha256": "c46655e8a94afc45338d4cb2b840475f88e5012d524509916e505079c00bfa39"
+    "file": "vendor/ort.wasm.min.mjs",
+    "bytes": 48008,
+    "sha256": "0cb5ac5be2c414d5b9e361f857108630c6d6e24a5ab9be3cf5f761de55289e94"
   },
   {
-    "file": "vendor/ephone.js",
-    "bytes": 395346,
-    "sha256": "3953f66df632cdce59cb400e5552bec802a3b1333ac60aaf86f04365c103c00f"
+    "file": "vendor/ort-wasm-simd-threaded.mjs",
+    "bytes": 20856,
+    "sha256": "43c25054b6b9ac000f786c65545ff83a45f871e0e310e8c2f4d48a363bb66db4"
   },
   {
-    "file": "vendor/lang/roa.js",
-    "bytes": 689270,
-    "sha256": "01c7c720d7c5d3b1eb79a705701c0966e07a2fc0d275fbab4219b6dc1d501076",
-    "pack": "roa"
+    "file": "vendor/ort-wasm-simd-threaded.wasm",
+    "bytes": 11133407,
+    "sha256": "f061472c6e77d6d50d079aacdc0ff9b63fee287ddd2cbf46cf62438d3891de2b"
   },
   {
-    "file": "vendor/lang/en-us.js",
-    "bytes": 321914,
-    "sha256": "8bfbd0c6dd9ebca08217343f0b0723fd6e46fbaab1b03a57d168ac68a23a0d4d",
-    "pack": "en_us"
+    "file": "vendor/piper_phonemize.wasm",
+    "bytes": 635212,
+    "sha256": "b777cd107a91d2bcc6a1ea46f2c26a662a7407394fe84589198aeaa83dd7a9d6"
+  },
+  {
+    "file": "vendor/piper_phonemize.data",
+    "bytes": 18077249,
+    "sha256": "29f1025eb23a5b5c192cd14a6efbce4509402ff265405072ee6f7d1a09b78f8c"
+  },
+  {
+    "file": "vendor/phonemizer.mjs",
+    "bytes": 158217,
+    "sha256": "b5ac96981729547606fd026b8e3829aad81e9e3c22308869d50473259c563283"
   }
 ]);

@@ -56,7 +56,18 @@
 .audio-job-actions svg { flex-shrink: 0; width: 17px; height: 17px; }
 .audio-job-actions .button[aria-disabled="true"] { opacity: .55; cursor: wait; }
 .audio-queue-dialog .audio-job-error, .audio-queue-dialog .audio-queue-notice { color: var(--danger); font-size: .76rem; }
+.audio-queue-dialog .audio-queue-notice[data-error="false"] { color: var(--text); }
 .audio-queue-notice:empty { display: none; }
+.audio-queue-storage { margin: 0 0 18px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.audio-queue-storage-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.audio-queue-storage h3 { margin: 0; font-size: .82rem; }
+.audio-queue-storage-heading p { margin: 4px 0 0; font-size: .73rem; font-variant-numeric: tabular-nums; }
+.audio-queue-storage .button { min-height: 44px; min-width: 0; padding: 8px 12px; font-size: .74rem; white-space: normal; }
+.audio-queue-clear-confirmation { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.audio-queue-clear-confirmation p { margin: 0 0 12px; font-size: .74rem; }
+.audio-queue-clear-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.audio-queue-clear-actions [data-audio-queue-clear-confirm] { color: var(--danger); }
+.audio-queue-clear-confirmation [data-audio-queue-clearing] { margin: 10px 0 0; }
 .audio-queue-dialog .audio-queue-storage-note { border-top: 1px solid var(--border); padding-top: 14px; margin: 18px 0 0; font-size: .71rem; }
 @media (max-height: 400px) {
   .audio-queue-heading { align-items: center; padding-bottom: 8px; }

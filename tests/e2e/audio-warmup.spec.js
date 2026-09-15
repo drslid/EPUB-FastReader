@@ -55,7 +55,7 @@ async function setup(page, { parallel = false, hold = false } = {}) {
     for (const asset of assets) await cache.put(asset.url, new Response("verified fixture", { headers: {
       "Content-Length": String(asset.bytes), "X-Fastreader-Voice-SHA256": asset.sha256,
     } }));
-  }, { assets: assetsForVoice("ff_siwis", "http://127.0.0.1:4173/"), cacheName: VOICE_CACHE_NAME });
+  }, { assets: assetsForVoice("piper-fr_FR-siwis-medium", "http://127.0.0.1:4173/"), cacheName: VOICE_CACHE_NAME });
   await page.locator('[data-mode="audio"]').click();
   await expect(page.locator("[data-voice-start]")).toBeEnabled();
 }
@@ -76,22 +76,23 @@ test("a ready voice prepares silently and Listen reuses the first sentence witho
   expect(await page.evaluate(() => window.__warmWorkers.every(worker => worker.stopped))).toBe(true);
 });
 
-test("changing to an unavailable language cancels silent preparation and never starts sound", async ({ page }) => {
+test("changing to a voice not yet downloaded cancels silent preparation and never starts sound", async ({ page }) => {
   await setup(page, { hold: true });
   await expect.poll(() => page.evaluate(() => window.__warmSpoken.length)).toBeGreaterThan(0);
   await page.locator("[data-voice-language]").selectOption("de");
-  await expect(page.locator("[data-voice-start]")).toBeDisabled();
+  await expect(page.locator("[data-voice-start]")).toBeEnabled();
+  await expect(page.locator("[data-voice-start]")).toContainText("Télécharger");
   await expect.poll(() => page.evaluate(() => window.__warmWorkers.every(worker => worker.stopped))).toBe(true);
   expect(await page.evaluate(() => window.__warmAudio.playCalls)).toBe(0);
   await page.locator("[data-voice-close]").click();
   await expect(page.locator("#rsvp")).toBeVisible();
 });
 
-test("capable devices prepare upcoming sentences in parallel while preserving reading order", async ({ page }) => {
+test("upcoming sentences respect the device concurrency limit and preserve reading order", async ({ page }, testInfo) => {
   await setup(page, { parallel: true });
   await page.locator("[data-voice-start]").click();
   await expect(page.locator("#voice-controls")).toHaveAttribute("data-status", "playing");
-  await expect.poll(() => page.evaluate(() => window.__warmMaximum)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.__warmMaximum)).toBe(testInfo.project.name === "desktop-chromium" ? 2 : 1);
   const first = await page.locator(".voice-current-passage").allTextContents();
   expect(first.join(" ")).toContain("Camille ouvre son livre");
   await expect.poll(() => page.evaluate(() => window.__warmCompleted.length)).toBeGreaterThan(2);
