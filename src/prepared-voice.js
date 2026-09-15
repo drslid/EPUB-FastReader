@@ -59,7 +59,7 @@ export function createPreparedVoiceSource(queue, initial, { bookId, chapterId, t
         const chapter = job?.chapters.find(item => item.id === chapterId);
         // Playback updates queue suspension too. Publish only actual progress
         // changes, avoiding feedback loops and unnecessary database reads.
-        const revision = JSON.stringify([job?.status, job?.error?.code, chapter?.readySegments, chapter?.totalSegments, chapter?.complete]);
+        const revision = JSON.stringify([job?.status, job?.error?.code, chapter?.readySegments, chapter?.skippedSegments, chapter?.totalSegments, chapter?.complete]);
         if (revision === previous) return;
         previous = revision;
         notify();

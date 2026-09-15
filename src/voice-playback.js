@@ -1,4 +1,4 @@
-import { voicePassages, passageAtOffset, splitVoicePassage } from "./voice-text.js";
+import { voicePassages, passageAtOffset, splitVoicePassage, isRecoverableVoiceTextError } from "./voice-text.js";
 
 const pronounceable = text => /[\p{L}\p{N}]/u.test(text);
 
@@ -25,12 +25,14 @@ export function createVoicePlayback({
   let preparedMonitor = null, requestedOffset = null;
   let passages = [], index = 0, voice = null, desired = false, url = null;
   let status = "idle", rate = 1, currentIndex = -1, problem = "";
+  let skippedSegments = 0;
   let warming = false, sessionText = null, sessionOffset = 0, preparationStarted = null, hasPlayed = false;
   let playAttempt = null;
   let liveLoad = null, liveScheduled = false, loadProgress = null, warmPending = null;
   const buffers = new Map();
   const inFlight = new Map(), futureErrors = new Map(), deferredLarge = new Set();
   const splitDepths = new WeakMap();
+  const splitOrigins = new WeakMap(), skippedOrigins = new WeakSet();
   const maxClips = Math.max(1, Math.min(6, Math.floor(maxBufferedPassages) || 6));
   const targetSeconds = Math.max(1, Math.min(60, Number(targetBufferedSeconds) || 30));
   const byteBudget = Math.max(1024, Number(maxBufferBytes) || 8 * 1024 * 1024);
@@ -78,7 +80,7 @@ export function createVoicePlayback({
   function snapshot() {
     return { status, playing: status === "playing", prepared: Boolean(preparedSource), warming, preparation: preparationSnapshot(), voice, voiceLabel: voice?.name || voice?.label || "", rate,
       passageIndex: Math.min(index, Math.max(0, passages.length - 1)), passageCount: passages.length,
-      passage: passages[index] || null, error: problem, preparedComplete, preparationStatus, preparationError };
+      passage: passages[index] || null, error: problem, preparedComplete, preparationStatus, preparationError, skippedSegments };
   }
   function emit(next = status) { status = next; onState(snapshot()); }
   function releaseUrl() { if (url) { revokeUrl(url); url = null; } }
@@ -106,7 +108,10 @@ export function createVoicePlayback({
     const target = Math.max(0, Number(offset) || 0);
     const found = passages.findIndex(passage => passage.end > target);
     requestedOffset = found < 0 && !preparedComplete ? target : null;
-    index = found >= 0 ? found : preparedComplete ? Math.max(0, passages.length - 1) : passages.length;
+    // A bookmark in an omitted ending must advance past that ending, rather
+    // than replaying the last earlier WAV. Preserve legacy end-offset replay
+    // for recordings that have not omitted any passage.
+    index = found >= 0 ? found : preparedComplete && !skippedSegments ? Math.max(0, passages.length - 1) : passages.length;
   }
   function finishChapter() {
     if (!desired || status === "ended") return;
@@ -142,14 +147,16 @@ export function createVoicePlayback({
           }
           const complete = next.complete !== false;
           const nextStatus = next.status || null;
+          const nextSkipped = Number.isSafeInteger(next.skippedSegments) ? Math.max(0, next.skippedSegments) : 0;
           const changed = next.passages.length !== passages.length || complete !== preparedComplete
             || nextStatus !== preparationStatus || next.error?.code !== preparationError?.code
-            || next.error?.message !== preparationError?.message;
+            || next.error?.message !== preparationError?.message || nextSkipped !== skippedSegments;
           if (!changed) continue;
           passages = next.passages.slice();
           preparedComplete = complete;
           preparationStatus = nextStatus;
           preparationError = next.error || null;
+          skippedSegments = nextSkipped;
           if (requestedOffset !== null) selectPreparedOffset(requestedOffset);
           emit();
           // Receiving audio never overrides an explicit reader pause.
@@ -360,13 +367,22 @@ export function createVoicePlayback({
       const depth = splitDepths.get(passage) || 0;
       const parts = error.code === "VOICE_TEXT_TOO_LONG" && depth < 8 ? splitVoicePassage(passage) : [];
       if (at >= index && parts.length > 1) {
-        const old = passages.slice(), kept = [...buffers.entries()];
-        for (const part of parts) splitDepths.set(part, depth + 1);
-        passages.splice(at, 1, ...parts);
-        buffers.clear();
-        for (const [oldIndex, result] of kept) {
-          const nextIndex = passages.indexOf(old[oldIndex]);
-          if (nextIndex >= index) buffers.set(nextIndex, result);
+        for (const part of parts) {
+          splitDepths.set(part, depth + 1);
+          splitOrigins.set(part, splitOrigins.get(passage) || passage);
+        }
+        replaceLivePassage(at, parts);
+      } else if (at >= index && isRecoverableVoiceTextError(error)) {
+        const original = skipLivePassage(passage);
+        if (index >= passages.length) {
+          if (warming && !desired) {
+            // A silent preview with no usable audio must settle its promise.
+            // A later explicit start can retry, but no worker is left waiting.
+            failLive(Object.assign(new Error("No passage could be read aloud"), { code: "VOICE_EMPTY_TEXT" }), token);
+          } else {
+            onPosition({ ...original, completed: true });
+            finishChapter();
+          }
         }
       } else if (at === index) failLive(error, token);
       else if (at > index) futureErrors.set(passage, error);
@@ -374,6 +390,33 @@ export function createVoicePlayback({
       if (inFlight.get(passage) === task) inFlight.delete(passage);
       if (token === epoch) { emit(); scheduleLive(); }
     }
+  }
+
+  function replaceLivePassage(at, replacements) {
+    const old = passages.slice(), kept = [...buffers.entries()];
+    passages.splice(at, 1, ...replacements);
+    buffers.clear();
+    // In-flight work is already keyed by passage identity. Reindex ready audio
+    // in the same way so skipping a sentence cannot play its neighbour's WAV.
+    for (const [oldIndex, result] of kept) {
+      const nextIndex = passages.indexOf(old[oldIndex]);
+      if (nextIndex >= index) buffers.set(nextIndex, result);
+    }
+  }
+
+  function skipLivePassage(passage) {
+    const original = splitOrigins.get(passage) || passage;
+    // Once even a minimal fragment is rejected, trying every remaining piece
+    // of the same sentence would only delay the next readable sentence. Keep
+    // any fragment already playing; remove its unplayed siblings together.
+    for (let at = passages.length - 1; at >= index; at--) {
+      const candidate = passages[at];
+      if ((splitOrigins.get(candidate) || candidate) !== original || at === currentIndex) continue;
+      replaceLivePassage(at, []);
+      futureErrors.delete(candidate); deferredLarge.delete(candidate);
+    }
+    if (!skippedOrigins.has(original)) { skippedOrigins.add(original); skippedSegments++; }
+    return original;
   }
 
   function pause() {
@@ -395,7 +438,7 @@ export function createVoicePlayback({
     futureErrors.clear(); deferredLarge.clear(); sessionText = null; sessionOffset = 0; preparationStarted = null; hasPlayed = false;
     preparedSource = null;
     preparedComplete = true; preparationStatus = null; preparationError = null; requestedOffset = null;
-    index = 0; currentIndex = -1; voice = null; problem = "";
+    index = 0; currentIndex = -1; voice = null; problem = ""; skippedSegments = 0;
     releaseUrl(); audio.removeAttribute?.("src"); audio.load?.(); emit("idle");
   }
   function start({ text, voice: selected, offset = 0, rate: speed = 1, prepared = null }) {
@@ -414,6 +457,7 @@ export function createVoicePlayback({
     preparedComplete = prepared?.complete !== false;
     preparationStatus = prepared?.status || null;
     preparationError = prepared?.error || null;
+    skippedSegments = Number.isSafeInteger(prepared?.skippedSegments) ? Math.max(0, prepared.skippedSegments) : 0;
     if (prepared && (!Array.isArray(prepared.passages) || typeof prepared.read !== "function")) {
       problem = "AUDIO_MISSING"; emit("error"); return;
     }

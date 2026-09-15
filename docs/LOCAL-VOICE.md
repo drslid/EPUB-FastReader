@@ -19,6 +19,8 @@ Une connexion est nécessaire pour télécharger une voix manquante. Le bouton r
 
 Le téléchargement peut être annulé. Les fichiers terminés sont conservés ; un fichier interrompu doit être retéléchargé. Une erreur de réseau ou un manque de place donne une explication et permet de réessayer. Une vérification de l’intégrité des fichiers précède leur mise à disposition.
 
+Après une mise à jour de FastReader, une reprise vérifie aussi les fichiers vocaux. Si seuls les petits fichiers de fonctionnement ont changé, ils sont actualisés en ligne sans retélécharger le modèle. Une voix absente n’est jamais installée automatiquement. Hors ligne, les audios déjà enregistrés restent écoutables ; si une actualisation est nécessaire pour préparer la suite, l’application demande de se reconnecter puis de reprendre.
+
 **Retirer cette voix** libère ses fichiers devenus inutiles en conservant ceux requis par d’autres voix et en gardant les livres. Les téléchargements vocaux ne font pas partie des sauvegardes ZIP de la bibliothèque. Effacer les données du navigateur ou changer d’appareil impose de retélécharger les voix. Le navigateur peut aussi récupérer de l’espace lorsque le stockage manque.
 
 Les audios déjà préparés avec l’ancien moteur Kokoro restent disponibles. Si ses fichiers sont encore présents, **Gérer le stockage audio → Fichiers inutilisés** permet de les supprimer sans effacer les livres ni les audios terminés. Une préparation Kokoro inachevée ne reçoit pas de nouvelles phrases Piper : elle reste écoutable sur sa partie terminée ; préparer avec une voix Piper crée une nouvelle préparation cohérente.
@@ -36,6 +38,10 @@ Gardez FastReader ouvert pendant l’écoute. La lecture se met en pause lorsque
 Le réglage **Garder l’écran allumé pendant la lecture** peut éviter la mise en veille pendant la préparation ou l’écoute, lorsque le navigateur l’autorise. Il ne permet pas de poursuivre l’écoute après avoir quitté l’application.
 
 La qualité et la rapidité varient selon la langue, le texte et l’appareil. Une attente initiale ou une interruption entre passages est possible. L’application ne promet pas une synthèse instantanée ni un alignement audio mot à mot.
+
+Les adresses web visibles sont prononcées sous forme de domaine ; les intitulés des liens restent des mots ordinaires. Le nettoyage des caractères de contrôle, césures et caractères invisibles concerne uniquement l’entrée vocale : le texte et les repères du livre restent intacts. Une reprise de compatibilité est tentée si la voix ne reconnaît pas certains caractères. Un passage qui reste impossible à prononcer est ignoré, puis la lecture continue avec un compteur visible d’omissions. Aucun faux fichier audio silencieux n’est ajouté pour masquer une erreur.
+
+Les problèmes de modèle, de mémoire, de stockage ou d’exécution ne sont pas assimilés à des phrases illisibles : ils interrompent la préparation avec une possibilité de réessayer. Lors de la reprise d’une ancienne préparation, seules les frontières des passages encore à préparer sont réparées si nécessaire ; les audios terminés sont conservés.
 
 ## Préparer un livre pour l’écouter ensuite
 
@@ -80,7 +86,9 @@ autres onglets. Les EPUBs, positions, notes et réglages sont conservés.
 
 Sur téléphone et tablette, Piper utilise **une session et un thread WASM**. Le gain recherché vient du modèle plus léger et de son débit, sans charger deux copies du modèle en mémoire. Un changement de langue libère la session précédente avant de charger la suivante.
 
-Sur ordinateur, le navigateur peut utiliser deux sessions si les capacités déclarées atteignent 8 Gio de mémoire et quatre processeurs logiques. Avec l’isolation interorigines vérifiée, une seule session utilise plutôt deux ou quatre threads. Les appareils aux capacités inconnues ou inférieures restent sur une session et un thread. GitHub Pages ne fournit pas cette isolation par défaut. Si la seconde session échoue, sa phrase est reprise intégralement sur la première.
+Sur ordinateur, le navigateur peut utiliser deux sessions si les capacités déclarées atteignent 8 Gio de mémoire et quatre processeurs logiques. Avec l’isolation interorigines vérifiée, une seule session utilise plutôt deux ou quatre threads. Les appareils aux capacités inconnues ou inférieures restent sur une session et un thread. GitHub Pages ne fournit pas cette isolation par défaut. Si la seconde session échoue pour une raison d’exécution, sa phrase est reprise intégralement sur la première ; une erreur de texte n’entraîne pas ce recalcul ni la désactivation du parallélisme.
+
+Le [comparatif de performance Piper](PIPER-PERFORMANCE.md) mesure les gains possibles et leur coût mémoire. Ces mesures ont été réalisées sur ordinateur ; elles ne prouvent pas un débit identique sur téléphone.
 
 Le [rapport Piper](PIPER-VERIFICATION.md) présente les vérifications du nouveau moteur. L’anticipation réduit l’attente au clic, mais un premier passage non préparé demande toujours un calcul. Le débit observé sur ordinateur ne garantit pas celui d’un téléphone : la chauffe, le navigateur et la longueur des phrases interviennent. Préparer le livre entièrement reste utile pour une écoute sans attente de conversion.
 

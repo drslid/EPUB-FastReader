@@ -1,4 +1,4 @@
-import { voicePassages, splitVoicePassage } from "./voice-text.js";
+import { voicePassages, splitVoicePassage, isRecoverableVoiceTextError } from "./voice-text.js";
 import { createAudioStore } from "./audio-store.js";
 
 export const AUDIO_CONVERSION_LOCK = "fastreader-local-speech";
@@ -7,7 +7,7 @@ const errorInfo = error => ({ code: error?.name === "QuotaExceededError" ? "STOR
 const failure = (code, message) => Object.assign(new Error(message), { code });
 
 function readyPrefix(chapter) {
-  const firstMissing = chapter.passages.findIndex(passage => !passage.ready || !Number.isFinite(passage.duration) || passage.duration <= 0);
+  const firstMissing = chapter.passages.findIndex(passage => !passage.ready || (!passage.skipped && (!Number.isFinite(passage.duration) || passage.duration <= 0)));
   return chapter.passages.slice(0, firstMissing < 0 ? chapter.passages.length : firstMissing);
 }
 
@@ -20,6 +20,37 @@ function splitPassage(passage, text) {
   if ((passage.depth || 0) >= 8) return [];
   return splitVoicePassage({ ...passage, text: text.slice(passage.start, passage.end) })
     .map(({ start, end }) => ({ start, end, depth: (passage.depth || 0) + 1 }));
+}
+
+function repairUnfinishedText(job) {
+  if (job.textPreparationVersion >= 1 || job.segmentationVersion < 2) return job;
+  for (const chapter of job.chapters) {
+    const passages = [];
+    let pending = [];
+    const flush = () => {
+      if (!pending.length) return;
+      const start = pending[0].start, end = pending.at(-1).end;
+      for (const part of voicePassages(chapter.text.slice(start, end), job.voice.language).filter(part => pronounceable(part.text))) {
+        const from = start + part.start, to = start + part.end;
+        passages.push({ start: from, end: to, segmentId: `${chapter.index}:${from}:${to}`, ready: false });
+      }
+      pending = [];
+    };
+    for (const passage of chapter.passages) {
+      if (passage.ready) { flush(); passages.push(passage); }
+      else pending.push(passage);
+    }
+    flush();
+    // Earlier releases could split a URL at its query's '?'. Rebuild only
+    // unfinished runs, retaining every saved audio identity and reading offset.
+    chapter.passages = passages;
+    chapter.complete = passages.every(passage => passage.ready);
+  }
+  job.totalSegments = job.chapters.reduce((sum, chapter) => sum + chapter.passages.length, 0);
+  job.totalChars = job.chapters.reduce((sum, chapter) => sum + chapter.passages.reduce((count, passage) => count + passage.end - passage.start, 0), 0);
+  job.completedChapters = job.chapters.filter(chapter => chapter.complete).length;
+  job.textPreparationVersion = 1;
+  return job;
 }
 
 /** Persistent preparation is deliberately opt-in after every page reload. */
@@ -53,17 +84,18 @@ export function createAudioQueue({
     if (job.status !== "ready" && !canPrepare) status = "unavailable";
     const chapters = job.chapters.map(chapter => ({ id: chapter.id, title: chapter.title, complete: chapter.complete,
       completedSegments: chapter.completedSegments, totalSegments: chapter.passages.length, audioDuration: chapter.audioDuration,
-      readySegments: readyPrefix(chapter).length }));
+      skippedSegments: chapter.skippedSegments || 0,
+      readySegments: readyPrefix(chapter).filter(passage => !passage.skipped).length }));
     let readySegments = 0;
     for (const chapter of chapters) {
       readySegments += chapter.readySegments;
-      if (!chapter.complete || chapter.readySegments !== chapter.totalSegments) break;
+      if (!chapter.complete || chapter.readySegments + chapter.skippedSegments !== chapter.totalSegments) break;
     }
     return {
       id: job.id, bookId: job.bookId, title: job.title, voice: job.voice, status, segmentationVersion: job.segmentationVersion || 1,
       progress: job.totalChars ? Math.min(1, job.completedChars / job.totalChars) : 0,
       completedSegments: job.completedSegments, totalSegments: job.totalSegments,
-      readySegments, canListen: readySegments > 0, canPrepare,
+      readySegments, skippedSegments: job.skippedSegments || 0, canListen: readySegments > 0, canPrepare,
       completedChars: job.completedChars, totalChars: job.totalChars,
       completedChapters: job.completedChapters, totalChapters: job.chapters.length,
       audioBytes: job.audioBytes, audioDuration: job.audioDuration, error: failures.get(job.id) || job.error || null,
@@ -140,7 +172,7 @@ export function createAudioQueue({
       let job = await store.mutateJob(jobId, current => {
         if (!current || current.status === "ready" || !eligible.has(jobId) || suspensions.size || disposed) return current;
         if (!canPrepareVoice(current.voice)) throw failure("VOICE_RETIRED", "Choose a current voice to prepare new audio");
-        return { ...current, status: "preparing", controlOwner: owner, error: null, updatedAt: now() };
+        return { ...repairUnfinishedText(current), status: "preparing", controlOwner: owner, error: null, updatedAt: now() };
       });
       if (!job || job.status !== "preparing" || job.controlOwner !== owner || signal.aborted) return;
       session.generation = job.generation || 0;
@@ -176,7 +208,19 @@ export function createAudioQueue({
           if (signal.aborted || disposed) break;
           if (error) {
             const parts = error.code === "VOICE_TEXT_TOO_LONG" ? splitPassage(passage, chapter.text) : [];
-            if (parts.length < 2) throw error;
+            if (parts.length < 2) {
+              if (!isRecoverableVoiceTextError(error)) throw error;
+              // The engine has already tried text repair. Only a known text
+              // failure may be skipped; broken models, storage and cancelled
+              // workers remain actionable, resumable errors.
+              const committed = await store.skipSegment(jobId, {
+                chapterId: chapter.id, segmentId: passage.segmentId, reason: error.code,
+              }, owner, now(), session.generation);
+              if (!committed) { finished = true; break; }
+              await refresh(true);
+              if (committed.status === "ready") { eligible.delete(jobId); finished = true; break; }
+              continue;
+            }
             await store.mutateJob(jobId, current => {
               if (!current || current.status !== "preparing" || current.controlOwner !== owner) return current;
               const target = current.chapters.find(item => item.id === chapter.id);
@@ -275,7 +319,7 @@ export function createAudioQueue({
       const text = typeof chapter.text === "string" ? chapter.text : "";
       const passages = voicePassages(text, voice.language).filter(item => pronounceable(item.text))
         .map(({ start, end }) => ({ start, end, segmentId: `${index}:${start}:${end}`, ready: false }));
-      return { id, index, title: chapter.title || "", text, digest: await digest(text), passages, complete: passages.length === 0, completedSegments: 0, audioDuration: 0 };
+      return { id, index, title: chapter.title || "", text, digest: await digest(text), passages, complete: passages.length === 0, completedSegments: 0, skippedSegments: 0, audioDuration: 0 };
     }));
     const totalSegments = prepared.reduce((sum, chapter) => sum + chapter.passages.length, 0);
     if (!totalSegments) throw failure("VOICE_EMPTY_TEXT", "This book has no text to prepare");
@@ -285,8 +329,8 @@ export function createAudioQueue({
     const id = await digest(JSON.stringify([engineIdentity, bookId, voice.id, prepared.map(chapter => [chapter.id, chapter.digest])]));
     if (disposed) throw failure("QUEUE_CLOSED", "Audio preparation is closed");
     const timestamp = now();
-    const job = await store.putIfAbsent({ id, bookId, title: title || "", voice: structuredClone(voice), chapters: prepared, segmentationVersion: 2,
-      totalSegments, completedSegments: 0, totalChars: prepared.reduce((sum, chapter) => sum + chapter.passages.reduce((count, passage) => count + passage.end - passage.start, 0), 0),
+    const job = await store.putIfAbsent({ id, bookId, title: title || "", voice: structuredClone(voice), chapters: prepared, segmentationVersion: 2, textPreparationVersion: 1,
+      totalSegments, completedSegments: 0, skippedSegments: 0, totalChars: prepared.reduce((sum, chapter) => sum + chapter.passages.reduce((count, passage) => count + passage.end - passage.start, 0), 0),
       completedChars: 0, completedChapters: prepared.filter(chapter => chapter.complete).length,
       audioBytes: 0, audioDuration: 0, status: "queued", controlOwner: owner, error: null, createdAt: timestamp, updatedAt: timestamp }, { generation });
     if (!job) throw failure("AUDIO_CLEARED", "Audio preparation was cancelled when storage was cleared");
@@ -359,6 +403,7 @@ export function createAudioQueue({
         || (b.ready.at(-1)?.end || 0) - (a.ready.at(-1)?.end || 0) || b.job.updatedAt - a.job.updatedAt);
     if (!candidates.length) return null;
     const { job, chapter, ready } = candidates[0];
+    const playable = ready.filter(passage => !passage.skipped);
     const current = summary(job);
     // An empty prefix is a valid manifest: the listener can wait for the first
     // committed passage, instead of starting a competing synthesis worker.
@@ -366,9 +411,9 @@ export function createAudioQueue({
       segmentationVersion: job.segmentationVersion || 1,
       status: current.status, error: current.error,
       complete: chapter.complete && ready.length === chapter.passages.length,
-      totalSegments: chapter.passages.length, readySegments: ready.length,
-      duration: ready.reduce((sum, passage) => sum + passage.duration, 0),
-      passages: ready.map(passage => ({ start: passage.start, end: passage.end, text: chapter.text.slice(passage.start, passage.end), segmentId: passage.segmentId, duration: passage.duration })) };
+      totalSegments: chapter.passages.length, readySegments: playable.length, skippedSegments: chapter.skippedSegments || 0,
+      duration: playable.reduce((sum, passage) => sum + passage.duration, 0),
+      passages: playable.map(passage => ({ start: passage.start, end: passage.end, text: chapter.text.slice(passage.start, passage.end), segmentId: passage.segmentId, duration: passage.duration })) };
   }
   async function dispose() {
     disposed = true; clearTimeout(retryTimer); retryTimer = null;

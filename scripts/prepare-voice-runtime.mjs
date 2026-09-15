@@ -78,9 +78,10 @@ export async function prepareVoiceRuntime() {
   }
   const assets = [];
   for (const [source, target, hash] of [
-    ["src/voice-worker.js", "worker.js"],
-    ["src/piper-voices.js", "piper-voices.js"],
     ["src/piper-phoneme-map.js", "piper-phoneme-map.js"],
+    ["src/piper-voices.js", "piper-voices.js"],
+    // Install additive dependencies before the worker that imports them.
+    ["src/voice-worker.js", "worker.js"],
     ["node_modules/onnxruntime-web/dist/ort.wasm.min.mjs", "vendor/ort.wasm.min.mjs", "0cb5ac5be2c414d5b9e361f857108630c6d6e24a5ab9be3cf5f761de55289e94"],
     ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs", "vendor/ort-wasm-simd-threaded.mjs", "43c25054b6b9ac000f786c65545ff83a45f871e0e310e8c2f4d48a363bb66db4"],
     ["node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm", "vendor/ort-wasm-simd-threaded.wasm", "f061472c6e77d6d50d079aacdc0ff9b63fee287ddd2cbf46cf62438d3891de2b"],

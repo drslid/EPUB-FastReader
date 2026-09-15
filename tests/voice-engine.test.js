@@ -82,6 +82,45 @@ describe("optional local speech engine", () => {
     engine.dispose();
   });
 
+  it("cleans URLs and invisible characters before phonemization, preserving the following words", async () => {
+    const { engine, calls } = automatedEngine(() => ({ result: { wav: wav([1]), duration: 1 / 24_000 } }));
+    await engine.synthesize(`Consultez https://www.example.org/${"item/".repeat(500)}?id=2.\u0000Puis lisez la suite.`);
+    expect(calls.map(call => call.text)).toEqual(["Consultez example.org. Puis lisez la suite."]);
+    engine.dispose();
+  });
+
+  it("retries unsupported pictograms and compatibility letters once before returning a complete sentence", async () => {
+    const { engine, calls } = automatedEngine(message => message.text.includes("📚")
+      ? { error: { code: "VOICE_PHONEME_UNSUPPORTED" } }
+      : { result: { wav: wav([1]), duration: 1 / 24_000 } });
+    await expect(engine.synthesize("L’oﬃce 📚 ouvre à midi.")).resolves.toHaveProperty("blob");
+    expect(calls.map(call => call.text)).toEqual(["L’oﬃce 📚 ouvre à midi.", "L’office ouvre à midi."]);
+    engine.dispose();
+  });
+
+  it("bounds pronunciation retries and does not return partial speech for the queue to mistake as complete", async () => {
+    const { engine, calls } = automatedEngine(() => ({ error: { code: "VOICE_PHONEME_UNSUPPORTED" } }));
+    await expect(engine.synthesize("La phrase 📚 entière.")).rejects.toMatchObject({ code: "VOICE_PHONEME_UNSUPPORTED" });
+    expect(calls).toHaveLength(2);
+    engine.dispose();
+  });
+
+  it.each(["VOICE_FAILED", "VOICE_NOT_INSTALLED", "VOICE_UNSUPPORTED", "VOICE_TIMEOUT"])("never retries %s by altering the text", async code => {
+    const { engine, calls } = automatedEngine(() => ({ error: { code } }));
+    await expect(engine.synthesize("La phrase 📚 entière.")).rejects.toMatchObject({ code });
+    expect(calls).toHaveLength(1);
+    engine.dispose();
+  });
+
+  it("does not retry unchanged pronunciation failures or initialize a worker for empty text", async () => {
+    const { engine, calls, workerFactory } = automatedEngine(() => ({ error: { code: "VOICE_PHONEME_UNSUPPORTED" } }));
+    await expect(engine.synthesize("\u0000\u00ad***")).rejects.toMatchObject({ code: "VOICE_EMPTY_TEXT" });
+    expect(workerFactory).not.toHaveBeenCalled();
+    await expect(engine.synthesize("Phrase entière.")).rejects.toMatchObject({ code: "VOICE_PHONEME_UNSUPPORTED" });
+    expect(calls).toHaveLength(1);
+    engine.dispose();
+  });
+
   it("aborts running and queued synthesis, releases WASM and can start again", async () => {
     const { engine, workers } = setup();
     const controller = new AbortController();
@@ -106,6 +145,7 @@ describe("optional local speech engine", () => {
     const controller = new AbortController();
     controller.abort();
     await expect(engine.load({ id: "piper-fr_FR-siwis-medium" }, { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    await expect(engine.synthesize("", { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
     expect(workerFactory).not.toHaveBeenCalled();
   });
 

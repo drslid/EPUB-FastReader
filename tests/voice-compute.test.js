@@ -154,13 +154,16 @@ describe('accelerated local speech pool', () => {
     pool.dispose();
   });
 
-  it('does not downgrade for a content error in the second worker', async () => {
-    const { pool } = setup({ configure(engine, index) {
-      if (index === 1) engine.synthesize.mockRejectedValue(Object.assign(new Error('No text'), { code: 'VOICE_EMPTY_TEXT' }));
+  it.each(['VOICE_EMPTY_TEXT', 'VOICE_PHONEME_UNSUPPORTED', 'VOICE_TEXT_UNSPLITTABLE', 'VOICE_TEXT_TOO_LONG'])('does not retry or disable parallel conversion for %s in the second worker', async code => {
+    const { pool, engines } = setup({ configure(engine, index) {
+      if (index === 1) engine.synthesize.mockRejectedValueOnce(Object.assign(new Error('Invalid text'), { code }));
     } });
-    const results = await Promise.allSettled([pool.synthesize('A', { voice }), pool.synthesize('', { voice })]);
-    expect(results[1].reason.code).toBe('VOICE_EMPTY_TEXT');
+    const results = await Promise.allSettled([pool.synthesize('A', { voice }), pool.synthesize('Bad passage', { voice })]);
+    expect(results[1].reason.code).toBe(code);
     expect(pool.concurrency).toBe(2);
+    expect(engines[0].synthesize.mock.calls.map(call => call[0])).toEqual(['A']);
+    expect(engines[1].dispose).not.toHaveBeenCalled();
+    await expect(Promise.all([pool.synthesize('C', { voice }), pool.synthesize('D', { voice })])).resolves.toHaveLength(2);
     pool.dispose();
   });
 

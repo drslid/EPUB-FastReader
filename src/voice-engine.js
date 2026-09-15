@@ -1,5 +1,5 @@
 import { concatenateVoiceWavs } from "./voice-audio.js";
-import { splitVoicePassage } from "./voice-text.js";
+import { prepareVoiceText, splitVoicePassage } from "./voice-text.js";
 import { VOICE_RUNTIME_PATH } from "./voice-assets.js";
 export { createAcceleratedVoiceEngine } from "./voice-compute.js";
 
@@ -97,7 +97,7 @@ export function createVoiceEngine({
       };
       const parts = [];
       const emit = value => report({ ...value, completedFragments: parts.length, audioDuration: parts.reduce((sum, part) => sum + part.duration, 0) }, progress);
-      const synthesizePassage = async (passage, depth = 0) => {
+      const synthesizePassage = async (passage, depth = 0, compatibilityRetried = false) => {
         checkActive();
         try {
           const result = await request("synthesize", { text: passage.text, voice, speed }, signal, emit);
@@ -106,6 +106,12 @@ export function createVoiceEngine({
           emit({ stage: "synthesizing", status: "synthesizing" });
         } catch (error) {
           checkActive();
+          if (error.code === "VOICE_PHONEME_UNSUPPORTED" && !compatibilityRetried) {
+            const recovered = prepareVoiceText(passage.text, { fallback: true });
+            if (recovered && recovered !== passage.text) {
+              return synthesizePassage({ ...passage, text: recovered }, depth, true);
+            }
+          }
           if (error.code !== "VOICE_TEXT_TOO_LONG") throw error;
           const fragments = depth < 8 ? splitVoicePassage(passage) : [];
           if (!fragments || fragments.length < 2 || fragments.some(part => !part.text || part.text.length >= passage.text.length)) {
@@ -113,12 +119,17 @@ export function createVoiceEngine({
           }
           // Complete all fragments on the same worker before exposing audio to
           // playback: reaching the model limit cannot interrupt a sentence.
-          for (const fragment of fragments) await synthesizePassage(fragment, depth + 1);
+          for (const fragment of fragments) await synthesizePassage(fragment, depth + 1, compatibilityRetried);
         }
       };
       try {
+        checkActive();
         emit({ stage: "loading", status: "loading" });
-        await synthesizePassage({ start: 0, end: typeof text === "string" ? text.length : 0, text });
+        const speechText = prepareVoiceText(text);
+        if (!speechText || !/[\p{L}\p{N}]/u.test(speechText)) {
+          throw Object.assign(new Error("No pronounceable text"), { code: "VOICE_EMPTY_TEXT" });
+        }
+        await synthesizePassage({ start: 0, end: speechText.length, text: speechText });
         checkActive();
         const result = parts.length === 1 ? parts[0] : concatenateVoiceWavs(parts.map(part => part.wav));
         emit({ stage: "ready", status: "ready", totalFragments: parts.length });

@@ -3,7 +3,7 @@
 // corresponding upstream sources and build instructions are served in ./licenses/.
 import * as ort from "./vendor/ort.wasm.min.mjs";
 import { createPiperPhonemize } from "./vendor/phonemizer.mjs";
-import { mapPiperPhonemeIds } from "./piper-phoneme-map.js";
+import { mapPiperPhonemeIds, readPiperPhonemeOutput } from "./piper-phoneme-map.js";
 import { PIPER_VOICES } from "./piper-voices.js";
 
 const ROOT = new URL("./", import.meta.url);
@@ -149,16 +149,15 @@ async function synthesize(text, voice, speed = 1) {
     phonemizer.callMain(["-l", config.espeak.voice, "--input", JSON.stringify([{ text: text.normalize("NFC").trim() }]),
       "--espeak_data", "/espeak-ng-data"]);
   } catch {
-    throw fail("Unable to pronounce this passage", "VOICE_PHONEME_UNSUPPORTED");
+    // A thrown WASM exception is not evidence of bad text. In particular an
+    // exhausted heap must never be hidden by skipping the rest of a book.
+    throw fail("Speech phonemization failed");
   }
-  const results = printed.filter(line => line.trim().startsWith("{")).map(line => JSON.parse(line));
-  if (results.length !== 1 || stderr.some(line => /missing phoneme|unsupported language|error:/i.test(line))) {
-    throw fail("Unable to pronounce this passage", "VOICE_PHONEME_UNSUPPORTED");
-  }
+  const sourceIds = readPiperPhonemeOutput(printed, stderr);
   // Use native IDs, not a flattened IPA string: BOS/EOS and punctuation must
   // survive across every complete sentence. Long passages are split by the
   // parent engine and their PCM is reassembled before playback.
-  const ids = mapPiperPhonemeIds(results[0].phoneme_ids, config.phoneme_id_map, 1024, config.phoneme_map || {});
+  const ids = mapPiperPhonemeIds(sourceIds, config.phoneme_id_map, 1024, config.phoneme_map || {});
   const boundedSpeed = Number.isFinite(speed) ? Math.max(0.5, Math.min(2, speed)) : 1;
   const feeds = {
     input: new ort.Tensor("int64", BigInt64Array.from(ids, BigInt), [1, ids.length]),

@@ -1,4 +1,5 @@
 import { createVoiceEngine } from "./voice-engine.js";
+import { isRecoverableVoiceTextError } from "./voice-text.js";
 
 const aborted = () => new DOMException("Speech cancelled", "AbortError");
 
@@ -45,7 +46,7 @@ export function createAcceleratedVoiceEngine({
     progress(1, { stage: "fallback", status: "fallback", concurrency: 1 });
   }
   const canFallback = error => error?.name !== "AbortError"
-    && !["VOICE_TEXT_UNSPLITTABLE", "VOICE_EMPTY_TEXT", "VOICE_UNSUPPORTED"].includes(error?.code);
+    && !isRecoverableVoiceTextError(error) && error?.code !== "VOICE_UNSUPPORTED";
 
   function enqueue(slot, method, args, options = {}) {
     if (lifetime.signal.aborted || options.signal?.aborted) return Promise.reject(aborted());

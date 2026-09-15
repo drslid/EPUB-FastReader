@@ -47,6 +47,8 @@ The aim is to help you spend more time reading and make steady progress. Choose 
 
 Selecting an installed voice quietly prepares the first passage while you choose, unless another book is already being prepared. Nothing is spoken before you press **Start listening**. The player then shows the current preparation stage, the number of sentences ready and the seconds of audio available. Listening starts automatically as soon as the first complete sentence is ready.
 
+Long web addresses are read as their domain, and invisible formatting characters are cleaned up for speech. If a passage still cannot be spoken, FastReader skips it, tells you how many passages were skipped, and continues. Your book’s text stays unchanged. Interrupted preparations resume from the saved audio instead of starting over.
+
 FastReader prepares upcoming sentences while you listen and automatically uses parallel processing on capable desktop computers. Longer sentences stay together and may take more time to prepare. An initial wait or pauses between passages are still possible, especially on slower devices. Preparing the whole book first avoids these generation waits during listening.
 
 FastReader uses **Piper Medium**, with one selected voice for each language: **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. Each voice needs approximately **63 MB**, plus **30 MB of shared files** on first use. Adding a language downloads its own voice model; the app shows the actual download size before you start. New voice downloads require an internet connection.
@@ -76,7 +78,7 @@ You can keep using FastReader while a book prepares:
 
 - **Keep FastReader open.** Listening pauses when the app or tab is hidden or the screen is locked. Preparation pauses in the background and resumes when you return. After closing or reloading the app, completed passages in the preparation queue are kept; open **Audio preparation** and press **Resume** to continue. **Keep the screen on while reading** can prevent automatic sleep during preparation and listening where supported.
 - **Listen offline.** Once the app, book and voice are downloaded, the browser can prepare speech without a connection. Saved audio plays offline without generating the passages again; voice files are only needed to prepare more audio.
-- **Manage storage.** Prepared audio needs extra space beyond the voice download. An estimate appears before preparation and the actual size updates as it progresses. Use **Delete audio** in the queue, or remove a downloaded voice from the voice chooser, to free space. Your books stay in the library.
+- **Manage storage.** Prepared audio needs extra space beyond the voice download. Open **Manage audio storage** to see the actual space used and remove recordings or downloaded voices. Your books stay in the library.
 - **Keep your library backed up.** Voice downloads and prepared audio are separate from library backups and can be lost if you clear browser data. Download voices and prepare audio again when moving to another device.
 
 ## Make reading comfortable

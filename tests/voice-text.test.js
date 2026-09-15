@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { passageAtOffset, splitVoicePassage, voicePassages, VOICE_TEXT_MAXIMUM } from "../src/voice-text.js";
+import { isRecoverableVoiceTextError, passageAtOffset, prepareVoiceText, splitVoicePassage, voicePassages, VOICE_TEXT_MAXIMUM } from "../src/voice-text.js";
 
 function expectPreserved(text, passages, maximum) {
   expect(passages.map(({ text }) => text.replace(/\s/gu, "")).join("")).toBe(text.replace(/\s/gu, ""));
@@ -11,6 +11,63 @@ function expectPreserved(text, passages, maximum) {
     expect(passage.text).not.toMatch(/^[\uDC00-\uDFFF]|[\uD800-\uDBFF]$/u);
   }
 }
+
+describe("speech input cleanup without changing reading locations", () => {
+  it("speaks a URL's host while preserving labels, punctuation and the full canonical passage", () => {
+    const text = "Lisez le guide (https://www.gutenberg.org/ebooks/11?download=1#chapter). Puis continuez avec ce livre.";
+    const passages = voicePassages(text, "fr");
+    expectPreserved(text, passages, VOICE_TEXT_MAXIMUM);
+    expect(prepareVoiceText(text)).toBe("Lisez le guide (gutenberg.org). Puis continuez avec ce livre.");
+    expect(passages[0].text).toContain("https://www.gutenberg.org/ebooks/11?download=1#chapter");
+    expect(prepareVoiceText("La collection et le guide du lecteur restent disponibles.")).toBe("La collection et le guide du lecteur restent disponibles.");
+  });
+
+  it("bounds expensive paths, queries and fragments instead of spelling them out", () => {
+    const text = `Adresse : https://example.org/${"a1b2/".repeat(800)}?token=${"xyz".repeat(100)}. La suite.`;
+    expect(prepareVoiceText(text)).toBe("Adresse : example.org. La suite.");
+    expect(prepareVoiceText("www.example.com/book.pdf, https://example.net/a?b=2!")).toBe("example.com, example.net!");
+    expect(prepareVoiceText("Voir ‘https://example.org/book’. Puis continuer.")).toBe("Voir ‘example.org’. Puis continuer.");
+  });
+
+  it.each([false, true])("keeps URL query punctuation inside one canonical passage (fallback=%s)", fallback => {
+    if (fallback) vi.stubGlobal("Intl", { ...Intl, Segmenter: undefined });
+    try {
+      const text = "Lire https://example.org/étude?query=Bonjour!&page=2. La suite commence.";
+      const passages = voicePassages(text, "fr");
+      expect(passages.map(value => value.text)).toEqual(["Lire https://example.org/étude?query=Bonjour!&page=2.", "La suite commence."]);
+      expectPreserved(text, passages, VOICE_TEXT_MAXIMUM);
+    } finally { vi.unstubAllGlobals(); }
+  });
+
+  it("leaves malformed URLs intact instead of removing surrounding words", () => {
+    expect(prepareVoiceText("Voir https:// puis lire la suite.")).toBe("Voir https:// puis lire la suite.");
+  });
+
+  it("removes soft hyphens and layout controls while keeping accents and all spoken words", () => {
+    const text = "Le\u0000texte\u200bcontient une ce\u00adsure et e\u0301te\u0301\u202e.\u202c\ufeff";
+    expect(prepareVoiceText(text)).toBe("Le texte contient une cesure et été.");
+    expect(prepareVoiceText("Avant\ud800 après 🌞.")).toBe("Avant après 🌞.");
+  });
+
+  it("uses compatibility forms and removes pictograms only during an explicit fallback", () => {
+    const text = "L’oﬃce 📚👩🏽‍💻 accueille Léa — à 12 €.";
+    expect(prepareVoiceText(text)).toBe(text);
+    expect(prepareVoiceText(text, { fallback: true })).toBe("L’office accueille Léa — à 12 €.");
+  });
+
+  it.each([undefined, null, 12, "\u0000\u00ad\u202e"])("handles empty or invalid speech %s", value => {
+    expect(prepareVoiceText(value)).toBe("");
+  });
+
+  it.each(["VOICE_PHONEME_UNSUPPORTED", "VOICE_TEXT_UNSPLITTABLE", "VOICE_EMPTY_TEXT", "VOICE_TEXT_TOO_LONG"])("marks text failure %s as recoverable", code => {
+    expect(isRecoverableVoiceTextError({ code })).toBe(true);
+    expect(isRecoverableVoiceTextError({ code, name: "AbortError" })).toBe(false);
+  });
+
+  it.each([undefined, "VOICE_FAILED", "VOICE_NOT_INSTALLED", "VOICE_UNSUPPORTED", "VOICE_TIMEOUT", "QUOTA_EXCEEDED"])("does not recover a system failure %s by omitting text", code => {
+    expect(isRecoverableVoiceTextError({ code })).toBe(false);
+  });
+});
 
 describe("voice passage boundaries", () => {
   it("keeps canonical UTF-16 offsets through accents, curly quotes, emoji and paragraph breaks", () => {

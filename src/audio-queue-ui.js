@@ -13,6 +13,7 @@ export function canListenToAudioJob(job) {
 }
 
 export function audioQueueErrorMessage(error) {
+  if (error?.code === "VOICE_RUNTIME_UPDATE_REQUIRED") return t("Connectez-vous à Internet pour mettre à jour la voix, puis reprenez.");
   if (error?.code === "VOICE_RETIRED") return t("Cette voix a été remplacée. Les passages enregistrés restent disponibles. Choisissez une nouvelle voix pour préparer le livre.");
   if (error?.code === "VOICE_EMPTY_TEXT") return t("Ce livre ne contient pas de texte à écouter.");
   if (error?.code === "COORDINATION_UNAVAILABLE") return t("Ce navigateur ne permet pas de préparer les livres en audio. Essayez un navigateur récent.");
@@ -31,6 +32,8 @@ export function audioQueueJobMarkup(job, { icon = () => "", busy = false, curren
   try { if (language) language = new Intl.DisplayNames(locale, { type: "language" }).of(language); } catch { /* Keep an unknown language code readable. */ }
   const voiceLabel = [job.voice?.name || job.voice?.id, language].filter(Boolean).join(" · ");
   const text = (source, params) => escape(t(source, params));
+  const skipped = Number.isSafeInteger(job.skippedSegments) ? Math.max(0, job.skippedSegments) : 0;
+  const skippedHint = skipped > 0 ? `<p class="audio-job-skipped" role="status">${text(skipped === 1 ? "1 passage n’a pas pu être lu." : "{count} passages n’ont pas pu être lus.", { count: formatNumber(skipped) })}</p>` : "";
   const partialHint = unavailable ? `<p class="audio-job-partial">${text("Cette voix a été remplacée. Les passages enregistrés restent disponibles. Choisissez une nouvelle voix pour préparer le livre.")}</p>`
     : !ready && listenable ? `<p class="audio-job-partial">${text("Écoutez les passages déjà prêts. Une attente est possible si vous rattrapez la préparation.")}</p>` : "";
   const button = (action, label, symbol, primary = false) => `<button class="button ${primary ? "primary" : "secondary"}" data-audio-queue-action="${action}" ${busy ? 'aria-disabled="true"' : ""}>${symbol}<span>${text(label)}</span></button>`;
@@ -40,7 +43,7 @@ export function audioQueueJobMarkup(job, { icon = () => "", busy = false, curren
   else if (!ready && !unavailable) actions += button("pause", "Mettre en pause", glyph("pause", "Ⅱ"));
   actions += button(ready ? "remove" : "cancel", ready ? "Supprimer l’audio" : "Annuler la préparation", glyph("close", "×"));
   const chooseVoice = canChooseVoice ? `<button class="voice-text-button audio-job-alternate" data-audio-queue-action="choose-voice" ${busy ? 'aria-disabled="true"' : ""}>${glyph("volume", "♪")}<span>${text(unavailable ? "Préparer avec une nouvelle voix" : "Préparer avec une autre voix")}</span></button>` : "";
-  return `<article class="audio-queue-job${currentBook ? " is-current-book" : ""}" data-audio-job="${escape(job.id)}" data-audio-book="${escape(job.bookId)}" data-status="${escape(job.status)}" aria-busy="${busy}"><div class="audio-job-heading"><span class="audio-job-icon" aria-hidden="true">${glyph(ready ? "check" : "volume", ready ? "✓" : "♪")}</span><div><h3>${escape(job.title)}</h3><p class="audio-job-voice">${escape(voiceLabel)}</p></div><strong class="audio-job-percent">${escape(formatNumber(ready ? 100 : percent))}%</strong></div><p class="audio-job-status" tabindex="-1"><span class="sr-only">${escape(job.title)} — </span>${text(statuses[job.status] || "En attente")}</p><progress max="100" value="${ready ? 100 : percent}" aria-label="${escape(job.title)} — ${text(statuses[job.status] || "En attente")}"></progress><div class="audio-job-details"><span>${text("{completed} sur {total} chapitres préparés", { completed: formatNumber(job.completedChapters || 0), total: formatNumber(job.totalChapters || 0) })}</span><span>${text("{completed} sur {total} passages", { completed: formatNumber(job.completedSegments || 0), total: formatNumber(job.totalSegments || 0) })}</span>${job.audioBytes > 0 ? `<span>${text("Audio conservé : {size}", { size: formatVoiceBytes(job.audioBytes) })}</span>` : ""}</div>${job.error && !unavailable ? `<p class="audio-job-error">${escape(audioQueueErrorMessage(job.error))}</p>` : ""}${partialHint}<div class="audio-job-actions">${actions}</div>${chooseVoice}</article>`;
+  return `<article class="audio-queue-job${currentBook ? " is-current-book" : ""}" data-audio-job="${escape(job.id)}" data-audio-book="${escape(job.bookId)}" data-status="${escape(job.status)}" aria-busy="${busy}"><div class="audio-job-heading"><span class="audio-job-icon" aria-hidden="true">${glyph(ready ? "check" : "volume", ready ? "✓" : "♪")}</span><div><h3>${escape(job.title)}</h3><p class="audio-job-voice">${escape(voiceLabel)}</p></div><strong class="audio-job-percent">${escape(formatNumber(ready ? 100 : percent))}%</strong></div><p class="audio-job-status" tabindex="-1"><span class="sr-only">${escape(job.title)} — </span>${text(statuses[job.status] || "En attente")}</p><progress max="100" value="${ready ? 100 : percent}" aria-label="${escape(job.title)} — ${text(statuses[job.status] || "En attente")}"></progress><div class="audio-job-details"><span>${text("{completed} sur {total} chapitres préparés", { completed: formatNumber(job.completedChapters || 0), total: formatNumber(job.totalChapters || 0) })}</span><span>${text("{completed} sur {total} passages", { completed: formatNumber(job.completedSegments || 0), total: formatNumber(job.totalSegments || 0) })}</span>${job.audioBytes > 0 ? `<span>${text("Audio conservé : {size}", { size: formatVoiceBytes(job.audioBytes) })}</span>` : ""}</div>${job.error && !unavailable ? `<p class="audio-job-error">${escape(audioQueueErrorMessage(job.error))}</p>` : ""}${skippedHint}${partialHint}<div class="audio-job-actions">${actions}</div>${chooseVoice}</article>`;
 }
 
 function updateAttributes(current, next) {
@@ -79,11 +82,12 @@ function updateJobRow(current, next) {
     updateContent(current.querySelector(selector), next.querySelector(selector));
   }
   const actions = current.querySelector(".audio-job-actions");
-  for (const selector of [".audio-job-error", ".audio-job-partial"]) {
+  const notices = [".audio-job-error", ".audio-job-skipped", ".audio-job-partial"];
+  for (const [index, selector] of notices.entries()) {
     const existing = current.querySelector(selector), replacement = next.querySelector(selector);
     if (existing && replacement) updateContent(existing, replacement);
     else if (existing) existing.remove();
-    else if (replacement) current.insertBefore(replacement, selector === ".audio-job-error" ? current.querySelector(".audio-job-partial") || actions : actions);
+    else if (replacement) current.insertBefore(replacement, notices.slice(index + 1).map(nextSelector => current.querySelector(nextSelector)).find(Boolean) || actions);
   }
   const key = button => {
     const action = button.dataset.audioQueueAction;

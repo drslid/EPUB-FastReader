@@ -295,15 +295,16 @@ describe("local voice playback", () => {
     expect(engines).toHaveLength(1);
   });
 
-  it("stops a permanently oversized token after bounded retries instead of truncating it", async () => {
-    const { playback, engines, onPosition } = setup({ synthesize: async () => {
+  it("skips a permanently oversized sentence after bounded retries and advances to the next chapter", async () => {
+    const { playback, engines, onPosition, onEnd } = setup({ synthesize: async () => {
       throw Object.assign(new Error("Cannot pronounce"), { code: "VOICE_TEXT_TOO_LONG" });
     } });
     playback.start({ text: "1234567890".repeat(12), voice });
     await flush();
-    expect(playback.snapshot()).toMatchObject({ status: "error", error: "VOICE_TEXT_TOO_LONG" });
+    expect(playback.snapshot()).toMatchObject({ status: "ended", error: "", skippedSegments: 1 });
     expect(engines[0].synthesize.mock.calls.length).toBeLessThanOrEqual(9);
-    expect(onPosition).not.toHaveBeenCalled();
+    expect(onPosition).toHaveBeenCalledExactlyOnceWith({ start: 0, end: 120, text: "1234567890".repeat(12), completed: true });
+    expect(onEnd).toHaveBeenCalledOnce();
   });
 
   it("skips isolated punctuation and ornaments without asking the engine to pronounce them", async () => {
@@ -323,20 +324,153 @@ describe("local voice playback", () => {
     for (const position of positions) expect(position.text).toBe(source.slice(position.start, position.end));
   });
 
-  it("never silently skips letters or numbers when the engine reports empty phonemes", async () => {
+  it("reports a skipped sentence when the engine cannot produce phonemes and completes the chapter", async () => {
     const { playback, engines, onPosition, onEnd } = setup({ synthesize: async () => {
       throw Object.assign(new Error("No phonemes"), { code: "VOICE_EMPTY_TEXT" });
     } });
     playback.start({ text: "Bonjour 2026.", voice });
     await flush();
-    expect(playback.snapshot()).toMatchObject({ status: "error", error: "VOICE_EMPTY_TEXT", passageIndex: 0 });
+    expect(playback.snapshot()).toMatchObject({ status: "ended", error: "", skippedSegments: 1, passageIndex: 0 });
     expect(engines[0].synthesize).toHaveBeenCalledOnce();
-    expect(onPosition).not.toHaveBeenCalled();
+    expect(onPosition).toHaveBeenCalledExactlyOnceWith({ start: 0, end: 13, text: "Bonjour 2026.", completed: true });
+    expect(onEnd).toHaveBeenCalledOnce();
+  });
+});
+
+describe("recoverable text failures during direct listening", () => {
+  const unsupported = () => Object.assign(new Error("Unsupported phonemes"), { code: "VOICE_PHONEME_UNSUPPORTED" });
+  const clip = words => ({ blob: new Blob([words]), duration: 1 });
+
+  it("keeps already buffered later audio in order when the first sentence fails", async () => {
+    const first = deferred();
+    const { playback, audio, engines, urls, onPosition, onEnd } = setup({ concurrency: 2,
+      playbackOptions: { maxBufferedPassages: 6 }, synthesize: words => words === "Première phrase." ? first.promise : Promise.resolve(clip(words)) });
+    playback.start({ text, voice }); await flush();
+    expect(engines[0].synthesize).toHaveBeenCalledTimes(4);
+    expect(audio.play).not.toHaveBeenCalled();
+    first.reject(unsupported()); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "playing", skippedSegments: 1, passageCount: 3, passageIndex: 0, error: "" });
+    for (const words of ["Deuxième phrase.", "Troisième phrase.", "Quatrième phrase."]) {
+      expect(await urls.get(audio.src).text()).toBe(words);
+      expect(playback.snapshot().passage).toMatchObject({ start: text.indexOf(words), text: words });
+      audio.end(); await flush();
+    }
+    expect(engines[0].synthesize).toHaveBeenCalledTimes(4);
+    expect(onPosition.mock.calls.filter(([value]) => !value.completed).map(([value]) => value.text)).toEqual(["Deuxième phrase.", "Troisième phrase.", "Quatrième phrase."]);
+    expect(onEnd).toHaveBeenCalledOnce();
+    expect(playback.snapshot()).toMatchObject({ status: "ended", skippedSegments: 1 });
+  });
+
+  it("skips a future sentence without interrupting the one playing or replaying subsequent buffers", async () => {
+    const second = deferred();
+    const { playback, audio, engines, urls } = setup({ concurrency: 2, playbackOptions: { maxBufferedPassages: 6 },
+      synthesize: words => words === "Deuxième phrase." ? second.promise : Promise.resolve(clip(words)) });
+    playback.start({ text, voice }); await flush();
+    const src = audio.src, pauses = audio.pause.mock.calls.length;
+    expect(await urls.get(src).text()).toBe("Première phrase.");
+    second.reject(unsupported()); await flush();
+    expect(audio.src).toBe(src);
+    expect(audio.pause).toHaveBeenCalledTimes(pauses);
+    expect(playback.snapshot()).toMatchObject({ status: "playing", passageIndex: 0, skippedSegments: 1, passageCount: 3 });
+    audio.end(); await flush();
+    expect(await urls.get(audio.src).text()).toBe("Troisième phrase.");
+    audio.end(); await flush();
+    expect(await urls.get(audio.src).text()).toBe("Quatrième phrase.");
+    expect(engines[0].synthesize).toHaveBeenCalledTimes(4);
+    playback.stop();
+  });
+
+  it("ignores text failures from a cancelled session and does not skip a new book's passage", async () => {
+    const pending = deferred();
+    const { playback, audio, urls } = setup({ synthesize: words => words === "Première phrase." ? pending.promise : Promise.resolve(clip(words)) });
+    playback.start({ text, voice }); await flush();
+    playback.stop();
+    playback.start({ text: "Une nouvelle histoire.", voice }); await flush();
+    pending.reject(unsupported()); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "playing", skippedSegments: 0, passageCount: 1, passage: { text: "Une nouvelle histoire." } });
+    expect(await urls.get(audio.src).text()).toBe("Une nouvelle histoire.");
+    playback.stop();
+  });
+
+  it.each(["VOICE_FAILED", "MEMORY", "VOICE_NOT_INSTALLED", "STORAGE_FULL"])("keeps %s errors retryable without skipping text", async code => {
+    const { playback, onEnd } = setup({ synthesize: async () => { throw Object.assign(new Error("Unavailable"), { code }); } });
+    playback.start({ text, voice }); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "error", error: code, skippedSegments: 0, passageIndex: 0, passageCount: 4 });
     expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it("finishes once when the last sentence cannot be read after the previous one ends", async () => {
+    const last = deferred();
+    const { playback, audio, onEnd, onPosition } = setup({ synthesize: words => words === "Dernière phrase." ? last.promise : Promise.resolve(clip(words)) });
+    const source = "Une phrase lisible. Dernière phrase.";
+    playback.start({ text: source, voice }); await flush();
+    audio.end(); await flush();
+    expect(playback.snapshot().status).toBe("preparing");
+    last.reject(unsupported()); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "ended", error: "", skippedSegments: 1 });
+    expect(onPosition).toHaveBeenLastCalledWith({ start: source.indexOf("Dernière"), end: source.length, text: "Dernière phrase.", completed: true });
+    expect(onEnd).toHaveBeenCalledOnce();
+    audio.end(); await flush();
+    expect(onEnd).toHaveBeenCalledOnce();
+  });
+
+  it("settles silent warm-up using the next readable sentence and reuses its audio", async () => {
+    const { playback, engines, audio, urls } = setup({ synthesize: async words => {
+      if (words === "Première phrase.") throw unsupported();
+      return clip(words);
+    } });
+    const warmed = playback.prepare({ text, voice }); await flush();
+    await expect(warmed).resolves.toMatchObject({ status: "ready", warming: true, skippedSegments: 1, passage: { text: "Deuxième phrase." } });
+    expect(audio.play).not.toHaveBeenCalled();
+    playback.start({ text, voice }); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "playing", warming: false, skippedSegments: 1 });
+    expect(await urls.get(audio.src).text()).toBe("Deuxième phrase.");
+    expect(engines).toHaveLength(1);
+    expect(engines[0].synthesize.mock.calls.filter(([words]) => words === "Deuxième phrase.")).toHaveLength(1);
+    playback.stop();
+  });
+
+  it("settles and releases silent warm-up when every sentence is unreadable", async () => {
+    const { playback, engines, audio, onEnd } = setup({ concurrency: 2, synthesize: async () => { throw unsupported(); } });
+    const warmed = playback.prepare({ text, voice }); await flush();
+    await expect(warmed).rejects.toMatchObject({ code: "VOICE_EMPTY_TEXT" });
+    expect(playback.snapshot()).toMatchObject({ status: "error", error: "VOICE_EMPTY_TEXT", skippedSegments: 4, passageCount: 0, warming: false });
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(engines[0].dispose).toHaveBeenCalledOnce();
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it("finishes an entirely unreadable chapter once, without playing or retrying skipped sentences", async () => {
+    const { playback, engines, audio, onEnd } = setup({ concurrency: 2, synthesize: async () => { throw unsupported(); } });
+    playback.start({ text, voice }); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "ended", skippedSegments: 4, passageCount: 0, error: "" });
+    expect(engines[0].synthesize).toHaveBeenCalledTimes(4);
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(onEnd).toHaveBeenCalledOnce();
   });
 });
 
 describe("previously converted local audio playback", () => {
+  it("does not replay the previous WAV when resuming in an omitted chapter ending", async () => {
+    const { playback, prepared, read, onEnd, audio } = setupPrepared({ passages: savedPassages.slice(0, 1) });
+    playback.start({ text, voice, offset: savedPassages[0].end + 10, prepared: { ...prepared, complete: true, skippedSegments: 1 } });
+    await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "ended", skippedSegments: 1 });
+    expect(read).not.toHaveBeenCalled();
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(onEnd).toHaveBeenCalledOnce();
+  });
+
+  it("preserves end-offset replay for complete recordings without omissions", async () => {
+    const { playback, prepared, read, onEnd } = setupPrepared({ passages: savedPassages.slice(0, 1) });
+    playback.start({ text, voice, offset: savedPassages[0].end + 10, prepared: { ...prepared, complete: true, skippedSegments: 0 } });
+    await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "playing", skippedSegments: 0 });
+    expect(read).toHaveBeenCalledExactlyOnceWith(savedPassages[0], expect.any(Object));
+    expect(onEnd).not.toHaveBeenCalled();
+    playback.stop();
+  });
+
   it("reads saved segments without creating an engine or recomputing their boundaries", async () => {
     const { playback, prepared, read, createEngine, onPosition, audio } = setupPrepared();
     playback.start({ text: "This fallback text must not be segmented.", voice, prepared, offset: 40, rate: 1.25 });
@@ -581,6 +715,33 @@ describe("previously converted local audio playback", () => {
 });
 
 describe("listening while sequential preparation continues", () => {
+  it("finishes a pending bookmark when the remaining preparation only contains skipped passages", async () => {
+    const { playback, prepared, publish, read, onEnd, audio } = setupStreaming();
+    playback.start({ text, voice, offset: savedPassages[0].end + 10, prepared }); await flush();
+    expect(playback.snapshot().status).toBe("buffering");
+    expect(read).not.toHaveBeenCalled();
+    publish({ complete: true, status: "ready", skippedSegments: 1 }); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "ended", skippedSegments: 1 });
+    expect(audio.play).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
+    expect(onEnd).toHaveBeenCalledOnce();
+  });
+
+  it("updates the skipped-passage notice even without new ready audio, then plays the next saved segment", async () => {
+    const { playback, prepared, publish, audio, read } = setupStreaming();
+    playback.start({ text, voice, prepared }); await flush();
+    publish({ skippedSegments: 1 }); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "playing", skippedSegments: 1, passageCount: 1 });
+    expect(read).toHaveBeenCalledOnce();
+    audio.end(); await flush();
+    expect(playback.snapshot().status).toBe("buffering");
+    publish({ passages: savedPassages.slice(0, 2), complete: true, status: "ready" }); await flush();
+    expect(playback.snapshot()).toMatchObject({ status: "playing", skippedSegments: 1, passage: { segmentId: "segment-b" } });
+    expect(read.mock.calls.map(([passage]) => passage.segmentId)).toEqual(["segment-a", "segment-b"]);
+    playback.stop();
+    expect(playback.snapshot().skippedSegments).toBe(0);
+  });
+
   it("waits at the ready frontier and resumes as the next segment is published", async () => {
     const { playback, prepared, read, audio, publish, onEnd, onPosition, createEngine } = setupStreaming();
     playback.start({ voice, prepared }); await flush();

@@ -39,6 +39,39 @@ afterEach(() => {
 });
 
 describe("local audio queue dialog", () => {
+  it("reports skipped passages without stopping preparation or detaching the focused control", async () => {
+    const job = { ...makeJob("a", "preparing"), skippedSegments: 0 };
+    snapshot.jobs = [job];
+    ui.open(); await settled();
+    const row = document.querySelector('[data-audio-job="a"]');
+    const pause = action("a", "pause");
+    pause.focus();
+    expect(row.querySelector(".audio-job-skipped")).toBeNull();
+    job.skippedSegments = 1;
+    changed(snapshot);
+    const notice = row.querySelector(".audio-job-skipped");
+    expect(notice.textContent).toBe("1 passage n’a pas pu être lu.");
+    expect(notice.getAttribute("role")).toBe("status");
+    expect(row.dataset.status).toBe("preparing");
+    expect(row.querySelector(".audio-job-error")).toBeNull();
+    expect(document.activeElement).toBe(pause);
+    job.skippedSegments = 2;
+    changed(snapshot);
+    expect(row.querySelector(".audio-job-skipped")).toBe(notice);
+    expect(notice.textContent).toBe("2 passages n’ont pas pu être lus.");
+    expect(document.activeElement).toBe(pause);
+    Object.assign(job, { status: "ready", progress: 1 });
+    changed(snapshot);
+    expect(row.querySelector(".audio-job-skipped")).toBe(notice);
+    expect(row.querySelector(".audio-job-partial")).toBeNull();
+    expect(action("a", "listen")).not.toBeNull();
+    ui.close(); ui.open(); await settled();
+    expect(document.querySelector(".audio-job-skipped").textContent).toBe("2 passages n’ont pas pu être lus.");
+    job.skippedSegments = 0;
+    changed(snapshot);
+    expect(document.querySelector(".audio-job-skipped")).toBeNull();
+  });
+
   it("reserves the full sticky header inset including dialog padding and fractional pixels", async () => {
     let top = 12.5, bottom = 110.984375;
     const geometry = vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function () {
@@ -478,6 +511,21 @@ describe("local audio queue dialog", () => {
 });
 
 describe("audio queue translations", () => {
+  it("reports skipped passages with singular and plural copy in all six languages", () => {
+    for (const language of ["fr", "en", "es", "it", "de", "pt"]) {
+      setLocale(language);
+      for (const [count, source] of [[1, "1 passage n’a pas pu être lu."], [2, "{count} passages n’ont pas pu être lus."]]) {
+        document.body.innerHTML = audioQueueJobMarkup({ ...makeJob("a", "ready"), skippedSegments: count });
+        expect(document.querySelector(".audio-job-skipped").textContent).toBe(t(source, { count }));
+        if (language !== "fr") expect(t(source, { count })).not.toBe(source.replace("{count}", count));
+      }
+    }
+    for (const skippedSegments of [undefined, 0, -1, NaN]) {
+      document.body.innerHTML = audioQueueJobMarkup({ ...makeJob("a", "ready"), skippedSegments });
+      expect(document.querySelector(".audio-job-skipped")).toBeNull();
+    }
+  });
+
   it("explains buffering and links to the queue for each preparation state", () => {
     for (const [state, source] of [
       ["preparing", "Vous avez rejoint la préparation. L’écoute reprend dès que la suite est prête."],
@@ -519,6 +567,10 @@ describe("audio queue translations", () => {
       document.body.innerHTML = audioQueueJobMarkup(makeJob("a", "ready"));
       expect(action("a", "remove").textContent).toContain(t("Supprimer l’audio"));
       expect(audioQueueErrorMessage({ code: "COORDINATION_UNAVAILABLE" })).toBe(t("Ce navigateur ne permet pas de préparer les livres en audio. Essayez un navigateur récent."));
+      const updateMessage = audioQueueErrorMessage({ code: "VOICE_RUNTIME_UPDATE_REQUIRED", message: "Obsolete worker version" });
+      expect(updateMessage).toBe(t("Connectez-vous à Internet pour mettre à jour la voix, puis reprenez."));
+      expect(updateMessage).toContain("Internet");
+      expect(updateMessage).not.toContain("worker");
     }
   });
 });

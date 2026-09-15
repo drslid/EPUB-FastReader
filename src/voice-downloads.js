@@ -149,7 +149,7 @@ export function createVoiceDownloads({
     throwIfAborted(signal);
   }
 
-  async function download(voiceId, { signal, onProgress = () => {} } = {}) {
+  async function transfer(voiceId, { signal, onProgress = () => {} } = {}, runtimeOnly = false) {
     assets(voiceId);
     throwIfAborted(signal);
     if (active) throw new VoiceDownloadError("BUSY", "Another voice download is running");
@@ -158,7 +158,13 @@ export function createVoiceDownloads({
       const cache = await openCache();
       const { missing, status: initial } = await inspect(voiceId, cache);
       if (!missing.length) return initial;
-      if (navigator?.onLine === false) throw new VoiceDownloadError("OFFLINE", "Connect to the internet to download this voice");
+      // Resuming an existing preparation authorizes a small runtime update,
+      // never installation of a missing voice or a changed model/configuration.
+      if (runtimeOnly && missing.some(asset => asset.voiceId || asset.file.startsWith("models/"))) {
+        throw new VoiceDownloadError("VOICE_NOT_INSTALLED", "Choose and download this voice before resuming audio preparation");
+      }
+      if (navigator?.onLine === false) throw new VoiceDownloadError(runtimeOnly ? "VOICE_RUNTIME_UPDATE_REQUIRED" : "OFFLINE",
+        runtimeOnly ? "Connect to the internet to update this voice, then resume" : "Connect to the internet to download this voice");
       if (!crypto?.subtle || !fetcher) throw new VoiceDownloadError("BROWSER_UNSUPPORTED", "This browser cannot download verified voice files");
       await checkStorage(initial.downloadBytes);
       throwIfAborted(signal);
@@ -174,6 +180,23 @@ export function createVoiceDownloads({
       notify(initial.downloadBytes, undefined, true);
       return result;
     } finally { active = false; }
+  }
+
+  const download = (voiceId, options) => transfer(voiceId, options);
+  async function ensureRuntime(voiceId, options = {}) {
+    assets(voiceId);
+    throwIfAborted(options.signal);
+    // Readiness is read-only: an installed voice can start while another
+    // language is downloading, without competing for the download lock.
+    const { missing, status: current } = await inspect(voiceId, await openCache());
+    throwIfAborted(options.signal);
+    if (!missing.length) return current;
+    if (missing.some(asset => asset.voiceId || asset.file.startsWith("models/"))) {
+      throw new VoiceDownloadError("VOICE_NOT_INSTALLED", "Choose and download this voice before resuming audio preparation");
+    }
+    // Reinspect under the mutation lock so files removed after the read-only
+    // check cannot accidentally trigger installation of a missing model.
+    return transfer(voiceId, options, true);
   }
 
   async function removeVoice(voiceId) {
@@ -276,5 +299,5 @@ export function createVoiceDownloads({
     } catch (error) { throw storageError(error); }
   }
 
-  return { status, list, download, ensure: download, removeVoice, remove: removeVoice, clearAll, legacyStatus, removeLegacy, storageStatus };
+  return { status, list, download, ensure: download, ensureRuntime, removeVoice, remove: removeVoice, clearAll, legacyStatus, removeLegacy, storageStatus };
 }

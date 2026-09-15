@@ -352,6 +352,20 @@ describe("optional voice selection", () => {
 });
 
 describe("voice controls and translations", () => {
+  it("shows a concise translated skipped-passage notice alongside the playback status", () => {
+    for (const language of ["fr", "en", "es", "it", "de", "pt"]) {
+      setLocale(language);
+      for (const [skippedSegments, source] of [[1, "1 passage n’a pas pu être lu."], [2, "{count} passages n’ont pas pu être lus."]]) {
+        document.body.innerHTML = audioControlsMarkup({ status: "paused", skippedSegments });
+        expect(field("skipped").textContent).toBe(t(source, { count: skippedSegments }));
+        expect(document.querySelector('[role="status"]').textContent).toBe(t("Lecture vocale en pause"));
+        expect(document.querySelector('[data-voice-action="toggle"]').textContent).toContain(t("Reprendre"));
+      }
+    }
+    document.body.innerHTML = audioControlsMarkup({ status: "playing", skippedSegments: 0 });
+    expect(field("skipped")).toBeNull();
+  });
+
   it("keeps every translated placeholder and labels all six locales", () => {
     const placeholders = (value) => [...value.matchAll(/\{\w+\}/g)].map(([token]) => token).sort();
     for (const language of ["en", "es", "it", "de", "pt"]) {
@@ -420,5 +434,14 @@ describe("voice controls and translations", () => {
   it("uses friendly messages without exposing provider errors", () => {
     expect(voiceErrorMessage({ code: "BROWSER_UNSUPPORTED" })).toContain("navigateur récent");
     expect(voiceErrorMessage({ code: "HTTP", message: "Internal details" })).not.toContain("Internal details");
+    const source = "Connectez-vous à Internet pour mettre à jour la voix, puis reprenez.";
+    for (const language of ["fr", "en", "es", "it", "de", "pt"]) {
+      setLocale(language);
+      const message = voiceErrorMessage({ code: "VOICE_RUNTIME_UPDATE_REQUIRED", message: "Obsolete worker version" });
+      expect(message).toBe(t(source));
+      expect(message).toContain("Internet");
+      if (language !== "fr") expect(message).not.toBe(source);
+      expect(message).not.toContain("worker");
+    }
   });
 });

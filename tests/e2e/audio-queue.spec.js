@@ -52,7 +52,10 @@ async function setup(page) {
         const complete = () => {
           if (this.stopped) return false;
           if (work) { this.busy = false; window.__generation.active--; }
-          this.onmessage?.({ data: { id: data.id, result: work ? { wav: new ArrayBuffer(100), duration: 3 } : {} } });
+          const unreadable = work && window.__unreadablePassage && data.text.includes(window.__unreadablePassage);
+          this.onmessage?.({ data: unreadable
+            ? { id: data.id, error: { code: "VOICE_PHONEME_UNSUPPORTED", message: "Fixture: unsupported phonemes" } }
+            : { id: data.id, result: work ? { wav: new ArrayBuffer(100), duration: 3 } : {} } });
           return true;
         };
         if (work && window.__manualGeneration) {
@@ -123,6 +126,64 @@ test("Listen reopens the existing preparation after navigation and reload withou
   await expect(row).toHaveAttribute("data-status", "paused");
   await expect(row).toHaveAttribute("data-audio-job", id);
   await expect(page.locator(".voice-dialog")).toHaveCount(0);
+  expect(await page.evaluate(() => window.__generation.calls)).toBe(0);
+});
+
+test("an unreadable sentence is skipped, reported after reload, and never interrupts prepared listening", async ({ page }, testInfo) => {
+  await setup(page);
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => { window.__unreadablePassage = "phrase incompatible"; });
+  await importEpub(page, await makeEpub({ title: "Continuer malgré un passage difficile", chapters: 1, paragraphs: [
+    "Cette première phrase se lit normalement.",
+    "Cette phrase incompatible ne peut pas être prononcée.",
+    "La lecture continue avec cette phrase complète.",
+    "Le livre peut être écouté jusqu’au bout.",
+  ] }));
+  await expect(page.locator("#rsvp")).toBeVisible();
+  await page.getByRole("button", { name: "Écouter", exact: true }).click();
+  await page.locator("[data-voice-prepare]").click();
+  const row = page.locator(".audio-queue-job");
+  await expect(row).toHaveAttribute("data-status", "ready", { timeout: 20000 });
+  await expect(row.locator(".audio-job-skipped")).toHaveText("1 passage n’a pas pu être lu.");
+  await expect(row.locator(".audio-job-error")).toHaveCount(0);
+  const saved = await page.evaluate(() => new Promise((resolve, reject) => {
+    const open = indexedDB.open("fastreader-audio", 1);
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result, tx = db.transaction(["jobs", "segments"]);
+      const jobs = tx.objectStore("jobs").getAll(), segments = tx.objectStore("segments").getAllKeys();
+      tx.oncomplete = () => {
+        db.close();
+        const job = jobs.result[0];
+        resolve({ skipped: job.skippedSegments, passages: job.chapters[0].passages.map(({ segmentId, skipped }) => ({ segmentId, skipped: Boolean(skipped) })), segmentKeys: segments.result });
+      };
+      tx.onabort = () => { db.close(); reject(tx.error); };
+    };
+  }));
+  expect(saved.skipped).toBe(1);
+  const audible = saved.passages.filter(passage => !passage.skipped);
+  const skipped = saved.passages.find(passage => passage.skipped);
+  expect(audible.length).toBeGreaterThanOrEqual(3);
+  expect(saved.segmentKeys).toHaveLength(audible.length);
+  expect(saved.segmentKeys.some(key => key.includes(skipped.segmentId))).toBe(false);
+  expect(await page.locator(".audio-queue-dialog").evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  expect((await new AxeBuilder({ page }).include(".audio-queue-dialog").analyze()).violations).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath("skipped-audio-passage.png") });
+  await page.reload();
+  await expect(page.locator("#rsvp")).toBeVisible();
+  await page.getByRole("button", { name: "Écouter", exact: true }).click();
+  await expect(row.locator(".audio-job-skipped")).toHaveText("1 passage n’a pas pu être lu.");
+  await row.locator('[data-audio-queue-action="listen"]').click();
+  for (let at = 0; at < audible.length; at++) {
+    await expect(page.locator("#voice-controls")).toHaveAttribute("data-status", "playing");
+    await expect(page.locator("[data-voice-skipped]")).toHaveText("1 passage n’a pas pu être lu.");
+    const highlighted = await page.locator(".voice-current-passage").allTextContents();
+    expect(highlighted.join(" ")).not.toContain("phrase incompatible");
+    const previous = await page.evaluate(() => window.__audio.src);
+    await page.evaluate(() => { window.__audio.paused = true; window.__audio.dispatchEvent(new Event("ended")); });
+    if (at + 1 < audible.length) await expect.poll(() => page.evaluate(() => window.__audio.src)).not.toBe(previous);
+  }
+  await expect(page.getByRole("heading", { name: "Ma bibliothèque", exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.__generation.calls)).toBe(0);
 });
 
@@ -285,7 +346,7 @@ test("a progress update during a held pointer keeps the cancel control and compl
   await expect(row).toHaveCount(0);
 });
 
-test("partial audio survives reload, requires an explicit resume, and can be cancelled without deleting the book", async ({ page }) => {
+test("partial audio survives reload, requires an explicit resume, and can be cancelled without deleting the book", async ({ page, browserName }) => {
   await setup(page);
   await page.evaluate(() => { window.__delay = 240; });
   const row = await addBook(page, "Une préparation à reprendre", 10);
@@ -293,8 +354,27 @@ test("partial audio survives reload, requires an explicit resume, and can be can
   await row.locator('[data-audio-queue-action="pause"]').click();
   await expect(row).toHaveAttribute("data-status", "paused");
   const progress = await row.locator("progress").getAttribute("value");
+  let cacheDocument;
+  if (browserName === "webkit") {
+    // Playwright's temporary WebKit context drops CacheStorage when its last
+    // document for an origin is replaced, even for valid binary responses.
+    // Keep the original cache alive while testing audio/queue persistence.
+    // A persistent WebKit profile was checked separately; no entries are
+    // reseeded after reload and the production readiness gate stays intact.
+    cacheDocument = await page.context().newPage();
+    const fixtureUrl = new URL("/voice-cache-fixture.html", page.url()).href;
+    await cacheDocument.route(fixtureUrl, route => route.fulfill({ contentType: "text/html", body: "<!doctype html><title>Voice cache fixture</title>" }));
+    await cacheDocument.goto(fixtureUrl);
+    await cacheDocument.evaluate(async name => { window.retainedVoiceCache = await caches.open(name); }, VOICE_CACHE_NAME);
+    await page.bringToFront();
+  }
   await page.reload();
   await expect(page.locator("#rsvp")).toBeVisible();
+  const installedAssets = assetsForVoice("piper-fr_FR-siwis-medium", "http://127.0.0.1:4173/");
+  expect(await page.evaluate(async ({ assets, cacheName }) => {
+    const cache = await caches.open(cacheName);
+    return Promise.all(assets.map(async asset => (await cache.match(asset.url))?.headers.get("X-Fastreader-Voice-SHA256")));
+  }, { assets: installedAssets, cacheName: VOICE_CACHE_NAME })).toEqual(installedAssets.map(asset => asset.sha256));
   await page.getByRole("link", { name: "Retour à ma bibliothèque" }).click();
   await page.locator(".topbar [data-action=audio-queue]").click();
   await expect(row).toHaveAttribute("data-status", "paused");
@@ -306,6 +386,7 @@ test("partial audio survives reload, requires an explicit resume, and can be can
   await expect(row).toHaveCount(0);
   await page.locator("[data-audio-queue-close]").click();
   await expect(page.getByRole("button", { name: "Lire Une préparation à reprendre", exact: true })).toBeVisible();
+  await cacheDocument?.close();
 });
 
 test("queue and voice choice remain accessible on a small phone", async ({ page }) => {

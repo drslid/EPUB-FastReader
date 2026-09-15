@@ -13,6 +13,46 @@ beforeEach(() => { factory = new IDBFactory(); store = createAudioStore({ indexe
 afterEach(async () => { vi.restoreAllMocks(); await store.close(); });
 
 describe("durable local audio storage", () => {
+  it("persists a skipped passage atomically without inventing playable audio", async () => {
+    await store.putIfAbsent(sample()); await store.acquireLease("owner", 1000);
+    const skipped = { chapterId: "chapter", segmentId: "segment", reason: "VOICE_PHONEME_UNSUPPORTED" };
+    const saved = await store.skipSegment("job", skipped, "owner", 1500);
+    expect(saved).toMatchObject({ status: "ready", completedSegments: 1, skippedSegments: 1,
+      completedChars: 7, completedChapters: 1, audioBytes: 0, audioDuration: 0 });
+    expect(saved.chapters[0]).toMatchObject({ complete: true, skippedSegments: 1,
+      passages: [{ ready: true, skipped: true, duration: 0, bytes: 0, skipReason: skipped.reason }] });
+    expect(await store.readSegment("job", "segment")).toBeNull();
+    await store.skipSegment("job", skipped, "owner", 1600);
+    await store.close(); store = createAudioStore({ indexedDB: factory });
+    expect(await store.getJob("job")).toMatchObject({ completedSegments: 1, skippedSegments: 1, audioBytes: 0 });
+  });
+
+  it("rolls back skip counters when recording the omission fails", async () => {
+    await store.putIfAbsent(sample()); await store.acquireLease("owner", 1000);
+    const original = IDBObjectStore.prototype.put;
+    vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(function (value) {
+      if (this.name === "jobs") throw new DOMException("Full", "QuotaExceededError");
+      return original.call(this, value);
+    });
+    await expect(store.skipSegment("job", segment(), "owner", 1500)).rejects.toHaveProperty("name", "QuotaExceededError");
+    expect(await store.getJob("job")).toMatchObject({ completedSegments: 0, audioBytes: 0 });
+    expect((await store.getJob("job")).chapters[0].passages[0].ready).toBe(false);
+  });
+
+  it("never records omissions after pause, lease expiry, deletion or clearing and recreating a job", async () => {
+    const generation = await store.getGeneration();
+    await store.putIfAbsent(sample()); await store.acquireLease("owner", 1000, 100);
+    expect(await store.skipSegment("job", segment(), "owner", 1101, generation)).toBeNull();
+    await store.acquireLease("owner", 1200);
+    await store.mutateJob("job", job => ({ ...job, status: "paused" }));
+    expect(await store.skipSegment("job", segment(), "owner", 1250, generation)).toBeNull();
+    await store.clearAll();
+    expect(await store.skipSegment("job", segment(), "owner", 1250, generation)).toBeNull();
+    await store.putIfAbsent(sample()); await store.acquireLease("owner", 1200);
+    expect(await store.skipSegment("job", segment(), "owner", 1250, generation)).toBeNull();
+    expect(await store.getJob("job")).toMatchObject({ completedSegments: 0 });
+  });
+
   it("commits PCM audio and completed progress atomically, surviving a connection restart", async () => {
     await store.putIfAbsent(sample());
     await store.acquireLease("owner", 1000);

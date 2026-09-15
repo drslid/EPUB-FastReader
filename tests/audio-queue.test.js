@@ -51,6 +51,119 @@ beforeEach(() => { factory = new IDBFactory(); store = createAudioStore({ indexe
 afterEach(async () => { for (const item of queues) await item.dispose(); await waitFor(() => !locks.occupied); await store.close(); vi.restoreAllMocks(); });
 
 describe("local audiobook preparation queue", () => {
+  it("repairs an interrupted older URL split without regenerating already saved speech", async () => {
+    const text = "Un début déjà enregistré. Consultez https://example.org/read?query=bonjour&edition=2. Le récit continue.";
+    const engine = controlledEngine(), q = queue({ createEngine: engine.create });
+    const input = book("older-url", text), saved = await q.enqueue(input);
+    await waitFor(() => engine.pending.length === 1);
+    engine.pending.shift().resolve();
+    await waitFor(() => engine.pending.length === 1);
+    await q.pause(saved.id);
+    await waitFor(() => !locks.occupied);
+    const first = (await store.getJob(saved.id)).chapters[0].passages[0];
+    const firstAudio = await (await q.readSegment(saved.id, first.segmentId)).arrayBuffer();
+    await store.mutateJob(saved.id, job => {
+      delete job.textPreparationVersion;
+      const chapter = job.chapters[0], [beginning, link, ending] = chapter.passages;
+      const split = text.indexOf("?") + 1;
+      chapter.passages = [beginning,
+        { start: link.start, end: split, segmentId: "old-url-start", ready: false },
+        { start: split, end: link.end, segmentId: "old-query", ready: false }, ending];
+      job.totalSegments = 4;
+      job.status = "error";
+      job.error = { code: "VOICE_PHONEME_UNSUPPORTED" };
+      return job;
+    });
+    await q.dispose();
+    const nextEngine = controlledEngine(), next = queue({ createEngine: nextEngine.create });
+    await next.resume(saved.id);
+    await waitFor(() => nextEngine.pending.length === 1);
+    expect(nextEngine.calls).toEqual(["Consultez https://example.org/read?query=bonjour&edition=2."]);
+    nextEngine.pending.shift().resolve();
+    await waitFor(() => nextEngine.pending.length === 1);
+    expect(nextEngine.calls[1]).toBe("Le récit continue.");
+    nextEngine.pending.shift().resolve();
+    await waitFor(() => next.snapshot().jobs[0].status === "ready");
+    expect((await store.getJob(saved.id)).chapters[0].passages[0]).toEqual(first);
+    expect(await (await next.readSegment(saved.id, first.segmentId)).arrayBuffer()).toEqual(firstAudio);
+    expect(next.snapshot().jobs[0]).toMatchObject({ totalSegments: 3, completedSegments: 3, skippedSegments: 0 });
+  });
+
+  it("skips a bad sentence, publishes the following audio in order, and keeps exact text offsets", async () => {
+    const input = book("recovery", "Une adresse illisible. Le récit continue. La fin illisible.");
+    const engine = controlledEngine(), q = queue({ createEngine: engine.create });
+    const job = await q.enqueue(input);
+    await waitFor(() => engine.pending.length === 1);
+    engine.pending.shift().reject(Object.assign(new Error("Unsupported text"), { code: "VOICE_PHONEME_UNSUPPORTED" }));
+    await waitFor(() => engine.pending.length === 1);
+    const waiting = await q.getPreparedChapter(input.bookId, voice.id, "one", input.chapters[0].text);
+    expect(waiting).toMatchObject({ complete: false, skippedSegments: 1, readySegments: 0, passages: [] });
+    expect(q.snapshot().jobs[0]).toMatchObject({ status: "preparing", skippedSegments: 1, canListen: false });
+    engine.pending.shift().resolve();
+    await waitFor(() => engine.pending.length === 1);
+    const audible = await q.getPreparedChapter(input.bookId, voice.id, "one", input.chapters[0].text);
+    expect(audible).toMatchObject({ readySegments: 1, skippedSegments: 1 });
+    expect(audible.passages[0]).toMatchObject({ text: "Le récit continue.", start: input.chapters[0].text.indexOf("Le récit") });
+    engine.pending.shift().reject(Object.assign(new Error("Unsupported text"), { code: "VOICE_TEXT_UNSPLITTABLE" }));
+    await waitFor(() => q.snapshot().jobs[0].status === "ready");
+    expect(q.snapshot().jobs[0]).toMatchObject({ completedSegments: 3, skippedSegments: 2, progress: 1, canListen: true, audioBytes: 3, audioDuration: 1 });
+    const complete = await q.getPreparedChapter(input.bookId, voice.id, "one", input.chapters[0].text);
+    expect(complete).toMatchObject({ complete: true, readySegments: 1, skippedSegments: 2 });
+    expect(complete.passages).toEqual(audible.passages);
+    const saved = await store.getJob(job.id);
+    for (const part of saved.chapters[0].passages.filter(part => part.skipped)) expect(await q.readSegment(job.id, part.segmentId)).toBeNull();
+    await q.dispose();
+    const restartedEngine = controlledEngine(), restarted = queue({ createEngine: restartedEngine.create });
+    expect((await restarted.list()).jobs[0]).toMatchObject({ status: "ready", skippedSegments: 2 });
+    await restarted.resume(job.id);
+    expect(restartedEngine.create).not.toHaveBeenCalled();
+  });
+
+  it("continues beyond a fully skipped chapter without advertising nonexistent audio", async () => {
+    const q = queue({ createEngine: () => ({ load: async () => {}, dispose() {}, synthesize: async text => {
+      if (text.includes("illisible")) throw Object.assign(new Error("Unsupported text"), { code: "VOICE_PHONEME_UNSUPPORTED" });
+      return audio();
+    } }) });
+    const input = { ...book(), chapters: [{ id: "one", text: "Texte illisible." }, { id: "two", text: "La lecture continue." }] };
+    await q.enqueue(input);
+    await waitFor(() => q.snapshot().jobs[0]?.status === "ready");
+    expect(q.snapshot().jobs[0]).toMatchObject({ completedChapters: 2, skippedSegments: 1, canListen: true, readySegments: 1 });
+    expect(await q.getPreparedChapter(input.bookId, voice.id, "one", input.chapters[0].text))
+      .toMatchObject({ complete: true, skippedSegments: 1, passages: [] });
+    expect(await q.getPreparedChapter(input.bookId, voice.id, "two", input.chapters[1].text))
+      .toMatchObject({ complete: true, skippedSegments: 0, readySegments: 1 });
+  });
+
+  it.each(["VOICE_FAILED", "VOICE_NOT_INSTALLED", "VOICE_UNSUPPORTED", "VOICE_TIMEOUT", "STORAGE_FULL"])("does not hide a %s failure by skipping book content", async code => {
+    const q = queue({ createEngine: () => ({ load: async () => {}, dispose() {}, synthesize: async () => {
+      throw Object.assign(new Error("System failure"), { code });
+    } }) });
+    await q.enqueue(book());
+    await waitFor(() => q.snapshot().jobs[0]?.status === "error");
+    expect(q.snapshot().jobs[0]).toMatchObject({ skippedSegments: 0, completedSegments: 0, canListen: false, error: { code } });
+  });
+
+  it("does not commit a late text failure after cancellation", async () => {
+    const engine = controlledEngine(), q = queue({ createEngine: engine.create });
+    const job = await q.enqueue(book());
+    await waitFor(() => engine.pending.length === 1);
+    await q.pause(job.id);
+    engine.pending.shift().reject(Object.assign(new Error("Unsupported text"), { code: "VOICE_PHONEME_UNSUPPORTED" }));
+    await waitFor(() => !locks.occupied);
+    expect(q.snapshot().jobs[0]).toMatchObject({ status: "paused", skippedSegments: 0, completedSegments: 0 });
+  });
+
+  it("a text error in the second parallel sentence cannot hide the earlier pending sentence", async () => {
+    const engine = controlledEngine(2), q = queue({ createEngine: engine.create });
+    await q.enqueue(book());
+    await waitFor(() => engine.pending.length === 2);
+    engine.pending[1].reject(Object.assign(new Error("Unsupported text"), { code: "VOICE_PHONEME_UNSUPPORTED" }));
+    expect(q.snapshot().jobs[0]).toMatchObject({ readySegments: 0, skippedSegments: 0 });
+    engine.pending[0].resolve();
+    await waitFor(() => q.snapshot().jobs[0].status === "ready");
+    expect(q.snapshot().jobs[0]).toMatchObject({ readySegments: 1, skippedSegments: 1, completedSegments: 2, audioBytes: 3 });
+  });
+
   it("retains playable old audio and rejects resuming it with a replacement engine", async () => {
     const oldEngine = controlledEngine(), previous = queue({ createEngine: oldEngine.create });
     const input = book();

@@ -19,6 +19,7 @@
 .audio-queue-guidance summary { min-height: 44px; padding: 12px 2px; color: var(--muted); font-size: .75rem; cursor: pointer; }
 .audio-queue-guidance .audio-queue-foreground { margin-bottom: 0; }
 .audio-queue-job .audio-job-partial { margin: 10px 0 0; font-size: .73rem; }
+.audio-queue-job .audio-job-skipped { margin: 10px 0 0; padding-left: 10px; border-left: 2px solid var(--border); font-size: .73rem; color: var(--text); }
 .library-audio-queue { display: flex; justify-content: flex-end; margin: 0 0 16px; }
 .library-audio-queue .button { min-height: 44px; padding: 8px 12px; font-size: .78rem; white-space: normal; }
 .library-audio-queue [data-audio-queue-count] { display: inline-grid; place-items: center; min-width: 22px; min-height: 22px; padding: 2px 5px; border-radius: 20px; background: var(--accent-soft); color: var(--text); font-size: .72rem; font-variant-numeric: tabular-nums; }

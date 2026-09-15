@@ -58,6 +58,7 @@ import {
 } from "./storage.js";
 import { createDemo } from "./demo.js";
 import { createAcceleratedVoiceEngine } from "./voice-engine.js";
+import { createInstalledVoiceEngine } from "./installed-voice-engine.js";
 import { createVoiceDownloads } from "./voice-downloads.js";
 import { voiceForId } from "./voice-assets.js";
 import { createVoiceUI, audioControlsMarkup } from "./voice-ui.js";
@@ -182,8 +183,13 @@ function canPrepareVoice(voice) {
   return Boolean(current && current.modelKey === voice.modelKey
     && current.model.sha256 === voice.model?.sha256 && current.config.sha256 === voice.config?.sha256);
 }
-const audioQueue = createAudioQueue({
+const voiceDownloads = createVoiceDownloads({ baseUrl: import.meta.env.BASE_URL });
+const createInstalledAudioEngine = () => createInstalledVoiceEngine({
+  downloads: voiceDownloads,
   createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }),
+});
+const audioQueue = createAudioQueue({
+  createEngine: createInstalledAudioEngine,
   canPrepareVoice,
   onClear: clearVoiceSession,
 });
@@ -204,9 +210,8 @@ const audioQueueUI = createAudioQueueUI({
     await chooseVoice({ force: true });
   },
 });
-const voiceDownloads = createVoiceDownloads({ baseUrl: import.meta.env.BASE_URL });
 const voicePlayback = createVoicePlayback({
-  createEngine: () => createExclusiveVoiceEngine({ createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }) }),
+  createEngine: () => createExclusiveVoiceEngine({ createEngine: createInstalledAudioEngine }),
   onState: updateVoiceControls,
   onPosition: saveVoicePassage,
   onEnd: () => {
@@ -359,7 +364,8 @@ function updateVoiceControls(snapshot) {
   const previousStatus = container.querySelector(".voice-player-status");
   const message = snapshot.error === "autoplay" ? t("Touchez Reprendre pour autoriser le son.")
     : snapshot.error === "AUDIO_MISSING" ? t("Cet audio préparé n’est plus disponible. Préparez à nouveau le livre.")
-    : snapshot.error === "empty" ? t("Ce livre ne contient pas de texte à écouter.")
+    : snapshot.error === "VOICE_RUNTIME_UPDATE_REQUIRED" ? t("Connectez-vous à Internet pour mettre à jour la voix, puis reprenez.")
+    : ["empty", "VOICE_EMPTY_TEXT"].includes(snapshot.error) ? t("Ce livre ne contient pas de texte à écouter.")
       : snapshot.error ? t("Impossible de préparer ce passage. Réessayez ou choisissez une autre voix.") : "";
   container.innerHTML = audioControlsMarkup({ ...snapshot, message }, { icon });
   const nextStatus = container.querySelector(".voice-player-status");

@@ -5,6 +5,7 @@ import "./voice.css";
 const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 const errors = {
   OFFLINE: "Connexion nécessaire pour télécharger une voix.",
+  VOICE_RUNTIME_UPDATE_REQUIRED: "Connectez-vous à Internet pour mettre à jour la voix, puis reprenez.",
   STORAGE_FULL: "Espace insuffisant. Libérez du stockage puis réessayez.",
   STORAGE_UNAVAILABLE: "Le navigateur ne permet pas de conserver cette voix. Vérifiez ses réglages de stockage.",
   INTEGRITY: "Le fichier vocal est incomplet. Réessayez le téléchargement.",
@@ -273,7 +274,7 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
 }
 
 /** Controls for the reader; the reader owns playback and event delegation. */
-export function audioControlsMarkup({ status = "idle", voiceLabel = "", rate = 1, message = "", playing = status === "playing", prepared = false, preparationStatus = "", preparation = null } = {}, { icon = () => "" } = {}) {
+export function audioControlsMarkup({ status = "idle", voiceLabel = "", rate = 1, message = "", playing = status === "playing", prepared = false, preparationStatus = "", preparation = null, skippedSegments = 0 } = {}, { icon = () => "" } = {}) {
   const glyph = (name, fallback) => icon(name) || `<span aria-hidden="true">${fallback}</span>`;
   const busy = ["loading", "preparing", "buffering"].includes(status);
   const label = playing || busy ? "Pause" : status === "paused" ? "Reprendre" : "Lancer l’écoute";
@@ -312,5 +313,7 @@ export function audioControlsMarkup({ status = "idle", voiceLabel = "", rate = 1
   const queueLink = prepared && ["buffering", "error"].includes(status)
     ? `<div class="voice-buffer-actions"><button class="voice-text-button" data-voice-action="queue">${glyph("queue", "☷")}<span>${escape(t("Voir la file audio"))}</span></button></div>` : "";
   const speed = Math.min(1.75, Math.max(0.75, Number(rate) || 1));
-  return `<section class="voice-player" aria-label="${escape(t("Lecture vocale"))}"><div class="voice-player-heading"><span class="voice-eyebrow">${escape(t("Écouter"))}</span><button class="voice-text-button" data-voice-action="choose">${glyph("volume", "♪")}<span>${escape(voiceLabel || t("Choisir une voix"))}</span></button></div><div class="voice-player-buttons"><button class="round-button" data-voice-action="previous" aria-label="${escape(t("Phrase précédente"))}">${glyph("skipBack", "↶")}</button><button class="button primary voice-toggle" data-voice-action="toggle" >${glyph(playing || busy ? "pause" : "play", playing || busy ? "Ⅱ" : "▶")}<span>${escape(t(label))}</span></button><button class="round-button" data-voice-action="next" aria-label="${escape(t("Passage suivant"))}">${glyph("skipForward", "↷")}</button></div><label class="voice-rate"><span>${escape(t("Vitesse d’écoute"))}</span><input data-voice-rate type="range" min="0.75" max="1.75" step="0.05" value="${speed}" aria-label="${escape(t("Vitesse d’écoute"))}"><output data-voice-rate-value>${escape(formatNumber(speed, { maximumFractionDigits: 2 }))}×</output></label>${preparationMarkup}<p class="voice-player-status" role="status" aria-live="polite" aria-atomic="true">${escape(message || (defaultMessage ? t(defaultMessage) : ""))}</p>${queueLink}</section>`;
+  const skippedHint = Number.isSafeInteger(skippedSegments) && skippedSegments > 0
+    ? `<p class="voice-player-status" data-voice-skipped>${escape(t(skippedSegments === 1 ? "1 passage n’a pas pu être lu." : "{count} passages n’ont pas pu être lus.", { count: formatNumber(skippedSegments) }))}</p>` : "";
+  return `<section class="voice-player" aria-label="${escape(t("Lecture vocale"))}"><div class="voice-player-heading"><span class="voice-eyebrow">${escape(t("Écouter"))}</span><button class="voice-text-button" data-voice-action="choose">${glyph("volume", "♪")}<span>${escape(voiceLabel || t("Choisir une voix"))}</span></button></div><div class="voice-player-buttons"><button class="round-button" data-voice-action="previous" aria-label="${escape(t("Phrase précédente"))}">${glyph("skipBack", "↶")}</button><button class="button primary voice-toggle" data-voice-action="toggle" >${glyph(playing || busy ? "pause" : "play", playing || busy ? "Ⅱ" : "▶")}<span>${escape(t(label))}</span></button><button class="round-button" data-voice-action="next" aria-label="${escape(t("Passage suivant"))}">${glyph("skipForward", "↷")}</button></div><label class="voice-rate"><span>${escape(t("Vitesse d’écoute"))}</span><input data-voice-rate type="range" min="0.75" max="1.75" step="0.05" value="${speed}" aria-label="${escape(t("Vitesse d’écoute"))}"><output data-voice-rate-value>${escape(formatNumber(speed, { maximumFractionDigits: 2 }))}×</output></label>${preparationMarkup}<p class="voice-player-status" role="status" aria-live="polite" aria-atomic="true">${escape(message || (defaultMessage ? t(defaultMessage) : ""))}</p>${skippedHint}${queueLink}</section>`;
 }

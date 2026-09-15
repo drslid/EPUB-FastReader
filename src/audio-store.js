@@ -55,6 +55,51 @@ export function createAudioStore({ indexedDB = globalThis.indexedDB, name = DATA
       } catch (error) { fail(error); }
     };
   });
+  function commitPassage(jobId, segment, owner, now, generation, audio = null) {
+    return transaction(["jobs", "segments", "locks"], "readwrite", (tx, set, fail) => {
+      const jobs = tx.objectStore("jobs");
+      const jobRequest = jobs.get(jobId);
+      const leaseRequest = tx.objectStore("locks").get("conversion");
+      leaseRequest.onsuccess = () => {
+        try {
+          const job = jobRequest.result, lease = leaseRequest.result;
+          if (!job || job.status !== "preparing" || job.controlOwner !== owner || lease?.owner !== owner || lease.expires <= now
+            || (generation !== undefined && (job.generation || 0) !== generation)) {
+            set(null); return;
+          }
+          const chapter = job.chapters.find(item => item.id === segment.chapterId);
+          const passage = chapter?.passages.find(item => item.segmentId === segment.segmentId);
+          if (!passage || passage.ready) { set(job); return; }
+          const duration = audio ? segment.duration : 0;
+          const bytes = audio?.bytes.byteLength || 0;
+          if (audio) tx.objectStore("segments").put({ jobId, ...segment, ...audio });
+          else {
+            passage.skipped = true;
+            passage.skipReason = segment.reason;
+            chapter.skippedSegments = (chapter.skippedSegments || 0) + 1;
+            job.skippedSegments = (job.skippedSegments || 0) + 1;
+          }
+          // A skipped passage is processed, but is never advertised as playable
+          // audio or stored as a fabricated silent WAV.
+          passage.ready = true;
+          passage.duration = duration;
+          passage.bytes = bytes;
+          chapter.completedSegments++;
+          chapter.audioDuration += duration;
+          chapter.complete = chapter.completedSegments === chapter.passages.length;
+          job.completedSegments++;
+          job.completedChars += passage.end - passage.start;
+          job.completedChapters = job.chapters.filter(item => item.complete).length;
+          job.audioBytes += bytes;
+          job.audioDuration += duration;
+          job.updatedAt = now;
+          if (job.completedSegments === job.totalSegments) job.status = "ready";
+          jobs.put(job);
+          set(job);
+        } catch (error) { fail(error); }
+      };
+    });
+  }
   return {
     getJob: id => get("jobs", id),
     getLease: () => get("locks", "conversion"),
@@ -108,40 +153,9 @@ export function createAudioStore({ indexedDB = globalThis.indexedDB, name = DATA
       // its writes remain atomic and never await an external promise.
       const { blob, ...metadata } = segment;
       const bytes = await blob.arrayBuffer();
-      return transaction(["jobs", "segments", "locks"], "readwrite", (tx, set, fail) => {
-        const jobs = tx.objectStore("jobs");
-        const jobRequest = jobs.get(jobId);
-        const leaseRequest = tx.objectStore("locks").get("conversion");
-        leaseRequest.onsuccess = () => {
-          try {
-            const job = jobRequest.result, lease = leaseRequest.result;
-            if (!job || job.status !== "preparing" || job.controlOwner !== owner || lease?.owner !== owner || lease.expires <= now
-              || (generation !== undefined && (job.generation || 0) !== generation)) {
-              set(null); return;
-            }
-            const chapter = job.chapters.find(item => item.id === segment.chapterId);
-            const passage = chapter?.passages.find(item => item.segmentId === segment.segmentId);
-            if (!passage || passage.ready) { set(job); return; }
-            tx.objectStore("segments").put({ jobId, ...metadata, bytes, mimeType: blob.type || "audio/wav" });
-            passage.ready = true;
-            passage.duration = segment.duration;
-            passage.bytes = segment.blob.size;
-            chapter.completedSegments++;
-            chapter.audioDuration += segment.duration;
-            chapter.complete = chapter.completedSegments === chapter.passages.length;
-            job.completedSegments++;
-            job.completedChars += passage.end - passage.start;
-            job.completedChapters = job.chapters.filter(item => item.complete).length;
-            job.audioBytes += segment.blob.size;
-            job.audioDuration += segment.duration;
-            job.updatedAt = now;
-            if (job.completedSegments === job.totalSegments) job.status = "ready";
-            jobs.put(job);
-            set(job);
-          } catch (error) { fail(error); }
-        };
-      });
+      return commitPassage(jobId, metadata, owner, now, generation, { bytes, mimeType: blob.type || "audio/wav" });
     },
+    skipSegment: (jobId, segment, owner, now, generation) => commitPassage(jobId, segment, owner, now, generation),
     async readSegment(jobId, segmentId) {
       const saved = await get("segments", [jobId, segmentId]);
       if (saved?.bytes?.byteLength) return new Blob([saved.bytes], { type: saved.mimeType || "audio/wav" });

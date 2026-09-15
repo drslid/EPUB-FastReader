@@ -47,6 +47,98 @@ function setup({ online = true, estimate, cacheError } = {}) {
 }
 
 describe("voice downloads", () => {
+  it("updates only an outdated runtime file before resuming an installed voice", async () => {
+    const { downloads, fetcher, assets, assetProvider } = setup();
+    const id = VOICES[0].id;
+    await downloads.download(id);
+    const worker = assets.get("worker.js");
+    worker.body = new TextEncoder().encode("new compatible worker");
+    worker.bytes = worker.body.length;
+    worker.sha256 = createHash("sha256").update(worker.body).digest("hex");
+    fetcher.mockClear();
+    const onProgress = vi.fn();
+    expect((await downloads.ensureRuntime(id, { onProgress })).ready).toBe(true);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([worker.source]);
+    expect(fetcher.mock.calls[0][1].cache).toBe("no-store");
+    expect(onProgress.mock.calls.at(-1)[0]).toMatchObject({ percent: 100, totalBytes: worker.bytes });
+    expect((await downloads.status(id)).storedBytes).toBe(assetProvider(id).reduce((sum, asset) => sum + asset.bytes, 0));
+  });
+
+  it.each(["config.json", "model.onnx"])("never installs a missing %s when resuming a preparation", async (name) => {
+    const { downloads, fetcher, data, assetProvider } = setup();
+    const id = VOICES[0].id;
+    await downloads.download(id);
+    data.delete(assetProvider(id).find(asset => asset.file.endsWith(name)).url);
+    data.delete(assetProvider(id)[0].url);
+    fetcher.mockClear();
+    await expect(downloads.ensureRuntime(id)).rejects.toMatchObject({ code: "VOICE_NOT_INSTALLED" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("never downloads a voice that has not been explicitly installed", async () => {
+    const { downloads, fetcher } = setup();
+    await expect(downloads.ensureRuntime(VOICES[0].id)).rejects.toMatchObject({ code: "VOICE_NOT_INSTALLED" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("starts an installed voice while another language is downloading", async () => {
+    const { downloads, fetcher, assetProvider } = setup();
+    const french = VOICES[0].id, english = VOICES[1].id;
+    await downloads.download(french);
+    fetcher.mockClear();
+    let finishDownload;
+    fetcher.mockImplementationOnce(() => new Promise(resolve => { finishDownload = resolve; }));
+    const downloading = downloads.download(english);
+    await vi.waitFor(() => expect(finishDownload).toBeTypeOf("function"));
+    expect((await downloads.ensureRuntime(french)).ready).toBe(true);
+    expect(fetcher).toHaveBeenCalledOnce();
+    const nextAsset = assetProvider(english).find(asset => asset.voiceId);
+    expect(fetcher.mock.calls[0][0]).toBe(nextAsset.source);
+    finishDownload(new Response(nextAsset.body));
+    await downloading;
+  });
+
+  it("honors cancellation even for a voice whose files are already installed", async () => {
+    const { downloads, fetcher } = setup();
+    const id = VOICES[0].id;
+    await downloads.download(id);
+    fetcher.mockClear();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(downloads.ensureRuntime(id, { signal: controller.signal })).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("requires a connection only for an outdated runtime and preserves the installed model", async () => {
+    const { downloads, fetcher, navigator, data, assetProvider } = setup();
+    const id = VOICES[0].id;
+    await downloads.download(id);
+    navigator.onLine = false;
+    fetcher.mockClear();
+    expect((await downloads.ensureRuntime(id)).ready).toBe(true);
+    const worker = assetProvider(id)[0];
+    data.delete(worker.url);
+    await expect(downloads.ensureRuntime(id)).rejects.toMatchObject({ code: "VOICE_RUNTIME_UPDATE_REQUIRED" });
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(assetProvider(id).filter(asset => asset.voiceId).every(asset => data.has(asset.url))).toBe(true);
+    navigator.onLine = true;
+    expect((await downloads.ensureRuntime(id)).ready).toBe(true);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([worker.source]);
+  });
+
+  it("keeps a previous runtime file when its update fails integrity verification", async () => {
+    const { downloads, fetcher, assets, data } = setup();
+    const id = VOICES[0].id;
+    await downloads.download(id);
+    const worker = assets.get("worker.js");
+    const previous = await data.get(worker.url).clone().text();
+    worker.sha256 = "0".repeat(64);
+    fetcher.mockClear();
+    await expect(downloads.ensureRuntime(id)).rejects.toMatchObject({ code: "INTEGRITY" });
+    expect(await data.get(worker.url).clone().text()).toBe(previous);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([worker.source]);
+  });
+
   it("reports real per-voice storage, counts shared files once and excludes other deployments", async () => {
     const { downloads, assetProvider, cache, stores, fetcher } = setup();
     const french = VOICES.find(voice => voice.language === "fr").id;

@@ -1,11 +1,50 @@
 // Offsets refer to the same canonical UTF-16 chapter text as reading-location.
 // This is the worker's defensive text bound, not the model's phoneme-token limit.
-// The engine checks the real 512-token context and joins smaller WAV fragments
+// The engine checks the model's phoneme-token bound and joins smaller WAV fragments
 // before exposing a sentence to the player.
 export const VOICE_TEXT_MAXIMUM = 8000;
 
 const titleAbbreviations = new Set(["m", "mm", "mme", "mmes", "mlle", "mlles", "mr", "mrs", "ms", "dr", "dre", "drs", "pr", "prof", "sr", "sra", "srta", "sig", "sigra", "dott", "st", "ste"]);
 const spoken = text => /[\p{L}\p{N}]/u.test(text);
+const visibleUrl = /\b(?:https?:\/\/|www\.)[^\s<>"“”«»]+/giu;
+
+function urlParts(raw) {
+  const suffix = /[.,!?;:)\]}'’]+$/u.exec(raw)?.[0] || "";
+  return { address: suffix ? raw.slice(0, -suffix.length) : raw, suffix };
+}
+
+export function isRecoverableVoiceTextError(error) {
+  return error?.name !== "AbortError" && [
+    "VOICE_PHONEME_UNSUPPORTED", "VOICE_TEXT_UNSPLITTABLE", "VOICE_EMPTY_TEXT", "VOICE_TEXT_TOO_LONG",
+  ].includes(error?.code);
+}
+
+/** Prepare only the speech input. Never use this text for saved locations:
+ * chapter text and voicePassages retain their original UTF-16 offsets. Visible
+ * URLs become their host, avoiding minutes of spelling paths and query strings.
+ * Link labels from EPUB markup are ordinary text and remain unchanged. */
+export function prepareVoiceText(value, { fallback = false } = {}) {
+  if (typeof value !== "string") return "";
+  let text = value.normalize(fallback ? "NFKC" : "NFC")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/gu, " ")
+    .replace(/[\ud800-\udfff]/gu, " ")
+    .replace(/[\u00ad\u200e\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/gu, "")
+    .replace(/\u200b/gu, " ");
+  text = text.replace(visibleUrl, raw => {
+    const { address, suffix } = urlParts(raw);
+    try {
+      const url = new URL(/^www\./iu.test(address) ? `https://${address}` : address);
+      if (!url.hostname) return raw;
+      return `${url.hostname.replace(/^www\./iu, "")}${suffix}`;
+    } catch { return raw; }
+  });
+  if (fallback) {
+    // A single compatibility retry can rescue ligatures, styled letters and
+    // pictograms without stripping accents or other pronounceable words.
+    text = text.replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\u200d\ufe0e\ufe0f]/gu, " ");
+  }
+  return text.replace(/\s+/gu, " ").trim();
+}
 
 function passage(text, start, end) {
   while (start < end && /\s/u.test(text[start])) start++;
@@ -76,7 +115,13 @@ function naturalSentenceRanges(text, language) {
   // Canonical EPUB text can contain line breaks inside a sentence (from inline
   // layout or paragraph boundaries). Replace each code unit only for analysis:
   // the original characters and their offsets are retained in every result.
-  const analysis = text.replace(/[\r\n\u2028\u2029]/gu, " ");
+  const analysis = text.replace(/[\r\n\u2028\u2029]/gu, " ")
+    .replace(visibleUrl, raw => {
+      const { address, suffix } = urlParts(raw);
+      // A query's '?' is not a sentence ending. Mask its address for boundary
+      // analysis only, preserving every UTF-16 offset and trailing punctuation.
+      return "x".repeat(address.length) + suffix;
+    });
   let raw;
   try {
     raw = [...new Intl.Segmenter(language, { granularity: "sentence" }).segment(analysis)]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SYMBOLS, mapPiperPhonemeIds } from "../src/piper-phoneme-map.js";
+import { DEFAULT_SYMBOLS, mapPiperPhonemeIds, readPiperPhonemeOutput } from "../src/piper-phoneme-map.js";
 
 const source = symbol => DEFAULT_SYMBOLS.indexOf(symbol);
 const map = { _: [0], "^": [1], $: [2], a: [11], b: [12], c: [13], k: [14], "̃": [15], ".": [16] };
@@ -43,21 +43,56 @@ describe("Piper native phoneme IDs", () => {
   });
 
   it.each([-1, 999, 1.5])("rejects unsupported source ID %s", id => {
-    expectCode(() => mapPiperPhonemeIds([1, 0, id, 0, 2], map), "VOICE_PHONEME_UNSUPPORTED");
+    expectCode(() => mapPiperPhonemeIds([1, 0, id, 0, 2], map), "VOICE_FAILED");
   });
 
   it("rejects incomplete sentence boundaries", () => {
-    expectCode(() => mapPiperPhonemeIds([1, 0, source("a"), 0], map), "VOICE_PHONEME_UNSUPPORTED");
-    expectCode(() => mapPiperPhonemeIds([source("a"), 0, 2], map), "VOICE_PHONEME_UNSUPPORTED");
+    expectCode(() => mapPiperPhonemeIds([1, 0, source("a"), 0], map), "VOICE_FAILED");
+    expectCode(() => mapPiperPhonemeIds([source("a"), 0, 2], map), "VOICE_FAILED");
   });
 
   it("rejects invalid model substitutions rather than creating extra sentence boundaries", () => {
-    expectCode(() => mapPiperPhonemeIds(sentence("c"), map, 1024, { c: ["$"] }), "VOICE_PHONEME_UNSUPPORTED");
-    expectCode(() => mapPiperPhonemeIds(sentence("c"), map, 1024, { "^": ["a"] }), "VOICE_PHONEME_UNSUPPORTED");
+    expectCode(() => mapPiperPhonemeIds(sentence("c"), map, 1024, { c: ["$"] }), "VOICE_NOT_INSTALLED");
+    expectCode(() => mapPiperPhonemeIds(sentence("c"), map, 1024, { "^": ["a"] }), "VOICE_NOT_INSTALLED");
+    expectCode(() => mapPiperPhonemeIds(sentence("c"), map, 1024, { c: ["missing"] }), "VOICE_NOT_INSTALLED");
   });
 
   it("rejects empty or whitespace-only phoneme streams", () => {
     expectCode(() => mapPiperPhonemeIds([], map), "VOICE_EMPTY_TEXT");
     expectCode(() => mapPiperPhonemeIds([1, 0, 2], map), "VOICE_EMPTY_TEXT");
+  });
+
+  it.each([null, {}, ["bad"], [-1], []])("does not mistake a corrupt installed boundary map for unsupported text (%s)", boundary => {
+    expectCode(() => mapPiperPhonemeIds(sentence("a"), { ...map, "^": boundary }), "VOICE_NOT_INSTALLED");
+  });
+
+  it("distinguishes an absent phoneme from a corrupt mapping value", () => {
+    expectCode(() => mapPiperPhonemeIds(sentence("a"), { ...map, a: [NaN] }), "VOICE_NOT_INSTALLED");
+    expectCode(() => mapPiperPhonemeIds(sentence("x"), map), "VOICE_PHONEME_UNSUPPORTED");
+    expectCode(() => mapPiperPhonemeIds(null, map), "VOICE_FAILED");
+  });
+});
+
+describe("phonemizer error classification", () => {
+  const printed = ["Phonemizer ready", JSON.stringify({ phoneme_ids: sentence("a") })];
+
+  it("reads native IDs and permits informational stderr", () => {
+    expect(readPiperPhonemeOutput(printed, ["warning: no optional dictionary"])).toEqual(sentence("a"));
+  });
+
+  it("marks only an explicit missing phoneme as a recoverable pronunciation failure", () => {
+    expectCode(() => readPiperPhonemeOutput(printed, ["Error: missing phoneme x"]), "VOICE_PHONEME_UNSUPPORTED");
+  });
+
+  it.each(["unsupported language: fr", "unknown voice fr", "Failed to load voice fr"])("reports installation error for %s", message => {
+    expectCode(() => readPiperPhonemeOutput(printed, [message]), "VOICE_NOT_INSTALLED");
+  });
+
+  it.each(["out of memory", "RuntimeError: memory access out of bounds", "Aborted", "error: failed", "out of memory: missing phoneme"])("never hides runtime failure %s as bad text", message => {
+    expectCode(() => readPiperPhonemeOutput(printed, [message]), "VOICE_FAILED");
+  });
+
+  it.each([[], ["{invalid"], ['{"phoneme_ids":null}'], ['{"phoneme_ids":[]}','{"phoneme_ids":[]}']])("rejects corrupt or ambiguous phonemizer output", lines => {
+    expectCode(() => readPiperPhonemeOutput(lines), "VOICE_FAILED");
   });
 });
