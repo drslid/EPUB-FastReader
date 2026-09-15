@@ -129,8 +129,13 @@ export function createAudioQueueUI({ queue, onListen = () => {}, onBrowse = () =
   const copy = (source) => `<span data-audio-queue-copy="${escape(source)}">${escape(t(source))}</span>`;
 
   function measureHeader() {
-    const height = dialog?.querySelector(".audio-queue-heading")?.getBoundingClientRect().height;
-    if (height > 0) dialog.style.setProperty("--audio-queue-header-height", `${Math.ceil(height)}px`);
+    if (!dialog) return;
+    const heading = dialog.querySelector(".audio-queue-heading").getBoundingClientRect();
+    // The sticky heading starts inside the dialog's padding. Its height alone
+    // leaves that offset uncovered when WebKit scrolls a focused job into view.
+    // Round the complete inset up so fractional layout cannot cover its title.
+    const inset = heading.bottom - dialog.getBoundingClientRect().top;
+    if (heading.height > 0 && inset > 0) dialog.style.setProperty("--audio-queue-header-inset", `${Math.ceil(inset)}px`);
   }
 
   function focusCurrentBook() {

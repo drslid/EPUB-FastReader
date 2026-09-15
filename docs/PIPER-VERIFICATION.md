@@ -149,13 +149,17 @@ vulnérabilité ; l’image Docker a été reconstruite et son endpoint de sant�
 
 ## Tests de l’application
 
-- **1 061 tests unitaires**, dans 59 fichiers, réussis après correction.
+- **1 062 tests unitaires**, dans 59 fichiers, réussis après correction.
 - **453 scénarios navigateur distincts** validés sur bureau Chromium,
   téléphone Chromium simulé et tablette WebKit simulée : 452 lors de la suite
   complète, puis 24 contrôles d’écoute et de nettoyage réussis après correction
   de la synchronisation d’un événement audio simulé dans le dernier test.
   Le nettoyage global est testé à 320 px, avec annulation, arrêt de l’écoute,
   suppression persistante après rechargement et conservation du livre et des voix.
+- Le premier passage CI a révélé un recouvrement de titre de 1,16 px dans
+  la file en allemand à 320 px sous WebKit. La réserve de défilement inclut
+  maintenant le padding et la bordure du panneau, avec arrondi supérieur.
+  Les assertions de visibilité restent inchangées.
 - Builds serveur et GitHub Pages réussis ; 9 contrôles Pages sous le chemin
   du dépôt et 6 contrôles avec relais simulé réussis.
 - Vérifications d’accessibilité axe, navigation au clavier, progression,
