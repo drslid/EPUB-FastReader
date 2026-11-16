@@ -9,9 +9,18 @@ Le quatrième mode, **Écouter**, est facultatif. Il prépare la voix directemen
 3. Choisir la voix proposée, puis **Télécharger et écouter**. L’ouverture du dialogue ne télécharge rien automatiquement.
 4. Suivre le téléchargement, puis la préparation du passage actuel. L’écoute démarre lorsque le son est prêt. Si le navigateur bloque le démarrage automatique, utiliser le bouton de lecture.
 
-Le premier téléchargement d’une voix Piper représente environ **93 Mo**, dont **63 Mo** de modèle et **30 Mo** de moteur. **Estelle** utilise Pocket TTS. Ses fichiers vocaux représentent environ **121 Mo**. L’installation réutilise les fichiers du moteur déjà présents sur l’appareil. La taille à télécharger est affichée avant chaque installation.
+Le premier téléchargement d’une voix Piper représente environ **93 Mo**, dont **63 Mo** de modèle et **30 Mo** de moteur. Les fichiers d’une voix Pocket TTS représentent **120 à 132 Mo** selon la langue. L’installation réutilise les fichiers du moteur déjà présents sur l’appareil. La taille à télécharger est affichée avant chaque installation.
 
-La sélection en français comprend **Siwis** (Piper Medium) et **Estelle** (Pocket TTS, voix expérimentale). Les autres voix Piper Medium sont **LJ Speech** en anglais américain, **Davefx** en espagnol, **Paola** en italien, **Thorsten** en allemand et **Faber** en portugais brésilien. FastReader ne remplace pas automatiquement une langue sans voix par une autre langue.
+| Langue | Piper Medium | Pocket TTS (expérimental) |
+| --- | --- | --- |
+| Français | Siwis | Estelle |
+| Anglais | LJ Speech | Alba |
+| Espagnol | Davefx | Lola |
+| Italien | Paola | Giovanni |
+| Allemand | Thorsten | Jürgen |
+| Portugais | Faber | Rafael |
+
+FastReader filtre les voix selon la langue sélectionnée dans le dialogue.
 
 ## Connexion et stockage
 
@@ -86,7 +95,7 @@ autres onglets. Les EPUBs, positions, notes et réglages sont conservés.
 
 Sur téléphone et tablette, Piper utilise **une session et un thread WASM**. Le gain recherché vient du modèle plus léger et de son débit, sans charger deux copies du modèle en mémoire. Un changement de langue libère la session précédente avant de charger la suivante.
 
-Estelle utilise un seul Worker à un thread dans tous les navigateurs. Sur un appareil où la synthèse interrompt l’écoute entre deux phrases, **Préparer le livre** permet de calculer l’audio à l’avance.
+Estelle et Alba gardent une seule copie du modèle. La génération et le décodage audio avancent en parallèle quand le navigateur signale au moins quatre cœurs et 4 Go de mémoire. Les autres voix Pocket TTS utilisent un seul Worker sur mobile pour limiter la mémoire. Le moteur utilise aussi un seul Worker lorsque le navigateur ne communique pas la mémoire ou si le décodage parallèle échoue. Sur un appareil où la synthèse interrompt l’écoute entre deux phrases, **Préparer le livre** permet de calculer l’audio à l’avance.
 
 Sur ordinateur, le navigateur peut utiliser deux sessions si les capacités déclarées atteignent 8 Gio de mémoire et quatre processeurs logiques. Avec l’isolation interorigines vérifiée, une seule session utilise plutôt deux ou quatre threads. Les appareils aux capacités inconnues ou inférieures restent sur une session et un thread. GitHub Pages ne fournit pas cette isolation par défaut. Si la seconde session échoue pour une raison d’exécution, sa phrase est reprise intégralement sur la première ; une erreur de texte n’entraîne pas ce recalcul ni la désactivation du parallélisme.
 

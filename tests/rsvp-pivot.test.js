@@ -11,6 +11,10 @@ describe("lettre de fixation", () => {
     ["abcdefghij", "d"],
     ["abcdefghijklm", "d"],
     ["abcdefghijklmn", "e"],
+    ["word", "o"],
+    ["positioning", "i"],
+    ["really", "a"],
+    ["matters", "t"],
   ])("choisit le graphème attendu dans %s", (word, pivot) => {
     expect(splitRsvpWord(word).pivot).toBe(pivot);
   });

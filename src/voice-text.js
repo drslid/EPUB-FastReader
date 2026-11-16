@@ -111,7 +111,7 @@ function continuesAbbreviation(before, after) {
   return /(?:\.{3,}|…|\betc\.)$/iu.test(tail) && /^\p{Ll}/u.test(next);
 }
 
-function naturalSentenceRanges(text, language) {
+export function naturalSentenceRanges(text, language) {
   // Canonical EPUB text can contain line breaks inside a sentence (from inline
   // layout or paragraph boundaries). Replace each code unit only for analysis:
   // the original characters and their offsets are retained in every result.

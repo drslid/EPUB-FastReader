@@ -15,7 +15,8 @@ import { createLoyalSearchPanel } from "./loyal-search-panel.js";
 import { resolveLoyalbooksBook } from "./sources/loyalbooks.js";
 import { openSourceSettings, invalidateSourceAvailability } from "./source-settings.js";
 import { homeMarkup } from "./views/home.js";
-import { createReadingWakeLock, wordDuration, previousSentenceIndex } from "./reading-comfort.js";
+import { createReadingWakeLock, wordDuration } from "./reading-comfort.js";
+import { readingUnits, readingUnitAtOffset, previousReadingSentence } from "./reading-units.js";
 import { readingProfiles, focusOptions, readingFont } from "./reading-preferences.js";
 import { previewContent } from "./views/reading-preferences.js";
 import { createBackupController } from "./backup-ui.js";
@@ -40,6 +41,8 @@ import {
   createTextLocator,
   restoreTextLocator,
   wordIndexForLocator,
+  offsetForLocator,
+  offsetForWord,
   createSelectionLocator,
   applyLocatorHighlight,
 } from "./reading-location.js";
@@ -156,7 +159,8 @@ let toastTimer;
 let saveTimer;
 let playTimer;
 let playing = false;
-let words = [];
+let rsvpUnits = [];
+let rsvpIndex = 0;
 let installPrompt;
 let routeVersion = 0;
 let warnedStorage = false;
@@ -783,17 +787,20 @@ function renderReader({ preserveVoicePreparation = false } = {}) {
   applySettings();
   const root = document.querySelector("#chapter-content");
   const scroll = document.querySelector("#chapter-scroll");
-  words = getTextContent(root).trim().split(/\s+/u).filter(Boolean);
-  if (state.position.locator)
-    state.position.wordIndex = wordIndexForLocator(
-      root,
-      state.position.locator,
-    );
-  state.position.wordIndex = clamp(
-    state.position.wordIndex,
-    0,
-    Math.max(0, words.length - 1),
-  );
+  if (state.settings.mode === "rsvp") {
+    const text = getTextContent(root);
+    rsvpUnits = readingUnits(text, state.book.language);
+    const offset = state.position.locator
+      ? offsetForLocator(text, state.position.locator)
+      : offsetForWord(text, state.position.wordIndex);
+    rsvpIndex = readingUnitAtOffset(rsvpUnits, offset);
+    state.position.wordIndex = rsvpUnits[rsvpIndex]?.sourceIndex ?? 0;
+  } else {
+    rsvpUnits = [];
+    rsvpIndex = 0;
+    if (state.position.locator)
+      state.position.wordIndex = wordIndexForLocator(root, state.position.locator);
+  }
   for (const note of state.position.annotations || []) {
     if (note.chapterIndex === state.position.chapterIndex)
       applyLocatorHighlight(root, note.locator, {
@@ -863,7 +870,7 @@ function captureReaderPosition() {
     scrollContainer: scroll,
   };
   if (state.settings.mode === "rsvp")
-    options.wordIndex = state.position.wordIndex;
+    options.textOffset = rsvpUnits[rsvpIndex]?.anchor;
   state.position.locator = createTextLocator(root, options);
   state.position.chapterProgress = state.position.locator.progression;
   if (state.settings.mode !== "rsvp") {
@@ -1540,6 +1547,10 @@ function pause() {
   voicePlayback.pause();
   if (starting) updateVoiceControls({ ...state.voiceState, status: "paused", warming: false, voice: starting.voice, voiceLabel: starting.voice.name, prepared: starting.requirePrepared });
   clearTimeout(playTimer);
+  if (playing) {
+    document.getElementById("rsvp")?.removeAttribute("data-playing");
+    updateRsvpContext();
+  }
   playing = false;
   void syncWakeLock();
   const button = document.querySelector("#play-button");
@@ -1554,30 +1565,36 @@ function fitRsvpWord() {
 function updateRsvp() {
   const element = document.querySelector("#rsvp-word");
   if (!element) return;
-  const word = words[state.position.wordIndex];
+  const word = rsvpUnits[rsvpIndex]?.text;
   renderRsvpWord(element, word || t("Fin du chapitre"), Boolean(word && state.settings.rsvpFixation));
   fitRsvpWord();
+  if (!playing) updateRsvpContext();
+  document.querySelector("#rsvp-count").textContent =
+    t("{current} / {total} mots · {speed} mots/min", { current: formatNumber(Math.min(rsvpIndex + 1, rsvpUnits.length)), total: formatNumber(rsvpUnits.length), speed: state.settings.speed });
+}
+
+function updateRsvpContext() {
   const context = document.querySelector("#rsvp-context-text");
   if (context)
-    context.textContent = words
+    context.textContent = rsvpUnits
       .slice(
-        Math.max(0, state.position.wordIndex - 10),
-        state.position.wordIndex + 16,
+        Math.max(0, rsvpIndex - 10),
+        rsvpIndex + 16,
       )
+      .map(unit => unit.text)
       .join(" ");
-  document.querySelector("#rsvp-count").textContent =
-    t("{current} / {total} mots · {speed} mots/min", { current: formatNumber(Math.min(state.position.wordIndex + 1, words.length)), total: formatNumber(words.length), speed: state.settings.speed });
 }
 
 function advanceWord(offset) {
   state.position.completed = false;
-  state.position.wordIndex = clamp(
-    state.position.wordIndex + offset,
+  rsvpIndex = clamp(
+    rsvpIndex + offset,
     0,
-    Math.max(0, words.length - 1),
+    Math.max(0, rsvpUnits.length - 1),
   );
+  state.position.wordIndex = rsvpUnits[rsvpIndex]?.sourceIndex ?? 0;
   state.position.scrollRatio =
-    words.length <= 1 ? 1 : state.position.wordIndex / (words.length - 1);
+    rsvpUnits.length <= 1 ? 1 : rsvpIndex / (rsvpUnits.length - 1);
   state.position.chapterProgress = state.position.scrollRatio;
   updateRsvp();
   updateProgress();
@@ -1593,23 +1610,28 @@ function play() {
     persistPosition();
     return;
   }
-  if (!words.length) return;
-  if (state.position.wordIndex >= words.length - 1) advanceWord(-words.length);
+  if (!rsvpUnits.length) return;
+  if (rsvpIndex >= rsvpUnits.length - 1) advanceWord(-rsvpUnits.length);
   playing = true;
+  document.getElementById("rsvp")?.setAttribute("data-playing", "");
   void wakeLock.setActive(state.settings.wakeLock);
   document.querySelector("#play-button").innerHTML = `${icon("pause")} ${t("Pause")}`;
+  const scheduleTick = () => {
+    const { text, endsSentence } = rsvpUnits[rsvpIndex];
+    playTimer = setTimeout(tick, wordDuration(text, state.settings.speed, state.settings.cadence, endsSentence));
+  };
   const tick = () => {
     if (!playing) return;
-    if (state.position.wordIndex >= words.length - 1) {
+    if (rsvpIndex >= rsvpUnits.length - 1) {
       pause();
       persistPosition();
       toast("Fin du chapitre. Passez au suivant pour continuer.");
       return;
     }
     advanceWord(1);
-    playTimer = setTimeout(tick, wordDuration(words[state.position.wordIndex], state.settings.speed, state.settings.cadence));
+    scheduleTick();
   };
-  playTimer = setTimeout(tick, wordDuration(words[state.position.wordIndex], state.settings.speed, state.settings.cadence));
+  scheduleTick();
 }
 
 function ensureReaderPosition() {
@@ -1894,7 +1916,7 @@ app.addEventListener("click", async (event) => {
     }
     if (action === "backup") await backups.open();
     if (action === "toc") showTableOfContents();
-    if (action === "previous-sentence") { pause(); advanceWord(previousSentenceIndex(words, state.position.wordIndex) - state.position.wordIndex); }
+    if (action === "previous-sentence") { pause(); advanceWord(previousReadingSentence(rsvpUnits, rsvpIndex) - rsvpIndex); }
     if (action === "reset-reading") updateReadingPreferences({ ...readingProfiles.balanced, profile: "balanced" });
     if (action === "catalog-download") await downloadCatalogOriginal(button.dataset.id);
     if (action === "library-export") await exportBook(button.dataset.id);

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { assetsForVoice, normalizeBookLanguage, supportedVoiceLanguages, voiceForId, legacyVoiceForId, isLegacyVoiceId, VOICES, voiceEngineIdentity } from "../src/voice-assets.js";
 import { PIPER_REVISION, PIPER_VOICES } from "../src/piper-voices.js";
-import { POCKET_VOICE } from "../src/pocket-voices.js";
+import { POCKET_VOICE, POCKET_VOICES, pocketVoiceForId } from "../src/pocket-voices.js";
 
 const frenchId = "piper-fr_FR-siwis-medium";
 describe("local voice catalogue", () => {
-  it("offers six pinned Medium voices, including German and Brazilian Portuguese", () => {
+  it("offers one Piper and one Pocket voice per supported language", () => {
     expect(supportedVoiceLanguages).toEqual(["fr", "en", "es", "it", "de", "pt"]);
-    expect(new Set(VOICES.map(voice => voice.id)).size).toBe(7);
+    expect(new Set(VOICES.map(voice => voice.id)).size).toBe(12);
+    expect(POCKET_VOICES.map(voice => voice.language)).toEqual(supportedVoiceLanguages);
     expect(voiceForId("piper-de_DE-thorsten-medium").language).toBe("de");
     expect(voiceForId("piper-pt_BR-faber-medium").locale).toBe("pt-BR");
     expect(assetsForVoice("unknown")).toEqual([]);
@@ -79,5 +80,22 @@ describe("local voice catalogue", () => {
       expect(asset.sha256).toMatch(/^[0-9a-f]{64}$/);
     }
     expect(voiceEngineIdentity(POCKET_VOICE)).not.toEqual(voiceEngineIdentity({ ...POCKET_VOICE, upstreamRevision: "different" }));
+  });
+  it("pins each multilingual Pocket pack and downloads only its own voice state", () => {
+    const base = "https://example.org/EPUB-FastReader/";
+    for (const voice of POCKET_VOICES) {
+      expect(pocketVoiceForId(voice.id)).toBe(voice);
+      const models = assetsForVoice(voice.id, base).filter(asset => asset.voiceId);
+      expect(models).toHaveLength(7);
+      expect(models[0].file).toBe(voice.configPath);
+      expect(models[1].file).toBe(voice.modelPath);
+      for (const asset of models) {
+        expect(asset.url).toContain(`/models/${voice.modelKey}/`);
+        expect(asset.sha256).toMatch(/^[0-9a-f]{64}$/);
+        expect(asset.source).toContain(`/resolve/${asset.file.endsWith(".safetensors") ? voice.presetRevision : voice.upstreamRevision}/`);
+        expect(asset.bytes).toBeGreaterThan(0);
+      }
+      if (voice.presetFile) expect(models.at(-1).file).toBe(`models/${voice.modelKey}/${voice.presetFile}`);
+    }
   });
 });

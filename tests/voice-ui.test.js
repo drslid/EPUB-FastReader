@@ -46,7 +46,10 @@ describe("optional voice selection", () => {
       ui.open({ bookLanguage: language, lastVoiceId: "ff_siwis" });
       await settled();
       expect([...document.querySelectorAll('input[name="voice-choice"]')].map(input => input.value))
-        .toEqual(language === "fr" ? [siwisId, estelleId] : [id]);
+        .toEqual([id, {
+          fr: estelleId, en: "pocket-en_GB-alba-int8", es: "pocket-es_ES-lola-int8",
+          it: "pocket-it_IT-giovanni-int8", de: "pocket-de_DE-juergen-int8", pt: "pocket-pt_BR-rafael-int8",
+        }[language]]);
       expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe(id);
       expect(field("start").disabled).toBe(false);
       ui.close();

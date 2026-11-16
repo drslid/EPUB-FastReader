@@ -94,10 +94,16 @@ test("les commandes du mot à mot respectent pause, clavier, bornes de vitesse e
     .click();
   await expect(page.locator("#quick-speed")).toHaveText("800");
   await page.locator("#main").focus();
+  const passage = page.locator(".rsvp-context");
+  await expect(passage).toBeVisible();
+  const passageHeight = await passage.evaluate((element) => element.getBoundingClientRect().height);
   const initial = await page.locator("#rsvp-count").textContent();
   await page.keyboard.press("Space");
+  await expect(passage).toBeHidden();
+  expect(await passage.evaluate((element) => element.getBoundingClientRect().height)).toBe(passageHeight);
   await expect(page.locator("#rsvp-count")).not.toHaveText(initial);
   await page.keyboard.press("Space");
+  await expect(passage).toBeVisible();
   const paused = await page.locator("#rsvp-count").textContent();
   await page.waitForTimeout(220);
   await expect(page.locator("#rsvp-count")).toHaveText(paused);
@@ -196,12 +202,26 @@ for (const viewport of [
       await makeEpub({ paragraphs: [words.join(" ")], chapters: 1 }),
     );
     await expect(page.locator("#rsvp")).toBeVisible();
-    const before = await page.locator(".rsvp-stage").boundingBox();
-    const controlBefore = await page.locator("#play-button").boundingBox();
+    const stage = page.locator(".rsvp-stage");
+    const play = page.locator("#play-button");
+    await expect(stage).toBeInViewport({ ratio: 1 });
+    await expect(play).toBeInViewport({ ratio: 1 });
+    expect(await stage.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth]
+        .every((width) => parseFloat(width) > 0);
+    })).toBe(true);
+    await expect(stage).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    const before = await stage.boundingBox();
+    const portrait = viewport.width < viewport.height;
+    if (portrait) expect(before.height).toBeGreaterThanOrEqual(132);
+    const controlBefore = await play.boundingBox();
     const forward = page.getByRole("button", { name: "Avancer de dix mots" });
     await forward.click();
     await expect(page.locator("#rsvp-word")).toHaveText("un");
     await expectFixedLetter(page, "n");
+    const shortWordSize = await page.locator("#rsvp-word").evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    expect(shortWordSize).toBeGreaterThanOrEqual(portrait ? 48 : 36);
     await forward.click();
     await expect(page.locator("#rsvp-word")).toHaveText(longWord);
     await expectFixedLetter(page, "c");

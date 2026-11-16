@@ -119,7 +119,7 @@ function firstVisibleOffset(index, container) {
     : 0;
 }
 
-function offsetForWord(text, wordIndex) {
+export function offsetForWord(text, wordIndex) {
   let remaining = Math.max(0, Math.floor(Number(wordIndex) || 0));
   let last = 0;
   for (const word of text.matchAll(/\S+/gu)) {
@@ -241,15 +241,17 @@ export function restoreTextLocator(root, locator, scrollContainer = root) {
 /** Word index matching the extracted text, suitable for returning to RSVP. */
 export function wordIndexForLocator(root, locator) {
   const index = textIndex(root);
-  const offset = resolveOffset(index, locator);
-  const position =
-    offset ?? Math.floor(clamp(locator?.progression) * index.text.length);
+  const position = offsetForLocator(index.text, locator);
   let wordIndex = 0;
   for (const word of index.text.matchAll(/\S+/gu)) {
     if (word.index + word[0].length > position) return wordIndex;
     wordIndex += 1;
   }
   return Math.max(0, wordIndex - 1);
+}
+
+export function offsetForLocator(text, locator) {
+  return resolveOffset({ text }, locator) ?? Math.floor(clamp(locator?.progression) * text.length);
 }
 
 function boundaryOffset(index, node, offset, isEnd = false) {

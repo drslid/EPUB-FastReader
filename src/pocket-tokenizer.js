@@ -3,9 +3,10 @@ const encoder = new TextEncoder();
 
 /** The pinned French checkpoint uses SentencePiece Unigram with Metaspace and UTF-8 byte fallback. */
 export function createPocketTokenizer({ model, normalizer, pre_tokenizer: preTokenizer }) {
+  const prepend = normalizer?.type === "Sequence" && normalizer.normalizers?.length === 1
+    ? normalizer.normalizers[0] : normalizer;
   if (model?.type !== "Unigram" || !model.byte_fallback ||
-      normalizer?.normalizers?.length !== 1 || normalizer.normalizers[0].type !== "Prepend" ||
-      normalizer.normalizers[0].prepend !== SPACE || preTokenizer?.type !== "Metaspace" ||
+      prepend?.type !== "Prepend" || prepend.prepend !== SPACE || preTokenizer?.type !== "Metaspace" ||
       preTokenizer.replacement !== SPACE || preTokenizer.prepend_scheme !== "always" || !preTokenizer.split) {
     throw new Error("Unsupported Pocket TTS tokenizer");
   }

@@ -59,6 +59,7 @@ test("voice is optional, language follows the book, and downloading needs a conn
   await expect(dialog.locator("[data-voice-language]")).toHaveValue("es");
   await expect(dialog.locator("[data-voice-start]")).toBeEnabled();
   await expect(dialog).toContainText("Davefx");
+  await expect(dialog).toContainText("Lola · Pocket TTS");
   await expect(dialog.locator("[data-voice-size]")).toContainText("Premier téléchargement");
   expect(requests).toEqual([]);
   await context.setOffline(true);
@@ -67,6 +68,23 @@ test("voice is optional, language follows the book, and downloading needs a conn
   await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
   await expect(page.locator("#rsvp")).toBeVisible();
   expect(requests).toEqual([]);
+});
+
+test("the same voice chooser offers both engines in every language", async ({ page }) => {
+  await openBook(page, "en");
+  await page.getByRole("button", { name: "Écouter", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const language = dialog.locator("[data-voice-language]");
+  await expect(language).toHaveValue("en");
+  for (const [code, piper, pocket] of [
+    ["en", "LJ Speech", "Alba"], ["es", "Davefx", "Lola"], ["it", "Paola", "Giovanni"],
+    ["de", "Thorsten", "Jürgen"], ["pt", "Faber", "Rafael"], ["fr", "Siwis", "Estelle"],
+  ]) {
+    await language.selectOption(code);
+    await expect(dialog.getByRole("radio")).toHaveCount(2);
+    await expect(dialog.getByText(piper, { exact: true })).toBeVisible();
+    await expect(dialog.getByText(`${pocket} · Pocket TTS`, { exact: true })).toBeVisible();
+  }
 });
 
 test("German is available and the voice chooser fits a small phone", async ({ page }, testInfo) => {

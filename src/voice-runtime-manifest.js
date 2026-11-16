@@ -64,22 +64,42 @@ export const POCKET_RUNTIME_ASSETS = Object.freeze([
   },
   {
     "file": "pocket-voices.js",
-    "bytes": 1671,
-    "sha256": "36c70dca0590ceb8e0721a39f6c921fc4efd72908b360a0a3141a6b311f106ba"
+    "bytes": 7890,
+    "sha256": "fe3404059d920b1230fefb0bad8f28af09541ce8c9ed3b655bb35abcff4a55c8"
+  },
+  {
+    "file": "pocket-runtime-cache.js",
+    "bytes": 1452,
+    "sha256": "e74edf56a94d84d5bfec6f0f2581dcd9d214340630290b2e012a3532c7175404"
   },
   {
     "file": "pocket-tokenizer.js",
-    "bytes": 2466,
-    "sha256": "81a18e64409f26caef14910f5a563e278120e95ece367404f983672b12a50c78"
+    "bytes": 2520,
+    "sha256": "50d807705f70c17bd8c13a76c82d7040452eb83d967f57da00cab7d600045334"
+  },
+  {
+    "file": "pocket-decoder.js",
+    "bytes": 4764,
+    "sha256": "c673f3a7751dd74384fbaa3270eee0917c10d905383f03b88186c2194347bc44"
+  },
+  {
+    "file": "pocket-decoder-client.js",
+    "bytes": 2489,
+    "sha256": "adf525df4a52f723135b910045ce3dbe5395b916c77efeea5c4fe8026667707b"
+  },
+  {
+    "file": "pocket-decoder-worker.js",
+    "bytes": 1534,
+    "sha256": "076b63ab41440561372a89fd91fb224f40fb766fd4a672a2d66bb648c4ea56c4"
   },
   {
     "file": "pocket-tts.js",
-    "bytes": 11813,
-    "sha256": "fc60b7c6c520ee505d9253bf413616867913167a9ef208ab56352b49fcaf3d48"
+    "bytes": 16623,
+    "sha256": "f3b7f6d6c11a8f4f1bf1fce2abf95c9a697b2aec46430569092989ca701ca000"
   },
   {
     "file": "pocket-worker.js",
-    "bytes": 2719,
-    "sha256": "f93cc6564676d61db3628c0741ca18ce27ff28a2f41f8015e02d6c75eb7348ad"
+    "bytes": 2682,
+    "sha256": "77e6f663b3b11891d7b7e44f9eb7177660ee3ed8af2e48a55bf287233357ebb3"
   }
 ]);

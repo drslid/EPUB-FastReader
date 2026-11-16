@@ -1,12 +1,18 @@
 import * as ort from "./vendor/ort.wasm.min.mjs";
 import { createPocketTokenizer } from "./pocket-tokenizer.js";
+import {
+  configurePocketRuntime,
+  disposePocketTensors as dispose,
+  loadPocketDecoder,
+  nextPocketState as nextState,
+  pocketError,
+  pocketStateNames as stateNames,
+  POCKET_DECODER_BATCH,
+  readPocketConfig,
+} from "./pocket-decoder.js";
 
 const EMPTY = new Float32Array(0);
-const DECODER_BATCH = 12;
-
-export function pocketError(message, code = "VOICE_FAILED") {
-  return Object.assign(new Error(message), { code });
-}
+export { pocketError };
 
 function halfToFloat(bits) {
   const negative = bits >> 15;
@@ -19,10 +25,6 @@ function halfToFloat(bits) {
 
 function floatTensor(values, shape) {
   return new ort.Tensor("float32", values, shape);
-}
-
-function dispose(values) {
-  for (const tensor of Object.values(values)) tensor.dispose();
 }
 
 function preparePrompt(text, config) {
@@ -62,27 +64,43 @@ function createVoiceState(config, packedVoice) {
   return state;
 }
 
-function createDecoderState(config) {
-  const arrayTypes = { float32: Float32Array, int64: BigInt64Array, bool: Uint8Array };
-  return Object.fromEntries(config.mimi_states.map(({ dtype, shape, key }, index) => {
-    const length = shape.reduce((product, value) => product * value, 1);
-    const values = new arrayTypes[dtype](length);
-    if (key === "first") values.fill(1);
-    return [`mimi_${index}`, new ort.Tensor(dtype, values, shape)];
-  }));
-}
-
-function stateNames(session, skip) {
-  const outputs = session.outputNames.slice(skip);
-  if (!outputs.length || outputs.some(name =>
-    !name.startsWith("out_") || !session.inputNames.includes(name.slice(4)))) {
-    throw pocketError("Unsupported Pocket TTS state graph", "VOICE_NOT_INSTALLED");
-  }
-  return outputs;
-}
-
-function nextState(outputs, names) {
-  return Object.fromEntries(names.map(name => [name.slice(4), outputs[name]]));
+function aliasVoiceStateFactory(config, buffer) {
+  const file = new DataView(buffer);
+  const headerEnd = 8 + Number(file.getBigUint64(0, true));
+  const invalid = () => pocketError("Invalid Pocket TTS voice tensor", "VOICE_NOT_INSTALLED");
+  if (!Number.isSafeInteger(headerEnd) || headerEnd < 10 || headerEnd > buffer.byteLength) throw invalid();
+  const header = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 8, headerEnd - 8)));
+  const readers = config.flow_lm_state_manifest.map(({ module, key, dtype, shape, input_name }) => {
+    const tensor = header[`${module}/${key}`];
+    const [from, to] = tensor?.data_offsets ?? [];
+    if (!Number.isSafeInteger(from) || !Number.isSafeInteger(to) ||
+        from < 0 || from >= to || headerEnd + to > buffer.byteLength) throw invalid();
+    if (dtype === "int64" && tensor.dtype === "I64" && shape.length === 1 &&
+        shape[0] === 1 && to - from === 8) {
+      const value = file.getBigInt64(headerEnd + from, true);
+      return () => [input_name, new ort.Tensor("int64", BigInt64Array.of(value), shape)];
+    } else if (dtype === "float32" && tensor.dtype === "F32" && key === "cache" &&
+               tensor.shape.length === shape.length && shape.length === 5 &&
+               shape[0] === 2 && shape[1] === 1 &&
+               tensor.shape.every((value, index) => index === 2 || value === shape[index])) {
+      const voiceFrames = tensor.shape[2];
+      const width = shape[3] * shape[4];
+      const voiceHalf = voiceFrames * width;
+      const modelHalf = shape[2] * width;
+      if (!Number.isInteger(voiceFrames) || voiceFrames < 1 || voiceFrames > shape[2] ||
+          to - from !== 2 * voiceHalf * Float32Array.BYTES_PER_ELEMENT) throw invalid();
+      const voice = new Float32Array(buffer, headerEnd + from, 2 * voiceHalf);
+      return () => {
+        const cache = new Float32Array(2 * modelHalf);
+        // The released preset stores only populated keys and values. The graph uses fixed-length halves.
+        cache.set(voice.subarray(0, voiceHalf));
+        cache.set(voice.subarray(voiceHalf), modelHalf);
+        return [input_name, floatTensor(cache, shape)];
+      };
+    }
+    throw invalid();
+  });
+  return () => Object.fromEntries(readers.map(read => read()));
 }
 
 function embeddingsFor(tokens, table, { rows, dim }) {
@@ -95,6 +113,15 @@ function embeddingsFor(tokens, table, { rows, dim }) {
   return floatTensor(values, [1, tokens.length, dim]);
 }
 
+async function encodeAliasText(tokens, textConditioner) {
+  const tokenIds = new ort.Tensor("int64", BigInt64Array.from(tokens, BigInt), [1, tokens.length]);
+  try {
+    return (await textConditioner.run({ token_ids: tokenIds })).text_embeddings;
+  } finally {
+    tokenIds.dispose();
+  }
+}
+
 function sampleNoise(values, std) {
   for (let index = 0; index < values.length; index += 2) {
     const radius = std * Math.sqrt(-2 * Math.log(1 - Math.random()));
@@ -104,12 +131,12 @@ function sampleNoise(values, std) {
   }
 }
 
-async function generateLatents(model, tokens, framesAfterEnd) {
-  const { main, flow, config, voiceState, mainStateNames, table } = model;
+async function generateLatents(model, tokens, framesAfterEnd, submit) {
+  const { main, flow, config, voiceState, createVoiceState, mainStateNames, embedText } = model;
   const dimension = config.latent_dim;
   const limit = Math.ceil((tokens.length / config.tokens_per_second + config.gen_seconds_padding) * config.frame_rate);
   const data = new Float32Array(limit * dimension);
-  const prefix = embeddingsFor(tokens, table, config.text_embeddings);
+  const prefix = await embedText(tokens);
   const emptyLatents = floatTensor(EMPTY, [1, 0, dimension]);
   const emptyText = floatTensor(EMPTY, [1, 0, config.conditioning_dim]);
   const latent = new Float32Array(dimension).fill(NaN);
@@ -124,10 +151,16 @@ async function generateLatents(model, tokens, framesAfterEnd) {
   let end;
   let frames = 0;
   try {
-    const initial = await main.run({ ...voiceState, sequence: emptyLatents, text_embeddings: prefix });
-    state = nextState(initial, mainStateNames);
-    initial[conditionName].dispose();
-    initial[eosName].dispose();
+    const preset = createVoiceState?.() ?? voiceState;
+    try {
+      const initial = await main.run({ ...preset, sequence: emptyLatents, text_embeddings: prefix });
+      state = nextState(initial, mainStateNames);
+      initial[conditionName].dispose();
+      initial[eosName].dispose();
+    } finally {
+      // Fixed-capacity caches need padding only until the first graph call.
+      if (createVoiceState) dispose(preset);
+    }
 
     for (let step = 0; step < limit; step++) {
       const outputs = await main.run({ ...state, sequence, text_embeddings: emptyText });
@@ -152,6 +185,10 @@ async function generateLatents(model, tokens, framesAfterEnd) {
       } finally {
         condition.dispose();
       }
+      if (submit && frames % POCKET_DECODER_BATCH === 0) {
+        const start = (frames - POCKET_DECODER_BATCH) * dimension;
+        await submit(data.subarray(start, frames * dimension));
+      }
     }
   } finally {
     if (state) dispose(state);
@@ -159,44 +196,65 @@ async function generateLatents(model, tokens, framesAfterEnd) {
   }
   if (end === undefined)
     throw pocketError("Pocket TTS could not finish this passage", "VOICE_TEXT_TOO_LONG");
-  return { latents: data, frames };
+  return data.subarray(0, frames * dimension);
 }
 
-async function decode(model, { latents, frames }) {
-  const { config, decoder, decoderStateNames } = model;
-  const dimension = config.latent_dim;
-  const perFrame = config.sample_rate / config.frame_rate;
-  const samples = new Float32Array(frames * perFrame);
-  let state = createDecoderState(config);
-  try {
-    for (let start = 0; start < frames; start += DECODER_BATCH) {
-      const end = Math.min(frames, start + DECODER_BATCH);
-      const latent = floatTensor(latents.subarray(start * dimension, end * dimension), [1, end - start, dimension]);
-      try {
-        const output = await decoder.run({ ...state, latent });
-        dispose(state);
-        state = nextState(output, decoderStateNames);
-        const audio = output[decoder.outputNames[0]];
-        try {
-          if (audio.data.length !== (end - start) * perFrame) throw pocketError("Invalid Pocket TTS audio frame");
-          samples.set(audio.data, start * perFrame);
-        } finally {
-          audio.dispose();
-        }
-      } finally {
-        latent.dispose();
+function createParallelSentence(peer, samplesPerLatent, onFailure) {
+  let usable = true;
+  const chunks = [];
+  const fail = () => {
+    usable = false;
+    chunks.length = 0;
+    onFailure();
+  };
+  let pending = Promise.resolve().then(() => peer.start()).catch(fail);
+  return {
+    async submit(batch) {
+      await pending;
+      if (!usable) return;
+      // The parent keeps the original latents to replay exactly if the worker dies.
+      pending = Promise.resolve().then(() => peer.decode(batch.slice())).then(samples => {
+        if (!(samples instanceof Float32Array) || samples.length !== batch.length * samplesPerLatent)
+          throw pocketError("Invalid Pocket TTS audio frame");
+        chunks.push(samples);
+      }).catch(fail);
+    },
+    async close() {
+      await pending;
+      if (usable) await Promise.resolve().then(() => peer.close()).catch(fail);
+    },
+    result(length) {
+      if (!usable) return null;
+      const samples = new Float32Array(length);
+      let offset = 0;
+      for (const chunk of chunks) {
+        samples.set(chunk, offset);
+        offset += chunk.length;
       }
+      return samples;
+    },
+  };
+}
+
+async function decodeLocally(decoder, latents, batchSize, samplesPerLatent) {
+  const samples = new Float32Array(latents.length * samplesPerLatent);
+  decoder.start();
+  try {
+    for (let start = 0; start < latents.length; start += batchSize) {
+      const batch = latents.subarray(start, start + batchSize);
+      samples.set(await decoder.decode(batch), start * samplesPerLatent);
     }
   } finally {
-    dispose(state);
+    decoder.close();
   }
-  // Match the checkpoint's reference playback and suppress the initial click.
-  const fade = Math.min(samples.length, config.sample_rate / 200);
-  for (let index = 0; index < fade; index++) samples[index] *= index / Math.max(1, fade - 1);
   return samples;
 }
 
 function toWav(samples, sampleRate) {
+  // Match the checkpoint's reference playback and suppress the initial click.
+  const fade = Math.min(samples.length, sampleRate / 200);
+  for (let index = 0; index < fade; index++) samples[index] *= index / Math.max(1, fade - 1);
+
   const buffer = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buffer);
   const writeTag = (offset, tag) => new Uint8Array(buffer, offset, 4).set(
@@ -222,19 +280,14 @@ function toWav(samples, sampleRate) {
   return { wav: buffer, duration: samples.length / sampleRate };
 }
 
-export async function loadPocketTts({ getAsset, runtimeUrl, resume }) {
-  ort.env.wasm.wasmPaths = new URL("vendor/", runtimeUrl).href;
-  ort.env.wasm.numThreads = 1;
-  ort.env.wasm.proxy = false;
-  const decoder = new TextDecoder();
-  const config = JSON.parse(decoder.decode(await getAsset("manifest.json")));
-  if (config?.format !== "volume-board/pocket-tts-onnx@1" || config.sample_rate !== 24_000)
-    throw pocketError("Unsupported Pocket voice configuration", "VOICE_NOT_INSTALLED");
-  const tokenize = createPocketTokenizer(JSON.parse(decoder.decode(await getAsset(config.tokenizer))));
-  const table = new Uint16Array(await getAsset("text_embeddings.f16"));
-  if (table.length !== config.text_embeddings.rows * config.text_embeddings.dim)
-    throw pocketError("Invalid Pocket TTS text embeddings", "VOICE_NOT_INSTALLED");
-  const voiceState = createVoiceState(config, await getAsset(config.voices[config.default_voice].file));
+export async function loadPocketTts({ getAsset, runtimeUrl, bundleFile, presetFile, resume, createDecoderPeer }) {
+  configurePocketRuntime(runtimeUrl);
+  const config = await readPocketConfig(getAsset, bundleFile);
+  const textDecoder = new TextDecoder();
+  const tokenize = createPocketTokenizer(JSON.parse(textDecoder.decode(await getAsset(config.tokenizer))));
+  const alias = config.schema_version === 3;
+  let newVoiceState = alias ? aliasVoiceStateFactory(config, await getAsset(presetFile)) : null;
+  const voiceState = alias ? null : createVoiceState(config, await getAsset(config.voices[config.default_voice].file));
   const sessions = [];
   async function load(key) {
     resume?.(key);
@@ -248,13 +301,35 @@ export async function loadPocketTts({ getAsset, runtimeUrl, resume }) {
     // Keep only the model currently crossing from Cache Storage into WASM in memory.
     const main = await load("flow_lm_main");
     const flow = await load("flow_lm_flow");
-    const decoderSession = await load("mimi_decoder");
+    let embedText;
+    if (alias) {
+      const conditioner = await load("text_conditioner");
+      if (conditioner.inputNames.join() !== "token_ids" || conditioner.outputNames.join() !== "text_embeddings")
+        throw pocketError("Unsupported Pocket text conditioner", "VOICE_NOT_INSTALLED");
+      embedText = tokens => encodeAliasText(tokens, conditioner);
+    } else {
+      const table = new Uint16Array(await getAsset("text_embeddings.f16"));
+      if (table.length !== config.text_embeddings.rows * config.text_embeddings.dim)
+        throw pocketError("Invalid Pocket TTS text embeddings", "VOICE_NOT_INSTALLED");
+      embedText = tokens => embeddingsFor(tokens, table, config.text_embeddings);
+    }
     const model = {
-      main, flow, decoder: decoderSession, config, table, voiceState,
-      mainStateNames: stateNames(main, 2), decoderStateNames: stateNames(decoderSession, 1),
+      main, flow, config, embedText, voiceState, createVoiceState: newVoiceState,
+      mainStateNames: stateNames(main, 2, config.flow_lm_state_manifest),
     };
+    let peer;
+    if (createDecoderPeer) {
+      try { peer = await createDecoderPeer(); } catch { /* This device can still decode locally. */ }
+    }
+    const loadLocal = onLoad => loadPocketDecoder({ getAsset, runtimeUrl, config, resume: onLoad });
+    let local = peer ? null : await loadLocal(resume);
+    const batchSize = POCKET_DECODER_BATCH * config.latent_dim;
+    const samplesPerLatent = config.sample_rate / config.frame_rate / config.latent_dim;
+    let disposed = false;
     return {
+      get decoderMode() { return peer ? "parallel" : "single"; },
       async synthesize(text, progress) {
+        if (disposed) throw pocketError("Pocket voice has been released");
         if (typeof text !== "string" || !text.trim()) throw pocketError("Empty passage", "VOICE_EMPTY_TEXT");
         if (text.length > 8_000) throw pocketError("Split this passage before synthesis", "VOICE_TEXT_TOO_LONG");
         progress({ stage: "phonemizing", status: "phonemizing" });
@@ -263,11 +338,42 @@ export async function loadPocketTts({ getAsset, runtimeUrl, resume }) {
         if (tokens.length > config.max_tokens_per_chunk)
           throw pocketError("Split this passage before synthesis", "VOICE_TEXT_TOO_LONG");
         progress({ stage: "synthesizing", status: "synthesizing", tokens: tokens.length });
-        return toWav(await decode(model, await generateLatents(model, tokens, framesAfterEnd)), config.sample_rate);
+        const parallel = peer && createParallelSentence(peer, samplesPerLatent, () => {
+          const failedPeer = peer;
+          peer = null;
+          failedPeer.terminate();
+        });
+        let latents;
+        try {
+          latents = await generateLatents(model, tokens, framesAfterEnd, parallel?.submit);
+          const remaining = latents.length % batchSize;
+          if (parallel && remaining) await parallel.submit(latents.subarray(-remaining));
+        } finally {
+          await parallel?.close();
+        }
+        let samples = parallel?.result(latents.length * samplesPerLatent);
+        if (!samples) {
+          local ??= await loadLocal(component => progress({ stage: "loading", status: "loading", component }));
+          samples = await decodeLocally(local, latents, batchSize, samplesPerLatent);
+        }
+        return toWav(samples, config.sample_rate);
+      },
+      async dispose() {
+        if (disposed) return;
+        disposed = true;
+        peer?.terminate();
+        peer = null;
+        if (voiceState) dispose(voiceState);
+        model.createVoiceState = newVoiceState = null;
+        model.embedText = embedText = null;
+        const releases = sessions.map(session => session.release());
+        if (local) releases.push(local.dispose());
+        local = null;
+        await Promise.allSettled(releases);
       },
     };
   } catch (error) {
-    dispose(voiceState);
+    if (voiceState) dispose(voiceState);
     await Promise.allSettled(sessions.map(session => session.release()));
     throw error;
   }

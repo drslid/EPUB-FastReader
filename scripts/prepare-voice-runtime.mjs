@@ -98,7 +98,11 @@ export async function prepareVoiceRuntime() {
   const pocketAssets = assets.filter(({ file }) => file.startsWith("vendor/ort"));
   for (const [source, target] of [
     ["src/pocket-voices.js", "pocket-voices.js"],
+    ["src/pocket-runtime-cache.js", "pocket-runtime-cache.js"],
     ["src/pocket-tokenizer.js", "pocket-tokenizer.js"],
+    ["src/pocket-decoder.js", "pocket-decoder.js"],
+    ["src/pocket-decoder-client.js", "pocket-decoder-client.js"],
+    ["src/pocket-decoder-worker.js", "pocket-decoder-worker.js"],
     ["src/pocket-tts.js", "pocket-tts.js"],
     ["src/pocket-voice-worker.js", "pocket-worker.js"],
   ]) pocketAssets.push(await copy(source, target));

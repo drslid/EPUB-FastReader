@@ -1,18 +1,22 @@
 import { POCKET_RUNTIME_ASSETS, RUNTIME_ASSETS } from "./voice-runtime-manifest.js";
 import { PIPER_VOICES } from "./piper-voices.js";
-import { POCKET_VOICE } from "./pocket-voices.js";
+import { POCKET_VOICES } from "./pocket-voices.js";
 
 export const VOICE_CACHE_NAME = "fastreader-voice-v2";
 export const VOICE_RUNTIME_PATH = "voice-runtime/v2/";
 export const LEGACY_VOICE_CACHE_NAME = "fastreader-voice-v1";
 export const LEGACY_VOICE_RUNTIME_PATH = "voice-runtime/v1/";
 
-export const VOICES = Object.freeze([...PIPER_VOICES, POCKET_VOICE]);
+export const VOICES = Object.freeze([...PIPER_VOICES, ...POCKET_VOICES]);
 export const supportedVoiceLanguages = Object.freeze([...new Set(VOICES.map(({ language }) => language))]);
 export const voiceForId = id => VOICES.find(voice => voice.id === id);
 
 export function voiceEngineIdentity(voice) {
-  if (voice.engine === "pocket") return ["pocket-estelle-v1", voice.modelKey, voice.upstreamRevision];
+  if (voice.engine === "pocket") {
+    const identity = [voice.format || "pocket-estelle-v1", voice.modelKey, voice.upstreamRevision];
+    if (voice.presetRevision) identity.push(voice.presetRevision);
+    return identity;
+  }
   if (voice.model?.sha256) return ["piper-medium-v1", voice.modelKey, voice.model.sha256, voice.config?.sha256 || ""];
   return voice.modelKey || "kokoro-q8-natural-v2";
 }

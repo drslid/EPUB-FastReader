@@ -1724,41 +1724,46 @@ body.reading {
 .rsvp-stage {
   --rsvp-axis: 50%;
   --rsvp-rail-color: var(--accent);
+  --rsvp-stage-height: clamp(172px, 24vh, 208px);
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 156px;
-  min-height: 156px;
-  flex: 0 0 156px;
-  width: min(620px, 100%);
+  height: var(--rsvp-stage-height);
+  flex: 0 0 var(--rsvp-stage-height);
+  width: min(720px, 100%);
   margin: 0 0 20px;
   position: relative;
-  border-block: 1px solid var(--border);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-color: color-mix(in srgb, var(--reader-text) 40%, var(--border));
+  border-radius: 12px;
   overflow: hidden;
   padding: 0 10px;
   contain: layout;
+}
+body[data-theme="sepia"] .rsvp-stage {
+  background: #fff7e6;
 }
 .rsvp-stage:before,
 .rsvp-stage:after {
   content: "";
   position: absolute;
-  width: 2px;
-  height: 9px;
+  width: 3px;
+  height: 13px;
   background: var(--rsvp-rail-color);
-  left: calc(var(--rsvp-axis) - 1px);
-  top: 0;
+  left: calc(var(--rsvp-axis) - 1.5px);
+  top: 10px;
 }
 .rsvp-stage:after {
   top: auto;
-  bottom: 0;
+  bottom: 10px;
 }
 #rsvp-word {
   display: inline-block;
   font-family: var(--reading-font);
-  font-size: clamp(32px, 4.5vw, 56px);
+  font-size: clamp(48px, 6.5vw, 72px);
   font-weight: 500;
-  height: 76px;
-  line-height: 76px;
+  line-height: 1.15;
   white-space: nowrap;
   text-align: center;
   color: var(--reader-text);
@@ -1773,7 +1778,6 @@ body.reading {
   top: 50%;
   left: var(--rsvp-axis);
   transform: translate(var(--rsvp-offset, 0px), -50%);
-  color: var(--accent);
 }
 .rsvp-pivot-letter {
   color: var(--rsvp-rail-color);
@@ -1822,6 +1826,9 @@ body.reading {
   background: var(--reader-panel);
   border-radius: 14px;
   margin: 0;
+}
+.rsvp[data-playing] .rsvp-context {
+  visibility: hidden;
 }
 .rsvp-context p {
   font:
@@ -2829,15 +2836,8 @@ input[type="range"] {
     padding: 6px 17px 12px;
   }
   .rsvp-stage {
-    height: 118px;
-    min-height: 118px;
-    flex-basis: 118px;
+    --rsvp-stage-height: clamp(132px, 22vh, 166px);
     margin-bottom: 16px;
-  }
-  #rsvp-word {
-    font-size: 40px;
-    height: 62px;
-    line-height: 62px;
   }
   .rsvp-controls {
     gap: 18px;
@@ -3018,6 +3018,19 @@ input[type="range"] {
     flex-basis: auto;
     margin: 0;
     width: 100%;
+  }
+  .rsvp-stage::before,
+  .rsvp-stage::after {
+    height: 9px;
+  }
+  .rsvp-stage::before {
+    top: 5px;
+  }
+  .rsvp-stage::after {
+    bottom: 5px;
+  }
+  #rsvp-word {
+    font-size: clamp(36px, 10vh, 54px);
   }
   .rsvp-controls {
     grid-column: 2;

@@ -7,13 +7,18 @@ const byteOffset = pieces.length;
 const bytes = Array.from({ length: 256 }, (_, byte) => [
   `<0x${byte.toString(16).toUpperCase().padStart(2, "0")}>`, -10,
 ]);
-const config = {
-  model: { type: "Unigram", byte_fallback: true, unk_id: 0, vocab: [...pieces, ...bytes] },
-  normalizer: { normalizers: [{ type: "Prepend", prepend: "▁" }] },
-  pre_tokenizer: { type: "Metaspace", replacement: "▁", prepend_scheme: "always", split: true },
-};
+const prepend = { type: "Prepend", prepend: "▁" };
 
-describe("the Pocket TTS tokenizer", () => {
+describe.each([
+  ["French", { type: "Sequence", normalizers: [prepend] }],
+  ["English", prepend],
+])("the Pocket TTS tokenizer for %s", (_language, normalizer) => {
+  const config = {
+    model: { type: "Unigram", byte_fallback: true, unk_id: 0, vocab: [...pieces, ...bytes] },
+    normalizer,
+    pre_tokenizer: { type: "Metaspace", replacement: "▁", prepend_scheme: "always", split: true },
+  };
+
   it("prefers the best-scored Unigram segmentation for each word", () => {
     expect(createPocketTokenizer(config)("salut été")).toEqual([3, 5]);
   });
