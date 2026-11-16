@@ -11,6 +11,56 @@ async function openDemo(page) {
   await expect(page.locator("#rsvp")).toBeVisible();
 }
 
+async function expectFixedLetter(page, letter) {
+  const pivot = page.locator(".rsvp-pivot-letter");
+  await expect(pivot).toHaveText(letter);
+  await expect.poll(() => pivot.evaluate((element) => {
+    const stage = element.closest(".rsvp-stage");
+    const stageBounds = stage.getBoundingClientRect();
+    const pivotBounds = element.getBoundingClientRect();
+    const stageLeft = stageBounds.left + stage.clientLeft;
+    const axis = stage.clientWidth * 0.4;
+    const pivotCenter = pivotBounds.left + pivotBounds.width / 2 - stageLeft;
+    const guideOffsets = ["::before", "::after"].map((guide) => {
+      const style = getComputedStyle(stage, guide);
+      return Math.abs(parseFloat(style.left) + parseFloat(style.width) / 2 - axis);
+    });
+    return Math.max(Math.abs(pivotCenter - axis), ...guideOffsets);
+  })).toBeLessThanOrEqual(1);
+}
+
+test("la lettre de fixation est colorée et son réglage survit au rechargement", async ({ page }) => {
+  await openDemo(page);
+  const stage = page.locator(".rsvp-stage");
+  const word = page.locator("#rsvp-word");
+  const pivot = page.locator(".rsvp-pivot-letter");
+  const currentWord = await word.textContent();
+  await expect(stage).toHaveAttribute("data-fixation");
+  await expect(pivot).toBeVisible();
+  expect(await pivot.evaluate((letter) => getComputedStyle(letter).color))
+    .not.toBe(await word.evaluate((element) => getComputedStyle(element).color));
+
+  await page.getByRole("button", { name: "Réglages de lecture" }).click();
+  const fixation = page.locator("#rsvp-fixation");
+  await expect(fixation).toBeChecked();
+  await fixation.uncheck();
+  await page.getByRole("button", { name: "Fermer les réglages" }).click();
+  await expect(stage).not.toHaveAttribute("data-fixation");
+  await expect(pivot).toBeHidden();
+  await expect(word).toHaveText(currentWord);
+
+  await page.reload();
+  await expect(word).toHaveText(currentWord);
+  await expect(stage).not.toHaveAttribute("data-fixation");
+  await page.getByRole("button", { name: "Réglages de lecture" }).click();
+  await expect(fixation).not.toBeChecked();
+  await fixation.check();
+  await page.getByRole("button", { name: "Fermer les réglages" }).click();
+  await expect(stage).toHaveAttribute("data-fixation");
+  await expect(pivot).toBeVisible();
+  await expect(word).toHaveText(currentWord);
+});
+
 test("les commandes du mot à mot respectent pause, clavier, bornes de vitesse et retour arrière", async ({
   page,
 }) => {
@@ -148,17 +198,26 @@ for (const viewport of [
     await expect(page.locator("#rsvp")).toBeVisible();
     const before = await page.locator(".rsvp-stage").boundingBox();
     const controlBefore = await page.locator("#play-button").boundingBox();
-    for (let step = 0; step < 3; step += 1)
-      await page.getByRole("button", { name: "Avancer de dix mots" }).click();
+    const forward = page.getByRole("button", { name: "Avancer de dix mots" });
+    await forward.click();
+    await expect(page.locator("#rsvp-word")).toHaveText("un");
+    await expectFixedLetter(page, "n");
+    await forward.click();
     await expect(page.locator("#rsvp-word")).toHaveText(longWord);
+    await expectFixedLetter(page, "c");
     const after = await page.locator(".rsvp-stage").boundingBox();
     const controlAfter = await page.locator("#play-button").boundingBox();
-    const word = await page.locator("#rsvp-word").boundingBox();
+    const word = await page.locator("#rsvp-word").evaluate((element) => {
+      const text = document.createRange();
+      text.selectNodeContents(element);
+      return text.getBoundingClientRect().toJSON();
+    });
     expect(
       Math.abs(before.y + before.height / 2 - after.y - after.height / 2),
     ).toBeLessThanOrEqual(1);
     expect(Math.abs(controlBefore.y - controlAfter.y)).toBeLessThanOrEqual(1);
-    expect(word.width).toBeLessThanOrEqual(after.width + 1);
+    expect(word.left).toBeGreaterThanOrEqual(after.x - 1);
+    expect(word.right).toBeLessThanOrEqual(after.x + after.width + 1);
     expect(word.height).toBeLessThanOrEqual(after.height + 1);
     expect(
       await page.evaluate(
@@ -173,10 +232,13 @@ for (const viewport of [
       page.getByRole("button", { name: "Mot à mot", exact: true }),
     ).toBeInViewport({ ratio: 1 });
     await page.getByRole("button", { name: "Réglages de lecture" }).click();
+    await page.locator("#font-family").selectOption("serif");
     await expect(
       page.getByRole("button", { name: "Fermer les réglages" }),
     ).toBeInViewport({ ratio: 1 });
     await page.getByRole("button", { name: "Fermer les réglages" }).click();
+    await expect(page.locator("#rsvp-word")).toHaveCSS("font-family", /Georgia/);
+    await expectFixedLetter(page, "c");
     await page.getByRole("link", { name: "Retour à ma bibliothèque" }).click();
     expect(
       await page.evaluate(

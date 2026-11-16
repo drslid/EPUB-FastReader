@@ -33,6 +33,7 @@ import { importEpub, applyFocus, exportClassicEpub } from "./epub.js";
 import { searchBooks, downloadBook, providers } from "./catalog.js";
 import { libraryMarkup } from "./views/library.js";
 import { readerMarkup } from "./views/reader.js";
+import { fitRsvpWord as fitRsvpWordInStage, renderRsvpWord } from "./views/rsvp-word.js";
 import { discoverMarkup } from "./views/discover.js";
 import {
   getTextContent,
@@ -500,7 +501,6 @@ function toggleVoice() {
   }
   else chooseVoice();
 }
-const wordMeasure = document.createElement("canvas").getContext("2d");
 const newId = () =>
   crypto.randomUUID?.() ||
   `mark-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -807,6 +807,10 @@ function renderReader({ preserveVoicePreparation = false } = {}) {
     restoreReaderPosition();
     scroll.addEventListener("scroll", onReadScroll, { passive: true });
     let previousWidth = scroll.clientWidth;
+    const word = document.getElementById("rsvp-word");
+    document.fonts?.ready.then(() => {
+      if (word?.isConnected) fitRsvpWord();
+    });
     readingResizeObserver = new ResizeObserver(() => {
       for (const [selector, variable] of [
         [".reader-control-panel", "--reader-footer-height"],
@@ -831,6 +835,7 @@ function renderReader({ preserveVoicePreparation = false } = {}) {
       ".reader-control-panel",
       ".reader-header",
       ".reader-modebar",
+      ".rsvp-stage",
     ]) {
       const element = document.querySelector(selector);
       if (element) readingResizeObserver.observe(element);
@@ -1541,36 +1546,15 @@ function pause() {
 }
 
 function fitRsvpWord() {
-  const element = document.querySelector("#rsvp-word");
-  const stage = document.querySelector(".rsvp-stage");
-  if (
-    !element ||
-    !stage ||
-    !stage.clientWidth ||
-    state.settings.mode !== "rsvp"
-  )
-    return;
-  element.style.fontSize = "";
-  element.style.transform = "";
-  const style = getComputedStyle(element);
-  const baseSize = parseFloat(style.fontSize);
-  if (!wordMeasure || !baseSize) return;
-  wordMeasure.font = `${style.fontWeight} ${baseSize}px ${style.fontFamily}`;
-  const width = wordMeasure.measureText(element.textContent).width;
-  const available = Math.max(40, stage.clientWidth - 36);
-  if (width > available) {
-    const fitted = Math.max(18, (baseSize * available) / width);
-    element.style.fontSize = `${fitted}px`;
-    // Extremely long tokens stay contained; the complete passage remains one tap away.
-    if ((width * fitted) / baseSize > available)
-      element.style.transform = `scaleX(${available / ((width * fitted) / baseSize)})`;
-  }
+  const element = document.getElementById("rsvp-word");
+  if (element && state.settings.mode === "rsvp") fitRsvpWordInStage(element);
 }
 
 function updateRsvp() {
   const element = document.querySelector("#rsvp-word");
   if (!element) return;
-  element.textContent = words[state.position.wordIndex] || t("Fin du chapitre");
+  const word = words[state.position.wordIndex];
+  renderRsvpWord(element, word || t("Fin du chapitre"), Boolean(word && state.settings.rsvpFixation));
   fitRsvpWord();
   const context = document.querySelector("#rsvp-context-text");
   if (context)
@@ -2155,6 +2139,11 @@ app.addEventListener("change", (event) => {
   if (target.id === "reading-profile" && readingProfiles[target.value]) updateReadingPreferences({ ...readingProfiles[target.value], profile: target.value });
   if (target.id === "skip-short-words") updateReadingPreferences({ skipShortWords: target.checked });
   if (target.id === "reading-cadence") { state.settings.cadence = target.value; savePreferences(); }
+  if (target.id === "rsvp-fixation") {
+    state.settings.rsvpFixation = target.checked;
+    updateRsvp();
+    void savePreferences();
+  }
   if (target.id === "keep-awake") {
     state.settings.wakeLock = target.checked;
     void syncWakeLock();

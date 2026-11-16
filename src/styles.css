@@ -40,6 +40,7 @@ body[data-theme="night"] {
   --focus-prefix: #e8eee7;
   --focus-highlight: #283b25;
   --focus-highlight-text: #b8c9bd;
+  --rsvp-pivot-color: #ff9eae;
 }
 body[data-theme="paper"] {
   color-scheme: light;
@@ -1721,6 +1722,8 @@ body.reading {
   overscroll-behavior: contain;
 }
 .rsvp-stage {
+  --rsvp-axis: 50%;
+  --rsvp-rail-color: var(--accent);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1741,8 +1744,8 @@ body.reading {
   position: absolute;
   width: 2px;
   height: 9px;
-  background: var(--accent);
-  left: calc(50% - 1px);
+  background: var(--rsvp-rail-color);
+  left: calc(var(--rsvp-axis) - 1px);
   top: 0;
 }
 .rsvp-stage:after {
@@ -1760,6 +1763,31 @@ body.reading {
   text-align: center;
   color: var(--reader-text);
   transform-origin: center;
+}
+.rsvp-stage[data-fixation] {
+  --rsvp-axis: 40%;
+  --rsvp-rail-color: var(--rsvp-pivot-color, #a3263f);
+}
+.rsvp-stage[data-fixation] #rsvp-word {
+  position: absolute;
+  top: 50%;
+  left: var(--rsvp-axis);
+  transform: translate(var(--rsvp-offset, 0px), -50%);
+  color: var(--accent);
+}
+.rsvp-pivot-letter {
+  color: var(--rsvp-rail-color);
+}
+@media (forced-colors: active) {
+  .rsvp-stage[data-fixation]::before,
+  .rsvp-stage[data-fixation]::after {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+  .rsvp-pivot-letter {
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+  }
 }
 .rsvp-controls {
   display: flex;

@@ -182,6 +182,7 @@ export const defaultSettings = Object.freeze({
   focusIntensity: 50,
   skipShortWords: false,
   cadence: "gentle",
+  rsvpFixation: true,
   wakeLock: true,
   profile: "balanced",
 });
@@ -209,6 +210,7 @@ export function normalizeSettings(value) {
     focusIntensity: Math.round(Math.min(70, Math.max(20, Number(source.focusIntensity) || 50))),
     skipShortWords: source.skipShortWords === true,
     cadence: source.cadence === "steady" ? "steady" : "gentle",
+    rsvpFixation: typeof source.rsvpFixation === "boolean" ? source.rsvpFixation : defaultSettings.rsvpFixation,
     wakeLock: source.wakeLock !== false,
     profile: ["balanced", "comfort", "light", "custom"].includes(source.profile) ? source.profile : "balanced",
   };
