@@ -24,7 +24,7 @@
     "voice:prepare": "node scripts/prepare-voice-runtime.mjs"
   },
   "dependencies": {
-    "dompurify": "3.4.15",
+    "dompurify": "3.4.17",
     "jszip": "3.10.2"
   },
   "devDependencies": {
