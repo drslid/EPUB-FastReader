@@ -5,7 +5,7 @@ const aborted = () => new DOMException("Speech cancelled", "AbortError");
 export function createInstalledVoiceEngine({ downloads, createEngine }) {
   const lifetime = new AbortController();
   const pending = new Map();
-  let engine, verifiedVoice;
+  let engine, engineKind, verifiedVoice;
 
   function dispose() {
     if (lifetime.signal.aborted) return;
@@ -76,7 +76,13 @@ export function createInstalledVoiceEngine({ downloads, createEngine }) {
   async function run(method, voice, args, options) {
     await ensure(voice, options, method === "load");
     check(options.signal);
-    engine ||= createEngine();
+    const kind = voice?.engine || "piper";
+    if (!engine || engineKind !== kind) {
+      engine?.dispose();
+      engine = undefined;
+      engine = createEngine(voice);
+      engineKind = kind;
+    }
     return engine[method](...args, options);
   }
 

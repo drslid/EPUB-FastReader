@@ -46,3 +46,40 @@ export const RUNTIME_ASSETS = Object.freeze([
     "sha256": "b5ac96981729547606fd026b8e3829aad81e9e3c22308869d50473259c563283"
   }
 ]);
+export const POCKET_RUNTIME_ASSETS = Object.freeze([
+  {
+    "file": "vendor/ort.wasm.min.mjs",
+    "bytes": 48008,
+    "sha256": "0cb5ac5be2c414d5b9e361f857108630c6d6e24a5ab9be3cf5f761de55289e94"
+  },
+  {
+    "file": "vendor/ort-wasm-simd-threaded.mjs",
+    "bytes": 20856,
+    "sha256": "43c25054b6b9ac000f786c65545ff83a45f871e0e310e8c2f4d48a363bb66db4"
+  },
+  {
+    "file": "vendor/ort-wasm-simd-threaded.wasm",
+    "bytes": 11133407,
+    "sha256": "f061472c6e77d6d50d079aacdc0ff9b63fee287ddd2cbf46cf62438d3891de2b"
+  },
+  {
+    "file": "pocket-voices.js",
+    "bytes": 1671,
+    "sha256": "36c70dca0590ceb8e0721a39f6c921fc4efd72908b360a0a3141a6b311f106ba"
+  },
+  {
+    "file": "pocket-tokenizer.js",
+    "bytes": 2466,
+    "sha256": "81a18e64409f26caef14910f5a563e278120e95ece367404f983672b12a50c78"
+  },
+  {
+    "file": "pocket-tts.js",
+    "bytes": 11813,
+    "sha256": "fc60b7c6c520ee505d9253bf413616867913167a9ef208ab56352b49fcaf3d48"
+  },
+  {
+    "file": "pocket-worker.js",
+    "bytes": 2719,
+    "sha256": "f93cc6564676d61db3628c0741ca18ce27ff28a2f41f8015e02d6c75eb7348ad"
+  }
+]);

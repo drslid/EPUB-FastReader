@@ -15,6 +15,8 @@ let manageStorage;
 const field = (name) => document.querySelector(`[data-voice-${name}]`);
 const settled = () => vi.waitFor(() => expect(field("list").getAttribute("aria-busy")).toBe("false"));
 const selectLanguage = (value) => { field("language").value = value; field("language").dispatchEvent(new Event("change", { bubbles: true })); };
+const siwisId = "piper-fr_FR-siwis-medium";
+const estelleId = "pocket-fr_FR-estelle-int8";
 
 beforeEach(() => {
   setLocale("fr");
@@ -39,11 +41,12 @@ beforeEach(() => {
 afterEach(() => { ui?.dispose(); document.body.innerHTML = ""; setLocale("fr"); vi.restoreAllMocks(); delete HTMLDialogElement.prototype.showModal; delete HTMLDialogElement.prototype.close; });
 
 describe("optional voice selection", () => {
-  it("offers one current voice in each supported language and never downloads from an old preference", async () => {
-    for (const [language, id] of [["fr", "piper-fr_FR-siwis-medium"], ["en", "piper-en_US-ljspeech-medium"], ["es", "piper-es_ES-davefx-medium"], ["it", "piper-it_IT-paola-medium"], ["de", "piper-de_DE-thorsten-medium"], ["pt", "piper-pt_BR-faber-medium"]]) {
+  it("offers the default voice in each supported language without downloading from an old preference", async () => {
+    for (const [language, id] of [["fr", siwisId], ["en", "piper-en_US-ljspeech-medium"], ["es", "piper-es_ES-davefx-medium"], ["it", "piper-it_IT-paola-medium"], ["de", "piper-de_DE-thorsten-medium"], ["pt", "piper-pt_BR-faber-medium"]]) {
       ui.open({ bookLanguage: language, lastVoiceId: "ff_siwis" });
       await settled();
-      expect(document.querySelectorAll("[data-voice-choice]")).toHaveLength(1);
+      expect([...document.querySelectorAll('input[name="voice-choice"]')].map(input => input.value))
+        .toEqual(language === "fr" ? [siwisId, estelleId] : [id]);
       expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe(id);
       expect(field("start").disabled).toBe(false);
       ui.close();
@@ -51,6 +54,32 @@ describe("optional voice selection", () => {
     expect(downloads.download).not.toHaveBeenCalled();
     expect(chosen).not.toHaveBeenCalled();
     expect(warmup).not.toHaveBeenCalled();
+  });
+
+  it("tracks availability per French voice and restores the saved Estelle choice offline", async () => {
+    ready.add(estelleId);
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    ui.open({ bookLanguage: "fr" });
+    await settled();
+    expect(field("start").disabled).toBe(true);
+
+    const estelle = document.querySelector(`input[value="${estelleId}"]`);
+    expect(estelle.closest("label").textContent).toContain("Estelle · Pocket TTS");
+    expect(estelle.closest("label").textContent).toContain("Voix expérimentale");
+    setLocale("en");
+    window.dispatchEvent(new Event("languagechange"));
+    expect(estelle.closest("label").textContent).toContain("Experimental voice");
+    estelle.click();
+    expect(field("start").disabled).toBe(false);
+    expect(warmup).toHaveBeenLastCalledWith(expect.objectContaining({ id: estelleId }));
+    ui.close();
+    ui.open({ bookLanguage: "fr-FR", lastVoiceId: estelleId });
+    await settled();
+    expect(document.querySelector('input[name="voice-choice"]:checked').value).toBe(estelleId);
+
+    field("start").click();
+    expect(chosen).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: estelleId }), { intent: "listen" });
+    expect(downloads.download).not.toHaveBeenCalled();
   });
 
   it("opens audio storage after closing the chooser without starting playback", async () => {

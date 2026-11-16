@@ -8,6 +8,7 @@ export function createVoiceEngine({
   baseUrl = "./",
   onProgress = () => {},
   wasmThreads = 1,
+  workerFile = "worker.js",
   workerFactory = (url) => new Worker(url, { type: "module", name: "fastreader-voice" }),
 } = {}) {
   const rootUrl = new URL(baseUrl, globalThis.document?.baseURI || globalThis.location?.href || "http://localhost/");
@@ -37,7 +38,7 @@ export function createVoiceEngine({
 
   function ensureWorker() {
     if (worker) return worker;
-    worker = workerFactory(new URL(`${VOICE_RUNTIME_PATH}worker.js`, rootUrl));
+    worker = workerFactory(new URL(`${VOICE_RUNTIME_PATH}${workerFile}`, rootUrl));
     const currentWorker = worker;
     worker.onmessage = ({ data }) => {
       if (worker !== currentWorker) return;

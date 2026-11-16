@@ -120,7 +120,17 @@ export function createVoiceUI({ downloads, onChoose = () => {}, onActivate = () 
     if (!dialog) return;
     const choices = VOICES.filter((voice) => voice.language === language);
     if (!choices.some((voice) => voice.id === selectedId)) selectedId = choices[0]?.id || "";
-    dialog.querySelector("[data-voice-list]").innerHTML = choices.map((voice) => `<label class="voice-choice" data-voice-choice><input type="radio" name="voice-choice" value="${escape(voice.id)}" ${selectedId === voice.id ? "checked" : ""}><span class="voice-choice-icon" aria-hidden="true">${glyph("volume", "♪")}</span><span class="voice-choice-copy"><strong>${escape(voice.name)}</strong><small data-voice-ready></small></span><span class="voice-choice-check" aria-hidden="true">✓</span></label>`).join("");
+    dialog.querySelector("[data-voice-list]").innerHTML = choices.map((voice) => {
+      const pocket = voice.engine === "pocket";
+      return `<label class="voice-choice" data-voice-choice>
+        <input type="radio" name="voice-choice" value="${escape(voice.id)}" ${selectedId === voice.id ? "checked" : ""}>
+        <span class="voice-choice-icon" aria-hidden="true">${glyph("volume", "♪")}</span>
+        <span class="voice-choice-copy"><strong>${escape(voice.name)}${pocket ? " · Pocket TTS" : ""}</strong>
+          <small data-voice-ready></small>${pocket ? `<small>${copy("Voix expérimentale")}</small>` : ""}
+        </span>
+        <span class="voice-choice-check" aria-hidden="true">✓</span>
+      </label>`;
+    }).join("");
     render();
   }
 

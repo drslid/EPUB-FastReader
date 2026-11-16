@@ -168,7 +168,7 @@ describe("voice downloads", () => {
     const status = await downloads.status("piper-fr_FR-siwis-medium");
     expect(status).toMatchObject({ state: "missing", ready: false, storedBytes: 0 });
     expect(status.downloadBytes).toBe(assetProvider("piper-fr_FR-siwis-medium").reduce((sum, asset) => sum + asset.bytes, 0));
-    expect(await downloads.list()).toHaveLength(6);
+    expect((await downloads.list()).map(voice => voice.voiceId)).toEqual(VOICES.map(voice => voice.id));
     expect(fetcher).not.toHaveBeenCalled();
   });
 

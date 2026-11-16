@@ -83,6 +83,32 @@ test("German is available and the voice chooser fits a small phone", async ({ pa
   expect((await new AxeBuilder({ page }).include(".voice-dialog").analyze()).violations).toEqual([]);
 });
 
+test("Estelle can be selected independently of Siwis and remembers the choice offline", async ({ page, context }) => {
+  const voiceId = "pocket-fr_FR-estelle-int8";
+  await mockPlayback(page);
+  await openBook(page);
+  await readyVoice(page, voiceId);
+  await context.setOffline(true);
+  await page.getByRole("button", { name: "Écouter", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Choisir une voix" });
+  const start = dialog.locator("[data-voice-start]");
+  const siwis = dialog.getByRole("radio", { name: /Siwis/ });
+  const estelle = dialog.getByRole("radio", { name: /Estelle · Pocket TTS/ });
+  await expect(siwis).toBeChecked();
+  await expect(start).toBeDisabled();
+  await dialog.getByText("Estelle · Pocket TTS", { exact: true }).click();
+  await expect(estelle).toBeChecked();
+  await expect(start).toHaveText("Lancer l’écoute");
+  await start.click();
+  await expect(page.locator("[data-voice-action=toggle]")).toContainText("Pause");
+  await expect(page.locator("[data-voice-action=choose]")).toContainText("Estelle");
+  await expect.poll(async () => (await storedRows(page, "preferences")).some(value => value.voiceId === voiceId)).toBe(true);
+
+  await page.locator("[data-voice-action=choose]").click();
+  await expect(estelle).toBeChecked();
+  await expect(start).toBeEnabled();
+});
+
 test("failed downloads can be retried or cancelled without leaving the reader", async ({ page }) => {
   await openBook(page);
   await page.route("**/voice-runtime/**", route => route.fulfill({ status: 503, body: "unavailable" }));

@@ -1,16 +1,21 @@
-import { RUNTIME_ASSETS } from "./voice-runtime-manifest.js";
+import { POCKET_RUNTIME_ASSETS, RUNTIME_ASSETS } from "./voice-runtime-manifest.js";
 import { PIPER_VOICES } from "./piper-voices.js";
+import { POCKET_VOICE } from "./pocket-voices.js";
 
 export const VOICE_CACHE_NAME = "fastreader-voice-v2";
 export const VOICE_RUNTIME_PATH = "voice-runtime/v2/";
 export const LEGACY_VOICE_CACHE_NAME = "fastreader-voice-v1";
 export const LEGACY_VOICE_RUNTIME_PATH = "voice-runtime/v1/";
 
-// Each selected voice has its own model. Only the runtime and pronunciation
-// data are shared across the six languages.
-export const VOICES = PIPER_VOICES;
-export const supportedVoiceLanguages = Object.freeze(VOICES.map(({ language }) => language));
+export const VOICES = Object.freeze([...PIPER_VOICES, POCKET_VOICE]);
+export const supportedVoiceLanguages = Object.freeze([...new Set(VOICES.map(({ language }) => language))]);
 export const voiceForId = id => VOICES.find(voice => voice.id === id);
+
+export function voiceEngineIdentity(voice) {
+  if (voice.engine === "pocket") return ["pocket-estelle-v1", voice.modelKey, voice.upstreamRevision];
+  if (voice.model?.sha256) return ["piper-medium-v1", voice.modelKey, voice.model.sha256, voice.config?.sha256 || ""];
+  return voice.modelKey || "kokoro-q8-natural-v2";
+}
 
 // These names support saved settings/audio, never new synthesis with a
 // different engine. Old audio remains readable in its separate database.
@@ -40,13 +45,22 @@ export function assetsForVoice(voiceId, baseUrl) {
   const voice = voiceForId(voiceId);
   if (!voice) return [];
   const root = new URL(VOICE_RUNTIME_PATH, voiceBaseUrl(baseUrl));
+  const pocket = voice.engine === "pocket";
+  const runtime = pocket ? POCKET_RUNTIME_ASSETS : RUNTIME_ASSETS;
+  // Config first identifies an interrupted installation so another voice's
+  // removal can retain the runtime files the resumable download still needs.
+  const models = pocket ? voice.assets : [
+    { ...voice.config, file: "config.json" },
+    { ...voice.model, file: "model.onnx" },
+  ];
   return [
-    ...RUNTIME_ASSETS.map(asset => ({ ...asset, url: new URL(asset.file, root).href, source: new URL(asset.file, root).href })),
-    // Config first identifies an interrupted installation, so deleting another
-    // voice preserves the runtime this resumable download still needs.
-    ...[["config.json", voice.config], ["model.onnx", voice.model]].map(([name, asset]) => {
+    ...runtime.map(asset => {
+      const url = new URL(asset.file, root).href;
+      return { ...asset, url, source: url };
+    }),
+    ...models.map(({ file: name, bytes, sha256, url: source }) => {
       const file = `models/${voice.modelKey}/${name}`;
-      return { file, voiceId, bytes: asset.bytes, sha256: asset.sha256, url: new URL(file, root).href, source: asset.url };
+      return { file, voiceId, bytes, sha256, url: new URL(file, root).href, source };
     }),
   ];
 }

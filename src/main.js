@@ -58,10 +58,10 @@ import {
   writeSuggestionHistory,
 } from "./storage.js";
 import { createDemo } from "./demo.js";
-import { createAcceleratedVoiceEngine } from "./voice-engine.js";
+import { createAcceleratedVoiceEngine, createVoiceEngine } from "./voice-engine.js";
 import { createInstalledVoiceEngine } from "./installed-voice-engine.js";
 import { createVoiceDownloads } from "./voice-downloads.js";
-import { voiceForId } from "./voice-assets.js";
+import { voiceEngineIdentity, voiceForId } from "./voice-assets.js";
 import { createVoiceUI, audioControlsMarkup } from "./voice-ui.js";
 import { createVoicePlayback } from "./voice-playback.js";
 import { createPreparedVoiceSource } from "./prepared-voice.js";
@@ -181,13 +181,14 @@ const pendingBookPreparations = new Map();
 let audioQueueSnapshot = { jobs: [], activeJobId: null };
 function canPrepareVoice(voice) {
   const current = voiceForId(voice?.id);
-  return Boolean(current && current.modelKey === voice.modelKey
-    && current.model.sha256 === voice.model?.sha256 && current.config.sha256 === voice.config?.sha256);
+  return Boolean(current && JSON.stringify(voiceEngineIdentity(current)) === JSON.stringify(voiceEngineIdentity(voice)));
 }
 const voiceDownloads = createVoiceDownloads({ baseUrl: import.meta.env.BASE_URL });
 const createInstalledAudioEngine = () => createInstalledVoiceEngine({
   downloads: voiceDownloads,
-  createEngine: () => createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }),
+  createEngine: voice => voice?.engine === "pocket"
+    ? createVoiceEngine({ baseUrl: import.meta.env.BASE_URL, workerFile: "pocket-worker.js" })
+    : createAcceleratedVoiceEngine({ baseUrl: import.meta.env.BASE_URL }),
 });
 const audioQueue = createAudioQueue({
   createEngine: createInstalledAudioEngine,

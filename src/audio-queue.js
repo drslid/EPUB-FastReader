@@ -1,5 +1,6 @@
 import { voicePassages, splitVoicePassage, isRecoverableVoiceTextError } from "./voice-text.js";
 import { createAudioStore } from "./audio-store.js";
+import { voiceEngineIdentity } from "./voice-assets.js";
 
 export const AUDIO_CONVERSION_LOCK = "fastreader-local-speech";
 const pronounceable = text => /[\p{L}\p{N}]/u.test(text);
@@ -323,9 +324,7 @@ export function createAudioQueue({
     }));
     const totalSegments = prepared.reduce((sum, chapter) => sum + chapter.passages.length, 0);
     if (!totalSegments) throw failure("VOICE_EMPTY_TEXT", "This book has no text to prepare");
-    const engineIdentity = voice.model?.sha256
-      ? ["piper-medium-v1", voice.modelKey, voice.model.sha256, voice.config?.sha256 || ""]
-      : voice.modelKey || "kokoro-q8-natural-v2";
+    const engineIdentity = voiceEngineIdentity(voice);
     const id = await digest(JSON.stringify([engineIdentity, bookId, voice.id, prepared.map(chapter => [chapter.id, chapter.digest])]));
     if (disposed) throw failure("QUEUE_CLOSED", "Audio preparation is closed");
     const timestamp = now();

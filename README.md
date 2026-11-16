@@ -55,7 +55,7 @@ The player shows preparation progress and starts speaking as soon as the first c
 
 Long web addresses are read as their domain, and invisible formatting characters are cleaned up for speech. If a passage still cannot be spoken, FastReader skips it, tells you how many passages were skipped, and continues. Your book’s text stays unchanged. Interrupted preparations resume from the saved audio instead of starting over.
 
-Choose from six voices: **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. Each voice needs approximately **63 MB**, plus **30 MB of shared files** on first use. The app shows the download size before you start. Download a voice while connected to the internet, then use it offline. These are the Piper Medium voices currently available in FastReader.
+Choose from the Piper voices **French (Siwis), English (LJ Speech), Spanish (Davefx), Italian (Paola), German (Thorsten) and Brazilian Portuguese (Faber)**. **Estelle** is an experimental French voice powered by Pocket TTS. Piper voice files are about **63 MB** each, and Estelle's voice files are about **121 MB**. The app shows the full download size, including any missing runtime files. Download a voice while connected to the internet, then use it offline.
 
 **Free up space:** choose **Manage audio storage** from the voice chooser or the audio queue. See the space used by each book and downloaded voice, then choose what to remove:
 

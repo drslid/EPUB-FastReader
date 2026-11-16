@@ -54,6 +54,23 @@ describe("installed voice runtime gate", () => {
     expect(downloads.ensureRuntime).toHaveBeenCalledTimes(4);
   });
 
+  it("releases the old engine when switching to or from Pocket TTS", async () => {
+    const { createEngine, engine, underlying } = setup();
+    const pocket = { id: "pocket-fr_FR-estelle-int8", engine: "pocket" };
+    const pocketEngine = { concurrency: 1, load: vi.fn(), synthesize: vi.fn(), dispose: vi.fn() };
+    createEngine.mockImplementation(voice => voice?.engine === "pocket" ? pocketEngine : underlying);
+    await engine.load(french);
+    await engine.load(pocket);
+    expect(underlying.dispose).toHaveBeenCalledOnce();
+    expect(engine.concurrency).toBe(1);
+    await engine.synthesize("Bonjour.", { voice: pocket });
+    expect(pocketEngine.synthesize).toHaveBeenCalledWith("Bonjour.", { voice: pocket });
+    expect(createEngine).toHaveBeenCalledTimes(2);
+    await engine.load(english);
+    expect(pocketEngine.dispose).toHaveBeenCalledOnce();
+    expect(engine.concurrency).toBe(2);
+  });
+
   it("shares the first runtime update between concurrent passages and forwards progress", async () => {
     const { downloads, engine, createEngine } = setup();
     const update = deferred();

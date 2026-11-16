@@ -8,6 +8,7 @@ const rows = [
   ["Choisir une langue", "Choose a language", "Elegir un idioma", "Scegli una lingua", "Sprache wählen", "Escolher um idioma"],
   ["Disponible hors connexion", "Available offline", "Disponible sin conexión", "Disponibile offline", "Offline verfügbar", "Disponível offline"],
   ["À télécharger", "Download needed", "Descarga necesaria", "Da scaricare", "Download erforderlich", "Por descarregar"],
+  ["Voix expérimentale", "Experimental voice", "Voz experimental", "Voce sperimentale", "Experimentelle Stimme", "Voz experimental"],
   ["Télécharger et écouter", "Download and listen", "Descargar y escuchar", "Scarica e ascolta", "Herunterladen und anhören", "Descarregar e ouvir"],
   ["Lancer l’écoute", "Start listening", "Empezar a escuchar", "Avvia l’ascolto", "Wiedergabe starten", "Começar a ouvir"],
   ["Connexion nécessaire pour télécharger une voix.", "An internet connection is needed to download a voice.", "Necesitas conexión a internet para descargar una voz.", "Serve una connessione a Internet per scaricare una voce.", "Zum Herunterladen einer Stimme ist eine Internetverbindung nötig.", "É necessária uma ligação à Internet para descarregar uma voz."],
